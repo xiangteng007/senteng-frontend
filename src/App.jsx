@@ -58,10 +58,12 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import { GoogleService } from "./services/googleService";
+
+
+
 // --- GOOGLE API CONFIGURATION ---
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY; 
-const SCOPES = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar";
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // --- MOCK DATA ---
 const MOCK_DB = {
@@ -150,137 +152,7 @@ const MOCK_DB = {
   ]
 };
 
-// --- REAL GOOGLE SERVICE (Safe Dynamic Script Loading) ---
-const GoogleService = {
-  // 動態載入 Google API Script，不依賴 npm 套件
-  initClient: () => {
-    return new Promise((resolve, reject) => {
-      try {
-        if (window.gapi) {
-           initGapi(resolve, reject);
-           return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = "https://apis.google.com/js/api.js";
-        script.onload = () => {
-          initGapi(resolve, reject);
-        };
-        script.onerror = (err) => {
-          console.warn("Failed to load Google API script (Offline or Blocked)", err);
-          // 不 reject，允許使用 mock mode，避免 Script Error 崩潰
-          resolve(false);
-        };
-        document.body.appendChild(script);
-      } catch (e) {
-        console.warn("Google API init exception:", e);
-        resolve(false);
-      }
-    });
-  },
 
-  // 登入
-  login: async () => {
-    if (!window.gapi || !window.gapi.auth2) throw new Error("Google API not loaded");
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    // 檢查是否有 Client ID
-    if (!authInstance) {
-        throw new Error("Missing Client ID. Please configure VITE_GOOGLE_CLIENT_ID in .env");
-    }
-    await authInstance.signIn();
-    const profile = authInstance.currentUser.get().getBasicProfile();
-    return {
-      name: profile.getName(),
-      email: profile.getEmail(),
-      photo: profile.getImageUrl()
-    };
-  },
-
-  // 登出
-  logout: async () => {
-    if (!window.gapi || !window.gapi.auth2) return;
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    if(authInstance) await authInstance.signOut();
-  },
-
-  // 取得使用者資訊 (如果已登入)
-  getUser: () => {
-    if (!window.gapi || !window.gapi.auth2) return null;
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    if (authInstance && authInstance.isSignedIn.get()) {
-      const profile = authInstance.currentUser.get().getBasicProfile();
-      return {
-        name: profile.getName(),
-        email: profile.getEmail(),
-        photo: profile.getImageUrl()
-      };
-    }
-    return null;
-  },
-
-  // --- API 呼叫 ---
-  fetchSheetData: (sheetName) => new Promise(resolve => {
-    // 實際應為: window.gapi.client.sheets.spreadsheets.values.get(...)
-    setTimeout(() => { if (MOCK_DB[sheetName]) resolve(MOCK_DB[sheetName]); }, 800);
-  }),
-  
-  fetchCalendarEvents: () => new Promise(resolve => {
-    setTimeout(() => resolve(MOCK_DB.calendar), 1000); 
-  }),
-  
-  addToCalendar: (event) => new Promise(resolve => {
-    setTimeout(() => { console.log("[Google API] Added to Calendar:", event); resolve({ success: true }); }, 800);
-  }),
-  
-  syncToSheet: (sheetName, data) => new Promise(resolve => {
-    setTimeout(() => { console.log(`[Google API] Synced to Sheet [${sheetName}]:`, data); resolve({ success: true }); }, 1000);
-  }),
-  
-  uploadToDrive: (file, folderName) => new Promise(resolve => {
-    setTimeout(() => { 
-        console.log(`[Google API] Uploaded ${file.name} to Drive/Projects/${folderName}/`);
-        resolve({ success: true, url: `https://drive.google.com/file/d/mock-${Date.now()}` }); 
-    }, 1500);
-  }),
-  
-  createDriveFolder: (clientName) => new Promise(resolve => {
-    setTimeout(() => {
-        resolve(`https://drive.google.com/drive/folders/mock-${clientName}-${Date.now()}`);
-    }, 1000);
-  })
-};
-
-// 內部 Helper: 初始化 gapi client
-function initGapi(resolve, reject) {
-  if (!CLIENT_ID || !API_KEY) {
-    console.warn("GAPI: Missing Client ID or API Key. Running in Mock Mode.");
-    resolve(false);
-    return;
-  }
-  
-  try {
-    window.gapi.load('client:auth2', () => {
-      window.gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: [
-          "https://sheets.googleapis.com/$discovery/rest?version=v4",
-          "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"
-        ],
-        scope: SCOPES,
-      }).then(() => {
-        resolve(window.gapi.auth2.getAuthInstance().isSignedIn.get());
-      }).catch(err => {
-        console.warn("GAPI Init Warning (Network or Config error):", err);
-        resolve(false); 
-      });
-    });
-  } catch (e) {
-    console.error("GAPI Load Error:", e);
-    resolve(false);
-  }
-}
 
 // --- HELPER COMPONENTS ---
 const Card = ({ children, className = "", noPadding = false, onClick }) => (
