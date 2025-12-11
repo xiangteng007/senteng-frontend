@@ -59,8 +59,8 @@ import {
 } from 'lucide-react';
 
 // --- GOOGLE API CONFIGURATION ---
-const CLIENT_ID = "323484895772-arn03457iqt4qe6blgq9sth4is1cmrv4.apps.googleusercontent.com"; 
-const API_KEY = "AIzaSyBpj-cbC_U4e69VOLclRm2ZD_yio2dK3uU"; 
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY; 
 const SCOPES = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar";
 
 // --- MOCK DATA ---
