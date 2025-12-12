@@ -221,30 +221,51 @@ const GoogleService = (() => {
 
   function _normalizeRange(sheetName, defaultA1 = "A1:Z") {
     if (!sheetName) throw new Error("Missing sheetName");
+    const sn = String(sheetName).trim();
+    // Backward-compat: some UI/modules still use "transactions" (old tab name). Current tab is "finance".
+    const mapped = (sn === "transactions" || sn === "transaction") ? "finance" : sn;
     // If caller already passed A1 notation like "clients!A1:Z" keep it.
-    if (sheetName.includes("!")) return sheetName;
-    // Default: read a reasonable rectangular range so Sheets API won't 404.
-    return `${sheetName}!${defaultA1}`;
+    if (mapped.includes("!")) return mapped;
+    // Default: read a reasonable rectangular range so Sheets API won't 400 on bare tab name.
+    return `${mapped}!${defaultA1}`;
   }
 
   async function fetchSheetData(sheetName) {
     if (!cfg.spreadsheetId) throw new Error("Missing VITE_GOOGLE_SPREADSHEET_ID");
-    const res = await window.gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: cfg.spreadsheetId,
-      range: _normalizeRange(sheetName, "A1:Z"),
-    });
-    return res.result;
+    try {
+      const res = await window.gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: cfg.spreadsheetId,
+        range: _normalizeRange(sheetName, "A1:Z"),
+      });
+      return res.result;
+    } catch (err) {
+      // If sheet/tab is missing, Sheets API often returns 400 "Unable to parse range".
+      const msg = (err && (err.message || err.result?.error?.message)) || "";
+      if (String(msg).toLowerCase().includes("unable to parse range")) {
+        console.warn("[GoogleService] Sheet range not found:", sheetName, msg);
+        return { range: _normalizeRange(sheetName, "A1:Z"), values: [] };
+      }
+      throw err;
+    }
   }
 
   async function syncToSheet(sheetName, values2D) {
     if (!cfg.spreadsheetId) throw new Error("Missing VITE_GOOGLE_SPREADSHEET_ID");
-    const res = await window.gapi.client.sheets.spreadsheets.values.update({
-      spreadsheetId: cfg.spreadsheetId,
-      range: _normalizeRange(sheetName, "A1"),
-      valueInputOption: "RAW",
-      resource: { values: values2D },
-    });
-    return res.result;
+    try {
+      const res = await window.gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId: cfg.spreadsheetId,
+        range: _normalizeRange(sheetName, "A1"),
+        valueInputOption: "RAW",
+        resource: { values: values2D },
+      });
+      return res.result;
+    } catch (err) {
+      const msg = (err && (err.message || err.result?.error?.message)) || "";
+      if (String(msg).toLowerCase().includes("unable to parse range")) {
+        console.warn("[GoogleService] Sheet range not found:", sheetName, msg);
+      }
+      throw err;
+    }
   }
 
   async function createDriveFolder(name) {
