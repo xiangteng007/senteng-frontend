@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 // 移除外部依賴，改用 window.gapi 動態載入，避免預覽環境報錯
 import { 
   LayoutDashboard, 
@@ -539,7 +539,7 @@ const ProjectDetail = ({ project, transactions, onBack, onUpdateProject, addToas
 }
 
 // 1. Schedule Page
-const Schedule = ({ data, loading, addToast, activeTab, setActiveTab, setActiveProject }) => {
+const Schedule = ({ data, loading, addToast }) => {
   const [currentDate, setCurrentDate] = useState(new Date("2025-12-07"));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: "", date: "", time: "10:00", type: "meeting", relatedId: "" });
@@ -834,17 +834,7 @@ const App = () => {
     }
 
     switch(activeTab) {
-      case 'schedule': 
-  return (
-    <Schedule
-      data={data.calendar}
-      loading={loading}
-      addToast={addToast}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      setActiveProject={setActiveProject}
-    />
-  );
+      case 'schedule': return <Schedule data={data.calendar} loading={loading} addToast={addToast} />;
       // Safe access for projects
       case 'projects': return <Projects data={data?.projects || []} loading={loading} addToast={addToast} onSelectProject={setActiveProject} />;
       // Safe access for finance (Corrected path)
