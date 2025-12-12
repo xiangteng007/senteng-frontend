@@ -1,4 +1,10 @@
-﻿import React, { useMemo, useState } from "react";
+﻿$ErrorActionPreference="Stop"
+Set-Location "C:\Users\xiang\senteng-design-system"
+
+New-Item -ItemType Directory -Force -Path ".\src\components" | Out-Null
+
+@'
+import React, { useMemo, useState } from "react";
 import GoogleService from "../services/googleService";
 
 function pretty(obj) {
@@ -181,3 +187,8 @@ export default function HealthCheck() {
     </section>
   );
 }
+'@ | Set-Content -Encoding UTF8 ".\src\components\HealthCheck.jsx"
+
+# 檢查檔案前 5 行，確認不再是佔位符
+(Get-Content -Encoding UTF8 ".\src\components\HealthCheck.jsx" | Select-Object -First 5) | ForEach-Object { $_ }
+
