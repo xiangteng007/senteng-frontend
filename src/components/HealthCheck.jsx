@@ -1,6 +1,5 @@
 ﻿$ErrorActionPreference="Stop"
 Set-Location "C:\Users\xiang\senteng-design-system"
-
 New-Item -ItemType Directory -Force -Path ".\src\components" | Out-Null
 
 @'
@@ -27,13 +26,11 @@ export default function HealthCheck() {
   async function sheetsRead() {
     if (!env.spreadsheetId) throw new Error("Missing env: VITE_GOOGLE_SPREADSHEET_ID");
     appendLog("== Sheets: READ START ==");
-
     const range = `${sheetName}!A1:C5`;
     const res = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: env.spreadsheetId,
       range,
     });
-
     appendLog(`Sheets READ OK: ${range}`);
     appendLog(pretty(res?.result));
     appendLog("== Sheets: READ DONE ==");
@@ -42,10 +39,8 @@ export default function HealthCheck() {
   async function sheetsAppendTestRow() {
     if (!env.spreadsheetId) throw new Error("Missing env: VITE_GOOGLE_SPREADSHEET_ID");
     if (!allowWrite) throw new Error("Write is disabled. 勾選「允許寫入」後再執行。");
-
     appendLog("== Sheets: APPEND START ==");
     const row = ["HealthCheck", "OK", new Date().toISOString()];
-
     const res = await window.gapi.client.sheets.spreadsheets.values.append({
       spreadsheetId: env.spreadsheetId,
       range: `${sheetName}!A:A`,
@@ -53,7 +48,6 @@ export default function HealthCheck() {
       insertDataOption: "INSERT_ROWS",
       resource: { values: [row] },
     });
-
     appendLog("Sheets APPEND OK (1 row inserted)");
     appendLog(pretty(res?.result));
     appendLog("== Sheets: APPEND DONE ==");
@@ -104,7 +98,6 @@ export default function HealthCheck() {
       appendLog(`SpreadsheetId: ${env.spreadsheetId ? "SET" : "MISSING"}`);
       appendLog(`DriveRootFolderId: ${env.driveRootFolderId ? "SET" : "MISSING"}`);
       appendLog("");
-
       await sheetsRead();
       appendLog("");
       if (allowWrite) {
@@ -114,7 +107,6 @@ export default function HealthCheck() {
         appendLog("Sheets APPEND skipped (Write disabled).");
         appendLog("");
       }
-
       await driveCreateFolder();
       appendLog("");
       await calendarListAndInsert();
@@ -158,28 +150,6 @@ export default function HealthCheck() {
       </div>
 
       <div className="px-5 py-4">
-        <div className="flex gap-2 flex-wrap mb-3">
-          <button className="text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-60" disabled={busy}
-            onClick={async () => { setBusy(true); try { await sheetsRead(); } finally { setBusy(false); } }}>
-            Sheets 讀取
-          </button>
-
-          <button className="text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-60" disabled={busy}
-            onClick={async () => { setBusy(true); try { await sheetsAppendTestRow(); } finally { setBusy(false); } }}>
-            Sheets 寫入（Append）
-          </button>
-
-          <button className="text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-60" disabled={busy}
-            onClick={async () => { setBusy(true); try { await driveCreateFolder(); } finally { setBusy(false); } }}>
-            Drive 建資料夾
-          </button>
-
-          <button className="text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-60" disabled={busy}
-            onClick={async () => { setBusy(true); try { await calendarListAndInsert(); } finally { setBusy(false); } }}>
-            Calendar 讀取/寫入
-          </button>
-        </div>
-
         <pre className="text-xs whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-lg p-3 min-h-[120px]">
           {log || "（尚未執行）"}
         </pre>
@@ -188,7 +158,3 @@ export default function HealthCheck() {
   );
 }
 '@ | Set-Content -Encoding UTF8 ".\src\components\HealthCheck.jsx"
-
-# 檢查檔案前 5 行，確認不再是佔位符
-(Get-Content -Encoding UTF8 ".\src\components\HealthCheck.jsx" | Select-Object -First 5) | ForEach-Object { $_ }
-
