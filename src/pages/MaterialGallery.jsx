@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Plus, Image as ImageIcon, ExternalLink, Globe } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
+import { SectionTitle } from '../components/common/Indicators';
 
 export const MaterialGallery = () => {
     const [materials, setMaterials] = useState([

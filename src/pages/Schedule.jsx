@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
+import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
 
 const Schedule = ({ data = [], addToast }) => {
