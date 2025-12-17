@@ -4,43 +4,60 @@ import { MOCK_DB } from './MockData';
 // GAS deployment URL
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxUrPvBxCavNiXkhVkK-Afqrfkx4N64NEFQFGzXCFUK5h5Qq_5JZlZT7ptrBiTTPvqMfg/exec";
 
-// Helper function for API calls with better error handling
-const callGAS = async (payload) => {
-  try {
-    const response = await fetch(GAS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
+// JSONP 調用函數（繞過 CORS）
+const callGASWithJSONP = (action, data = {}) => {
+  return new Promise((resolve, reject) => {
+    const callbackName = `gas_callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // 構建 URL 參數
+    const params = new URLSearchParams({
+      action,
+      data: JSON.stringify(data),
+      callback: callbackName
     });
 
-    // GAS returns text/html by default, try to parse as JSON
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (parseError) {
-      // If not JSON, treat as success if status is ok
-      if (response.ok) {
-        return { success: true, message: 'Operation completed' };
+    // 創建 script 標籤
+    const script = document.createElement('script');
+    script.src = `${GAS_API_URL}?${params.toString()}`;
+    script.async = true;
+
+    // 設定超時（30秒）
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Request timeout'));
+    }, 30000);
+
+    // 定義全域回調函數
+    window[callbackName] = (response) => {
+      clearTimeout(timeout);
+      cleanup();
+
+      // 檢查回應狀態
+      if (response.status === 'success') {
+        resolve({ success: true, data: response });
+      } else {
+        resolve({ success: false, error: response.error || response.message || 'Unknown error' });
       }
-      throw new Error(`Invalid response format: ${text.substring(0, 100)}`);
-    }
-
-    if (!response.ok) {
-      throw new Error(data.error || data.message || 'API request failed');
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('GAS API Error:', error);
-    return {
-      success: false,
-      error: error.message || 'Network error occurred',
-      details: error
     };
-  }
+
+    // 清理函數
+    const cleanup = () => {
+      delete window[callbackName];
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+
+    // 錯誤處理
+    script.onerror = () => {
+      clearTimeout(timeout);
+      cleanup();
+      reject(new Error('Script load failed'));
+    };
+
+    // 添加到 DOM
+    document.head.appendChild(script);
+  });
 };
 
 export const GoogleService = {
@@ -48,12 +65,6 @@ export const GoogleService = {
 
   // Still using Mock Data for read operations
   fetchSheetData: async (sheetName) => {
-    try {
-      fetch(`${GAS_API_URL}?type=init`).then(res => res.json()).then(d => console.log("GAS Connection Checked:", d)).catch(() => { });
-    } catch (e) {
-      console.error("GAS Connect Failed", e);
-    }
-
     return new Promise(resolve => {
       setTimeout(() => { if (MOCK_DB[sheetName]) resolve(MOCK_DB[sheetName]); }, 800);
     });
@@ -63,40 +74,92 @@ export const GoogleService = {
 
   addToCalendar: async (event) => {
     console.log(`📅 Adding calendar event: ${event.title}`);
-    const result = await callGAS({
-      action: 'add_calendar_event',
-      title: event.title,
-      startTime: event.date + 'T' + event.time,
-      endTime: event.date + 'T' + event.time,
-      description: event.description || '',
-      location: event.location || ''
-    });
 
-    if (result.success) {
-      console.log("✅ Calendar event created successfully");
-    } else {
-      console.error("❌ Calendar event creation failed:", result.error);
+    try {
+      const result = await callGASWithJSONP('add_calendar_event', {
+        title: event.title,
+        startTime: event.date + 'T' + event.time,
+        endTime: event.date + 'T' + event.time,
+        description: event.description || '',
+        location: event.location || ''
+      });
+
+      if (result.success) {
+        console.log("✅ Calendar event created successfully");
+      } else {
+        console.error("❌ Calendar event creation failed:", result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
     }
+  },
 
-    return result;
+  updateCalendarEvent: async (eventId, updates) => {
+    console.log(`📅 Updating calendar event: ${eventId}`);
+
+    try {
+      const result = await callGASWithJSONP('update_calendar_event', {
+        eventId,
+        ...updates
+      });
+
+      if (result.success) {
+        console.log("✅ Calendar event updated successfully");
+      } else {
+        console.error("❌ Calendar event update failed:", result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  deleteCalendarEvent: async (eventId) => {
+    console.log(`📅 Deleting calendar event: ${eventId}`);
+
+    try {
+      const result = await callGASWithJSONP('delete_calendar_event', {
+        eventId
+      });
+
+      if (result.success) {
+        console.log("✅ Calendar event deleted successfully");
+      } else {
+        console.error("❌ Calendar event deletion failed:", result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
   },
 
   syncToSheet: async (sheetName, data) => {
     console.log(`📊 Syncing to Sheet [${sheetName}]:`, data.length, 'records');
 
-    const result = await callGAS({
-      action: 'sync_to_sheet',
-      sheetName,
-      records: data
-    });
+    try {
+      const result = await callGASWithJSONP('sync_to_sheet', {
+        sheetName,
+        records: data
+      });
 
-    if (result.success) {
-      console.log(`✅ Synced to Sheet [${sheetName}]`);
-    } else {
-      console.error(`❌ Sheet sync failed [${sheetName}]:`, result.error);
+      if (result.success) {
+        console.log(`✅ Synced to Sheet [${sheetName}]`);
+      } else {
+        console.error(`❌ Sheet sync failed [${sheetName}]:`, result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
     }
-
-    return result;
   },
 
   uploadToDrive: (file, folderName) => new Promise(resolve => {
@@ -109,18 +172,22 @@ export const GoogleService = {
   createDriveFolder: async (folderName) => {
     console.log(`📁 Creating Drive folder: ${folderName}`);
 
-    const result = await callGAS({
-      action: 'create_drive_folder',
-      folderName
-    });
+    try {
+      const result = await callGASWithJSONP('create_drive_folder', {
+        folderName
+      });
 
-    if (result.success) {
-      const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
-      console.log(`✅ Drive folder created: ${folderUrl}`);
-      return { success: true, url: folderUrl, folderId: result.data?.folderId };
-    } else {
-      console.error(`❌ Drive folder creation failed:`, result.error);
-      return { success: false, error: result.error };
+      if (result.success) {
+        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        console.log(`✅ Drive folder created: ${folderUrl}`);
+        return { success: true, url: folderUrl, folderId: result.data?.folderId };
+      } else {
+        console.error(`❌ Drive folder creation failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
     }
   }
 };
