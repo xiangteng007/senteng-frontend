@@ -111,17 +111,28 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         setIsEditing(false);
     };
 
-    // Add Project Handler
-    const handleAddProject = () => {
+    // Add Project Handler with Google Drive Integration
+    const handleAddProject = async () => {
         if (!newProject.name || !newProject.client) {
             addToast("請填寫專案名稱和客戶", 'error');
             return;
         }
 
+        setIsSaving(true);
+
+        // Create Google Drive folder
+        const folderName = `${newProject.name} - ${newProject.client}`;
+        const driveResult = await GoogleService.createDriveFolder(folderName);
+
+        if (!driveResult.success) {
+            setIsSaving(false);
+            return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, 'error');
+        }
+
         const project = {
             ...newProject,
             id: `p-${Date.now()}`,
-            driveFolder: null,
+            driveFolder: driveResult.url,
             vendors: [],
             inventory: [],
             files: [],
@@ -129,8 +140,23 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             transactions: []
         };
 
-        onUpdateProject(project); // This will add to parent state
-        addToast(`專案「${newProject.name}」已建立`, 'success');
+        onUpdateProject(project);
+
+        // Sync to Google Sheets
+        const allProjects = [...data, project];
+        const syncResult = await GoogleService.syncToSheet('projects', allProjects);
+
+        setIsSaving(false);
+
+        if (!syncResult.success) {
+            addToast(`專案已建立，但 Sheets 同步失敗: ${syncResult.error}`, 'warning');
+        } else {
+            addToast(`專案「${newProject.name}」已建立！已同步到 Google Drive 和 Sheets`, 'success', {
+                link: driveResult.url,
+                linkText: '開啟 Drive 資料夾'
+            });
+        }
+
         setIsAddModalOpen(false);
         setNewProject({
             name: "",
