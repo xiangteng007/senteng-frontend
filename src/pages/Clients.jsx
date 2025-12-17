@@ -4,6 +4,7 @@ import { WidgetWrapper } from '../components/common/WidgetWrapper';
 import { WidgetClientStats, WidgetClientList } from '../components/widgets/ClientVendorWidgets';
 import { Modal } from '../components/common/Modal';
 import { InputField, DynamicFieldEditor } from '../components/common/InputField';
+import { LocationField } from '../components/common/LocationField';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { SectionTitle, LoadingSkeleton } from '../components/common/Indicators';
@@ -191,7 +192,7 @@ const Clients = ({ data, loading, addToast, onUpdateClients }) => {
                     <InputField label="電話" value={newClientData.phone} onChange={e => setNewClientData({ ...newClientData, phone: e.target.value })} />
                     <InputField label="Email" value={newClientData.email} onChange={e => setNewClientData({ ...newClientData, email: e.target.value })} />
                 </div>
-                <InputField label="地址" value={newClientData.address} onChange={e => setNewClientData({ ...newClientData, address: e.target.value })} />
+                <LocationField label="地址" value={newClientData.address} onChange={e => setNewClientData({ ...newClientData, address: e.target.value })} placeholder="例：台北市信義區松智路1號" />
                 <div className="border-t border-gray-100 pt-4 mt-4">
                     <h4 className="text-sm font-bold text-gray-700 mb-3">詳細資訊 (可自訂欄位)</h4>
                     <DynamicFieldEditor fields={newClientData.customFields} onChange={(newFields) => setNewClientData({ ...newClientData, customFields: newFields })} />

@@ -6,6 +6,7 @@ import { WidgetProjectStats, WidgetProjectList, WidgetProjectInfo, WidgetProject
 import { Plus, ChevronLeft, Calendar as CalendarIcon, Upload, ImageIcon } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
+import { LocationField } from '../components/common/LocationField';
 import { ProgressBar } from '../components/common/Indicators';
 
 // --- Missing Detail Widgets (Implementing inline for safety) ---

@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
+import { LocationField } from '../components/common/LocationField';
+import { GoogleService } from '../services/GoogleService';
 
 const Schedule = ({ data = [], addToast }) => {
     const [currentDate, setCurrentDate] = useState(new Date("2025-12-07"));
@@ -79,7 +81,7 @@ const Schedule = ({ data = [], addToast }) => {
                     <InputField label="日期" type="date" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} />
                     <InputField label="時間" type="time" value={newEvent.time} onChange={e => setNewEvent({ ...newEvent, time: e.target.value })} />
                 </div>
-                <InputField label="地點" value={newEvent.location} onChange={e => setNewEvent({ ...newEvent, location: e.target.value })} placeholder="例：公司會議室" />
+                <LocationField label="地點" value={newEvent.location} onChange={e => setNewEvent({ ...newEvent, location: e.target.value })} placeholder="例：台北市信義區松智路1號" />
                 <InputField label="描述" value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} placeholder="備註..." />
             </Modal>
         </div>

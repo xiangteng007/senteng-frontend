@@ -4,6 +4,7 @@ import { WidgetWrapper } from '../components/common/WidgetWrapper';
 import { WidgetVendorStats, WidgetVendorList } from '../components/widgets/ClientVendorWidgets';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
+import { LocationField } from '../components/common/LocationField';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
 import { LoadingButton } from '../components/common/LoadingButton';
@@ -105,7 +106,7 @@ const Vendors = ({ data, loading, addToast }) => {
                             <InputField label="聯絡人" value={currentVendor.contactPerson} onChange={e => setCurrentVendor({ ...currentVendor, contactPerson: e.target.value })} />
                             <InputField label="電話" value={currentVendor.phone} onChange={e => setCurrentVendor({ ...currentVendor, phone: e.target.value })} />
                         </div>
-                        <InputField label="地址" value={currentVendor.address} onChange={e => setCurrentVendor({ ...currentVendor, address: e.target.value })} />
+                        <LocationField label="地址" value={currentVendor.address} onChange={e => setCurrentVendor({ ...currentVendor, address: e.target.value })} placeholder="例：台北市信義區松智路1號" />
                         <div className="grid grid-cols-2 gap-4">
                             <InputField label="評分 (1-5)" type="number" value={currentVendor.rating} onChange={e => setCurrentVendor({ ...currentVendor, rating: e.target.value })} />
                             <InputField label="合作狀態" type="select" value={currentVendor.status} onChange={e => setCurrentVendor({ ...currentVendor, status: e.target.value })} options={['長期合作', '合作中', '觀察中', '黑名單']} />
