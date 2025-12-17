@@ -87,6 +87,12 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    // Folder selection state
+    const [folderMode, setFolderMode] = useState('auto'); // 'auto' = 自動新增, 'link' = 關聯現有
+    const [existingFolderUrl, setExistingFolderUrl] = useState('');
+    const [existingFolders, setExistingFolders] = useState([]);
+    const [projectRootId, setProjectRootId] = useState(null);
+
 
     // Detail Modals
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -119,21 +125,38 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             return;
         }
 
+        // 如果選擇關聯現有資料夾，需要填寫URL
+        if (folderMode === 'link' && !existingFolderUrl) {
+            addToast("請填寫或選擇現有資料夾", 'error');
+            return;
+        }
+
         setIsSaving(true);
+        let driveUrl = existingFolderUrl;
 
-        // Create Google Drive folder
-        const folderName = `${newProject.name} - ${newProject.client}`;
-        const driveResult = await GoogleService.createDriveFolder(folderName);
+        if (folderMode === 'auto') {
+            // Step 1: 獲取或建立「專案管理」根資料夾
+            const rootResult = await GoogleService.getOrCreateProjectRoot();
+            if (!rootResult.success) {
+                setIsSaving(false);
+                return addToast(`無法建立專案管理資料夾: ${rootResult.error}`, 'error');
+            }
 
-        if (!driveResult.success) {
-            setIsSaving(false);
-            return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, 'error');
+            // Step 2: 在「專案管理」下建立專案資料夾
+            const folderName = `${newProject.name} - ${newProject.client}`;
+            const driveResult = await GoogleService.createDriveFolder(folderName, rootResult.folderId);
+
+            if (!driveResult.success) {
+                setIsSaving(false);
+                return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, 'error');
+            }
+            driveUrl = driveResult.url;
         }
 
         const project = {
             ...newProject,
             id: `p-${Date.now()}`,
-            driveFolder: driveResult.url,
+            driveFolder: driveUrl,
             vendors: [],
             inventory: [],
             files: [],
@@ -153,12 +176,14 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             addToast(`專案已建立，但 Sheets 同步失敗: ${syncResult.error}`, 'warning');
         } else {
             addToast(`專案「${newProject.name}」已建立！已同步到 Google Drive 和 Sheets`, 'success', {
-                link: driveResult.url,
+                link: driveUrl,
                 linkText: '開啟 Drive 資料夾'
             });
         }
 
         setIsAddModalOpen(false);
+        setFolderMode('auto');
+        setExistingFolderUrl('');
         setNewProject({
             name: "",
             client: "",
@@ -203,14 +228,14 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             }
         }
     };
-    // Delete Handler
+    // Delete Handler - 只從列表中移除，不刪除 Drive 資料夾
     const handleDeleteProject = () => {
         setIsDeleteModalOpen(true);
     };
 
     const confirmDelete = () => {
-        // In real app, would call API to delete
-        addToast(`專案「${activeProject.name}」已刪除`, 'success');
+        // 只從列表中移除專案，保留Drive資料夾
+        addToast(`專案「${activeProject.name}」已從列表移除（Drive 資料夾保留）`, 'success');
         setIsDeleteModalOpen(false);
         setActiveProject(null);
     };
@@ -380,19 +405,20 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                 <Modal
                     isOpen={isDeleteModalOpen}
                     onClose={() => setIsDeleteModalOpen(false)}
-                    title="確認刪除專案"
+                    title="從列表移除專案"
                     onConfirm={confirmDelete}
-                    confirmText="確定刪除"
+                    confirmText="確定移除"
                 >
                     <div className="space-y-4">
-                        <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-                            <p className="text-red-800 font-medium">⚠️ 警告：此操作無法復原</p>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p className="text-yellow-800 font-medium">📁 Drive 資料夾將會保留</p>
                         </div>
                         <p className="text-gray-700">
-                            您確定要刪除專案「<span className="font-bold">{activeProject?.name}</span>」嗎？
+                            您確定要從列表移除專案「<span className="font-bold">{activeProject?.name}</span>」嗎？
                         </p>
                         <p className="text-sm text-gray-500">
-                            刪除後，所有相關的工程紀錄、檔案、收支記錄將會一併移除。
+                            專案將從系統列表中移除，但 Google Drive 中的資料夾及所有檔案將會保留。
+
                         </p>
                     </div>
                 </Modal>
@@ -444,6 +470,50 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="開始日期" type="date" value={newProject.startDate} onChange={e => setNewProject({ ...newProject, startDate: e.target.value })} />
                     <InputField label="預計完工" type="date" value={newProject.endDate} onChange={e => setNewProject({ ...newProject, endDate: e.target.value })} />
+                </div>
+
+                {/* Drive 資料夾設定 */}
+                <div className="border-t pt-4 mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Drive 資料夾設定</label>
+                    <div className="flex gap-4 mb-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="folderMode"
+                                value="auto"
+                                checked={folderMode === 'auto'}
+                                onChange={() => setFolderMode('auto')}
+                                className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm">自動建立新資料夾</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="folderMode"
+                                value="link"
+                                checked={folderMode === 'link'}
+                                onChange={() => setFolderMode('link')}
+                                className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm">關聯現有資料夾</span>
+                        </label>
+                    </div>
+
+                    {folderMode === 'auto' && (
+                        <p className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                            將在「專案管理」資料夾下自動建立：<strong>{newProject.name || '[專案名稱]'} - {newProject.client || '[客戶]'}</strong>
+                        </p>
+                    )}
+
+                    {folderMode === 'link' && (
+                        <InputField
+                            label="現有資料夾連結"
+                            value={existingFolderUrl}
+                            onChange={e => setExistingFolderUrl(e.target.value)}
+                            placeholder="貼上 Google Drive 資料夾連結，例：https://drive.google.com/drive/folders/xxxxx"
+                        />
+                    )}
                 </div>
             </Modal>
         </>

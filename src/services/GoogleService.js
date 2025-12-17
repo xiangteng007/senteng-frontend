@@ -196,12 +196,37 @@ export const GoogleService = {
     }
   },
 
-  createDriveFolder: async (folderName) => {
-    console.log(`📁 Creating Drive folder: ${folderName}`);
+  // 獲取或創建「專案管理」根資料夾
+  getOrCreateProjectRoot: async () => {
+    console.log(`📁 Getting or creating '專案管理' root folder...`);
+
+    try {
+      const result = await callGASWithJSONP('get_or_create_project_root', {
+        folderName: '專案管理'
+      });
+
+      if (result.success) {
+        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        console.log(`✅ Project root folder ready: ${folderUrl}`);
+        return { success: true, url: folderUrl, folderId: result.data?.folderId };
+      } else {
+        console.error(`❌ Project root folder failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 在「專案管理」資料夾下建立專案資料夾
+  createDriveFolder: async (folderName, parentFolderId = null) => {
+    console.log(`📁 Creating Drive folder: ${folderName}${parentFolderId ? ' (in parent)' : ''}`);
 
     try {
       const result = await callGASWithJSONP('create_drive_folder', {
-        folderName
+        folderName,
+        parentFolderId // 如果有指定父資料夾ID
       });
 
       if (result.success) {
@@ -215,6 +240,28 @@ export const GoogleService = {
     } catch (error) {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message };
+    }
+  },
+
+  // 列出指定資料夾內的子資料夾（用於關聯現有資料夾）
+  listDriveFolders: async (parentFolderId = null) => {
+    console.log(`📂 Listing Drive folders...`);
+
+    try {
+      const result = await callGASWithJSONP('list_drive_folders', {
+        parentFolderId
+      });
+
+      if (result.success) {
+        console.log(`✅ Found ${result.data?.folders?.length || 0} folders`);
+        return { success: true, folders: result.data?.folders || [] };
+      } else {
+        console.error(`❌ List folders failed:`, result.error);
+        return { success: false, error: result.error, folders: [] };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message, folders: [] };
     }
   }
 };
