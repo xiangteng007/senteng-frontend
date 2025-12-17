@@ -297,7 +297,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                 <InputField label="預算" value={newProject.budget} onChange={e => setNewProject({ ...newProject, budget: e.target.value })} />
                 <LocationField label="專案地點" value={newProject.location || ''} onChange={e => setNewProject({ ...newProject, location: e.target.value })} placeholder="例：台北市信義區松智路1號" />
             </Modal>
-        </div >
+        </>
     );
 };
 

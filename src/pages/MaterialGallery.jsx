@@ -18,7 +18,8 @@ export const MaterialGallery = () => {
     };
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
+            <SectionTitle title="材質圖庫" />
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <button onClick={() => setIsAddOpen(true)} className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-morandi-blue-400 hover:text-morandi-blue-500 transition-colors bg-gray-50/50">
                     <Plus size={24} />

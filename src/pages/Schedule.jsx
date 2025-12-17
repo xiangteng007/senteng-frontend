@@ -38,8 +38,9 @@ const Schedule = ({ data = [], addToast }) => {
     };
 
     return (
-        <div className="h-full flex flex-col space-y-6 animate-fade-in">
-            <div className="flex justify-between items-center">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
+            <SectionTitle title="行程管理" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-auto">
                 <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
                     <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-xl transition-colors"><ChevronLeft size={20} /></button>
                     <span className="text-lg font-bold text-gray-800 w-32 text-center select-none">{currentDate.getFullYear()} 年 {currentDate.getMonth() + 1} 月</span>
@@ -77,7 +78,7 @@ const Schedule = ({ data = [], addToast }) => {
             </div>
             <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setIsSaving(false); }} title="新增行程" onConfirm={handleAddEvent} confirmDisabled={isSaving} confirmText={isSaving ? '處理中...' : '確定'}>
                 <InputField label="標題" value={newEvent.title} onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} placeholder="例：客戶會議" />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="日期" type="date" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} />
                     <InputField label="時間" type="time" value={newEvent.time} onChange={e => setNewEvent({ ...newEvent, time: e.target.value })} />
                 </div>

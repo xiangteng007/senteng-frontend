@@ -57,9 +57,9 @@ const Inventory = ({ data, addToast }) => {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
             <SectionTitle title="庫存管理" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-auto">
                 {widgets.map((w, i) => (
                     <WidgetWrapper key={w.id} widget={w} onResize={handleResize}>
                         {w.type === 'inventory-stats' && <WidgetInventoryStats data={items} size={w.size} />}
@@ -71,9 +71,9 @@ const Inventory = ({ data, addToast }) => {
             <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="新增庫存品項" onConfirm={handleAddItem}>
                 <InputField label="品項名稱" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
                 <InputField label="規格/型號" value={newItem.spec} onChange={e => setNewItem({ ...newItem, spec: e.target.value })} />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="數量" type="number" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: e.target.value })} />
-                    <InputField label="單位" value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} />
+                    <InputField label="單位" value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} placeholder="例：個、箱、組" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <InputField label="存放位置" value={newItem.location} onChange={e => setNewItem({ ...newItem, location: e.target.value })} />
