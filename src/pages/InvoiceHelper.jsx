@@ -3,30 +3,71 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Calculator, Building2, User, Copy, RotateCcw, Check, AlertCircle, Info } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 
-// 數字轉中文大寫
+// 數字轉中文大寫（正確處理萬、億單位）
 const numberToChinese = (num) => {
-    const digits = ['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'];
-    const units = ['', '拾', '佰', '仟', '萬', '拾', '佰', '仟', '億'];
-
     if (num === 0) return '零';
 
-    const str = Math.floor(num).toString();
+    const digits = ['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'];
+    const smallUnits = ['', '拾', '佰', '仟'];
+
+    // 將數字分解為億、萬、個位數組
+    const n = Math.floor(num);
+    const yi = Math.floor(n / 100000000); // 億
+    const wan = Math.floor((n % 100000000) / 10000); // 萬
+    const ge = n % 10000; // 個位到仟位
+
+    // 轉換四位數為中文
+    const fourDigitToChinese = (n, addZeroPrefix = false) => {
+        if (n === 0) return '';
+
+        let result = '';
+        const arr = [
+            Math.floor(n / 1000),      // 仟位
+            Math.floor((n % 1000) / 100), // 佰位
+            Math.floor((n % 100) / 10),   // 拾位
+            n % 10                        // 個位
+        ];
+
+        let hasValue = false;
+        let needZero = addZeroPrefix && n < 1000;
+
+        for (let i = 0; i < 4; i++) {
+            if (arr[i] !== 0) {
+                if (needZero) {
+                    result += '零';
+                    needZero = false;
+                }
+                result += digits[arr[i]] + smallUnits[3 - i];
+                hasValue = true;
+            } else if (hasValue) {
+                needZero = true;
+            }
+        }
+
+        return result;
+    };
+
     let result = '';
 
-    for (let i = 0; i < str.length; i++) {
-        const digit = parseInt(str[i]);
-        const unit = units[str.length - 1 - i];
-
-        if (digit === 0) {
-            if (result && !result.endsWith('零')) {
-                result += '零';
-            }
-        } else {
-            result += digits[digit] + unit;
-        }
+    // 處理億
+    if (yi > 0) {
+        result += fourDigitToChinese(yi) + '億';
     }
 
-    return result.replace(/零+$/, '') || '零';
+    // 處理萬
+    if (wan > 0) {
+        result += fourDigitToChinese(wan, yi > 0) + '萬';
+    } else if (yi > 0 && ge > 0) {
+        // 億有值但萬沒有，個有值時需要補零
+    }
+
+    // 處理個位到仟位
+    if (ge > 0) {
+        const needZero = (yi > 0 || wan > 0) && ge < 1000;
+        result += fourDigitToChinese(ge, needZero);
+    }
+
+    return result || '零';
 };
 
 // 格式化金額顯示
@@ -143,8 +184,8 @@ export const InvoiceHelper = ({ addToast }) => {
                             <button
                                 onClick={() => setInvoiceType('triple')}
                                 className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${invoiceType === 'triple'
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <Building2 size={24} />
@@ -154,8 +195,8 @@ export const InvoiceHelper = ({ addToast }) => {
                             <button
                                 onClick={() => setInvoiceType('double')}
                                 className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${invoiceType === 'double'
-                                        ? 'border-green-500 bg-green-50 text-green-700'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <User size={24} />
@@ -225,8 +266,8 @@ export const InvoiceHelper = ({ addToast }) => {
                                     key={id}
                                     onClick={() => setTaxType(id)}
                                     className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${taxType === id
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     {label}
@@ -239,8 +280,8 @@ export const InvoiceHelper = ({ addToast }) => {
                             <button
                                 onClick={() => setInputMode('withTax')}
                                 className={`flex-1 py-2 px-3 rounded-lg text-sm transition-all ${inputMode === 'withTax'
-                                        ? 'bg-gray-800 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-gray-800 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 含稅價
@@ -248,8 +289,8 @@ export const InvoiceHelper = ({ addToast }) => {
                             <button
                                 onClick={() => setInputMode('withoutTax')}
                                 className={`flex-1 py-2 px-3 rounded-lg text-sm transition-all ${inputMode === 'withoutTax'
-                                        ? 'bg-gray-800 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-gray-800 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 未稅價
@@ -322,8 +363,8 @@ export const InvoiceHelper = ({ addToast }) => {
                 {/* 右側：發票預覽 */}
                 <div className="space-y-4">
                     <div className={`rounded-2xl p-6 shadow-lg border-2 ${invoiceType === 'triple'
-                            ? 'bg-blue-50 border-blue-300'
-                            : 'bg-green-50 border-green-300'
+                        ? 'bg-blue-50 border-blue-300'
+                        : 'bg-green-50 border-green-300'
                         }`}>
                         <div className="flex justify-between items-start mb-4">
                             <div>
