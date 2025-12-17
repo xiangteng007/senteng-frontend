@@ -1,6 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon } from 'lucide-react';
+import { NotificationPanel } from '../components/common/NotificationPanel';
+import { GoogleService } from '../services/GoogleService';
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick }) => (
     <button
@@ -19,6 +21,9 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick }) => (
 );
 
 export const MainLayout = ({ activeTab, setActiveTab, children }) => {
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [hasUpcomingEvents, setHasUpcomingEvents] = useState(false);
+
     const menuItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
         { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
@@ -29,6 +34,31 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
         { id: 'inventory', icon: Package, label: '庫存管理' },
         { id: 'materials', icon: ImageIcon, label: '材質圖庫' },
     ];
+
+    // 檢查是否有即將到來的行程
+    useEffect(() => {
+        const checkUpcomingEvents = async () => {
+            try {
+                const events = await GoogleService.fetchCalendarEvents();
+                const now = new Date();
+                const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+                const upcoming = events.some(event => {
+                    const eventDate = new Date(`${event.date}T${event.time}`);
+                    return eventDate >= now && eventDate <= in24Hours;
+                });
+
+                setHasUpcomingEvents(upcoming);
+            } catch (error) {
+                console.error('Failed to check upcoming events:', error);
+            }
+        };
+
+        checkUpcomingEvents();
+        // 每5分鐘檢查一次
+        const interval = setInterval(checkUpcomingEvents, 5 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="flex h-screen bg-morandi-base font-sans text-gray-900 overflow-hidden">
@@ -58,13 +88,24 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                         {/* Breadcrumb or Title handled by page usually, but we show simple one here */}
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="p-2 text-gray-400 hover:text-gray-600 bg-white rounded-full shadow-sm hover:shadow transition-all relative">
+                        <button
+                            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                            className="p-2 text-gray-400 hover:text-gray-600 bg-white rounded-full shadow-sm hover:shadow transition-all relative"
+                        >
                             <Bell size={20} />
-                            <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-400 rounded-full border border-white"></span>
+                            {hasUpcomingEvents && (
+                                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-400 rounded-full border border-white animate-pulse"></span>
+                            )}
                         </button>
                         <div className="w-10 h-10 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center font-bold text-gray-600">A</div>
                     </div>
                 </header>
+
+                <NotificationPanel
+                    isOpen={isNotificationOpen}
+                    onClose={() => setIsNotificationOpen(false)}
+                />
+
                 <div className="flex-1 overflow-auto p-8 pt-0 scroll-smooth">
                     <div className="max-w-7xl mx-auto h-full">
                         {children}
