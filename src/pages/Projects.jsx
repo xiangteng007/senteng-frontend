@@ -236,6 +236,31 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         addToast('廠商已移除', 'info');
     };
 
+    // Record Handler - Save records with metadata and sync to Sheets
+    const handleAddRecord = async () => {
+        const record = {
+            ...newRecord,
+            id: `r-${Date.now()}`,
+            date: new Date().toLocaleDateString('zh-TW'),
+            time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+            author: '使用者A'
+        };
+
+        const updatedProject = { ...activeProject, records: [record, ...(activeProject.records || [])] };
+        onUpdateProject(updatedProject);
+        setActiveProject(updatedProject);
+
+        // Sync updated project records to Sheets
+        if (activeProject.driveFolder) {
+            const allProjects = data.map(p => p.id === activeProject.id ? updatedProject : p);
+            await GoogleService.syncToSheet('projects', allProjects);
+        }
+
+        setNewRecord({ type: '工程', content: '', photos: [] });
+        setIsRecordModalOpen(false);
+        addToast('工程紀錄已新增並同步至 Sheets', 'success');
+    };
+
     // Inventory Handlers
     const handleAddInventory = (inventoryData) => {
         const updatedProject = {
