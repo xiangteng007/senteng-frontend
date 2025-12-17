@@ -126,6 +126,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="建立新專案" onConfirm={() => setIsAddModalOpen(false)}>
                 <InputField label="專案名稱" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} />
                 <InputField label="預算" value={newProject.budget} onChange={e => setNewProject({ ...newProject, budget: e.target.value })} />
+                <LocationField label="專案地點" value={newProject.location || ''} onChange={e => setNewProject({ ...newProject, location: e.target.value })} placeholder="例：台北市信義區松智路1號" />
             </Modal>
         </div>
     );

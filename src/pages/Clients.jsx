@@ -147,7 +147,7 @@ const Clients = ({ data, loading, addToast, onUpdateClients }) => {
                         <h3 className="font-bold text-gray-800 mb-4 border-b border-gray-50 pb-2">基本資料 & 需求</h3>
                         {isEditing ? (
                             <>
-                                <div className="mb-4"><label className="block text-sm text-gray-500 mb-1">地址</label><input value={editFormData.address} onChange={e => setEditFormData({ ...editFormData, address: e.target.value })} className="w-full border rounded px-2 py-1" /></div>
+                                <LocationField label="地址" value={editFormData.address} onChange={e => setEditFormData({ ...editFormData, address: e.target.value })} placeholder="例：台北市信義區松智路1號" />
                                 <div className="mb-4"><label className="block text-sm text-gray-500 mb-1">狀態</label><select value={editFormData.status} onChange={e => setEditFormData({ ...editFormData, status: e.target.value })} className="w-full border rounded px-2 py-1 bg-white">{['洽談中', '提案/報價', '已簽約', '已完工'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                                 <DynamicFieldEditor fields={editFormData.customFields || []} onChange={(newFields) => setEditFormData({ ...editFormData, customFields: newFields })} />
                             </>

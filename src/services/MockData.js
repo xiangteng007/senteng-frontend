@@ -79,8 +79,16 @@ export const MOCK_DB = {
         { id: "i-3", name: "T5 層板燈", spec: "LGT-T5", quantity: 100, unit: "支", safeStock: 20, location: "A-03", restockDate: "", status: "充足" }
     ],
     calendar: [
-        { id: "evt-1", title: "信義林公館-木工進場", date: "2025-12-07", time: "10:00 AM", type: "construction", color: "orange" },
-        { id: "evt-2", title: "陳小姐-平面圖提案會議", date: "2025-12-07", time: "02:00 PM", type: "meeting", color: "blue" },
-        { id: "evt-3", title: "內湖張公館-丈量", date: "2025-12-12", time: "04:30 PM", type: "meeting", color: "blue" }
+        // 過去的行程
+        { id: "evt-1", title: "信義林公館-木工進場", date: "2025-12-07", time: "10:00", type: "construction", location: "台北市信義區松智路1號", description: "確認木作施工細節" },
+        { id: "evt-2", title: "陳小姐-平面圖提案會議", date: "2025-12-07", time: "14:00", type: "meeting", location: "公司會議室", description: "第一次提案簡報" },
+        { id: "evt-3", title: "內湖張公館-丈量", date: "2025-12-12", time: "16:30", type: "meeting", location: "台北市內湖區", description: "現場丈量與討論" },
+
+        // 即將到來的行程（用於測試通知）
+        { id: "evt-4", title: "🔔 客戶會議 - 王小姐", date: "2025-12-17", time: "20:30", type: "meeting", location: "台北市大安區復興南路一段", description: "討論廚房設計方案" },
+        { id: "evt-5", title: "🔔 材料驗收", date: "2025-12-17", time: "21:00", type: "construction", location: "新北市板橋區文化路", description: "木工材料到貨檢查" },
+        { id: "evt-6", title: "🔔 設計提案", date: "2025-12-18", time: "10:00", type: "meeting", location: "台北101", description: "第二次設計方案簡報" },
+        { id: "evt-7", title: "🔔 工地巡檢", date: "2025-12-18", time: "14:30", type: "construction", location: "台北市信義區信義路五段", description: "每週例行巡檢" },
+        { id: "evt-8", title: "業主驗收", date: "2025-12-20", time: "15:00", type: "meeting", location: "新北市新店區", description: "完工驗收" }
     ]
 };
