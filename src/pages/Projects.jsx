@@ -85,6 +85,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     // Vendor & Inventory Modals
     const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
     const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
 
     // Detail Modals
