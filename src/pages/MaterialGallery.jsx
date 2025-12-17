@@ -24,8 +24,10 @@ export const MaterialGallery = ({ addToast }) => {
     const [isAddMaterialOpen, setIsAddMaterialOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [newCategory, setNewCategory] = useState("");
-    const [newItem, setNewItem] = useState({ title: "", type: "image", url: "", source: "" });
+    const [newItem, setNewItem] = useState({ title: "", type: "image", url: "", source: "", description: "", externalLink: "" });
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedMaterial, setSelectedMaterial] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     // 獲取或建立「材質圖庫」根資料夾
     const getMaterialGalleryRoot = async () => {
@@ -92,9 +94,15 @@ export const MaterialGallery = ({ addToast }) => {
                 : cat
         ));
 
-        setNewItem({ title: "", type: "image", url: "", source: "" });
+        setNewItem({ title: "", type: "image", url: "", source: "", description: "", externalLink: "" });
         setIsAddMaterialOpen(false);
         addToast?.(`材質「${newItem.title}」已新增`, 'success');
+    };
+
+    // 查看材質詳情
+    const handleViewMaterial = (material) => {
+        setSelectedMaterial(material);
+        setIsDetailModalOpen(true);
     };
 
     // 開啟新增材質彈窗
@@ -141,7 +149,11 @@ export const MaterialGallery = ({ addToast }) => {
 
                         {/* 材質項目 */}
                         {category.materials.map(m => (
-                            <div key={m.id} className="group relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white hover:shadow-lg transition-all">
+                            <div
+                                key={m.id}
+                                className="group relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white hover:shadow-lg transition-all cursor-pointer"
+                                onClick={() => handleViewMaterial(m)}
+                            >
                                 {m.type === 'image' ? (
                                     <img src={m.url} alt={m.title} className="w-full h-full object-cover" />
                                 ) : (
@@ -150,14 +162,23 @@ export const MaterialGallery = ({ addToast }) => {
                                     </div>
                                 )}
 
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 sm:p-3">
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 sm:p-3">
                                     <div className="text-white font-bold text-xs sm:text-sm truncate">{m.title}</div>
-                                    <div className="text-white/70 text-[10px] truncate">{m.source}</div>
-                                    {m.type === 'link' && (
-                                        <a href={m.url} target="_blank" rel="noopener noreferrer" className="absolute top-2 right-2 text-white">
-                                            <ExternalLink size={14} />
-                                        </a>
-                                    )}
+                                    {m.description && <div className="text-white/80 text-[10px] truncate">{m.description}</div>}
+                                    <div className="text-white/60 text-[10px] truncate">{m.source}</div>
+                                    <div className="flex gap-1 mt-1">
+                                        {m.externalLink && (
+                                            <a
+                                                href={m.externalLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-300 hover:text-blue-100"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <ExternalLink size={12} />
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -239,9 +260,96 @@ export const MaterialGallery = ({ addToast }) => {
                         label="來源備註"
                         value={newItem.source}
                         onChange={e => setNewItem({ ...newItem, source: e.target.value })}
-                        placeholder="選填"
+                        placeholder="選填，如：Unsplash、官網"
+                    />
+
+                    <InputField
+                        label="文字說明"
+                        type="textarea"
+                        value={newItem.description}
+                        onChange={e => setNewItem({ ...newItem, description: e.target.value })}
+                        placeholder="選填，材質特性、用途說明等"
+                    />
+
+                    <InputField
+                        label="外部網站連結"
+                        value={newItem.externalLink}
+                        onChange={e => setNewItem({ ...newItem, externalLink: e.target.value })}
+                        placeholder="選填，如廠商官網、購買連結等"
                     />
                 </div>
+            </Modal>
+
+            {/* 材質詳情 Modal */}
+            <Modal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                title={selectedMaterial?.title || '材質詳情'}
+                onConfirm={() => setIsDetailModalOpen(false)}
+                confirmText="關閉"
+            >
+                {selectedMaterial && (
+                    <div className="space-y-4">
+                        {/* 圖片預覽 */}
+                        {selectedMaterial.type === 'image' && (
+                            <div className="rounded-xl overflow-hidden">
+                                <img
+                                    src={selectedMaterial.url}
+                                    alt={selectedMaterial.title}
+                                    className="w-full h-48 object-cover"
+                                />
+                            </div>
+                        )}
+
+                        {/* 基本資訊 */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="text-xs text-gray-500">來源</div>
+                                <div className="font-medium text-sm">{selectedMaterial.source || '-'}</div>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="text-xs text-gray-500">類型</div>
+                                <div className="font-medium text-sm">{selectedMaterial.type === 'image' ? '圖片' : '連結'}</div>
+                            </div>
+                        </div>
+
+                        {/* 文字說明 */}
+                        {selectedMaterial.description && (
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="text-xs text-gray-500 mb-1">文字說明</div>
+                                <div className="text-sm text-gray-700 whitespace-pre-wrap">{selectedMaterial.description}</div>
+                            </div>
+                        )}
+
+                        {/* 連結區 */}
+                        <div className="space-y-2">
+                            {selectedMaterial.url && (
+                                <a
+                                    href={selectedMaterial.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 bg-blue-50 rounded-lg p-3"
+                                >
+                                    <Globe size={16} />
+                                    <span className="truncate flex-1">{selectedMaterial.type === 'image' ? '開啟原圖' : '開啟連結'}</span>
+                                    <ExternalLink size={14} />
+                                </a>
+                            )}
+                            {selectedMaterial.externalLink && (
+                                <a
+                                    href={selectedMaterial.externalLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-sm text-green-600 hover:text-green-800 bg-green-50 rounded-lg p-3"
+                                >
+                                    <ExternalLink size={16} />
+                                    <span className="truncate flex-1">外部網站連結</span>
+                                    <ExternalLink size={14} />
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     )
