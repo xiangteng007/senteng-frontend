@@ -81,7 +81,7 @@ const App = () => {
       case 'clients': return <Clients data={data.clients} loading={loading} addToast={addToast} onUpdateClients={(d) => handleUpdate('clients', d)} />;
       case 'vendors': return <Vendors data={data.vendors} loading={loading} addToast={addToast} />;
       case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} />;
-      case 'materials': return <MaterialGallery />;
+      case 'materials': return <MaterialGallery addToast={addToast} />;
       default: return <Dashboard events={data.calendar} />;
     }
   };
