@@ -6,7 +6,6 @@ import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
 import { Plus } from 'lucide-react';
-import { GoogleService } from '../services/GoogleService';
 
 const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
     const [accounts, setAccounts] = useState(data.accounts || []);
@@ -54,7 +53,7 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
     const handleDragEndAccount = () => {
         dragItem.current = null; dragOverItem.current = null;
         onUpdateAccounts(accounts);
-        GoogleService.syncToSheet('accounts', accounts);
+        // GoogleService.syncToSheet('accounts', accounts); // TODO: Implement sync
     };
 
     // Account CRUD
@@ -68,7 +67,7 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
 
         setAccounts(updatedAccounts);
         onUpdateAccounts(updatedAccounts); // Update App State
-        await GoogleService.syncToSheet('accounts', updatedAccounts); // Sync to Google
+        // await GoogleService.syncToSheet('accounts', updatedAccounts); // TODO: Implement sync
 
         addToast(editingAcc ? "帳戶更新成功！" : "新帳戶建立成功！", 'success');
         setIsAccModalOpen(false);
@@ -79,7 +78,7 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
         onAddTx(newTx); // Handles App State update and Toast inside App.jsx
         setIsTxModalOpen(false);
         setNewTx({ type: "支出", amount: "", date: "", desc: "", accountId: "" });
-        await GoogleService.syncToSheet('transactions', newTx); // Sync
+        // await GoogleService.syncToSheet('transactions', newTx); // TODO: Implement sync
     };
 
     const renderWidget = (w) => {
