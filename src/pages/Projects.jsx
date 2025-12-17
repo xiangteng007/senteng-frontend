@@ -65,7 +65,16 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     ]);
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newProject, setNewProject] = useState({ name: "", client: "", type: "翻修", budget: "" });
+    const [newProject, setNewProject] = useState({
+        name: "",
+        client: "",
+        type: "翻修",
+        budget: "",
+        location: "",
+        startDate: "",
+        endDate: "",
+        status: "設計中"
+    });
 
     // Edit & Delete State
     const [isEditing, setIsEditing] = useState(false);
@@ -99,6 +108,39 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     const cancelEdit = () => {
         setEditFormData({});
         setIsEditing(false);
+    };
+
+    // Add Project Handler
+    const handleAddProject = () => {
+        if (!newProject.name || !newProject.client) {
+            addToast("請填寫專案名稱和客戶", 'error');
+            return;
+        }
+
+        const project = {
+            ...newProject,
+            id: `p-${Date.now()}`,
+            driveFolder: null,
+            vendors: [],
+            inventory: [],
+            files: [],
+            records: [],
+            transactions: []
+        };
+
+        onUpdateProject(project); // This will add to parent state
+        addToast(`專案「${newProject.name}」已建立`, 'success');
+        setIsAddModalOpen(false);
+        setNewProject({
+            name: "",
+            client: "",
+            type: "翻修",
+            budget: "",
+            location: "",
+            startDate: "",
+            endDate: "",
+            status: "設計中"
+        });
     };
 
     // Delete Handler
@@ -292,10 +334,25 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                     ))}
                 </div>
             </div>
-            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="建立新專案" onConfirm={() => setIsAddModalOpen(false)}>
-                <InputField label="專案名稱" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} />
-                <InputField label="預算" value={newProject.budget} onChange={e => setNewProject({ ...newProject, budget: e.target.value })} />
+            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="建立新專案" onConfirm={handleAddProject}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="專案名稱" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} placeholder="例：信義區住宅翻修" />
+                    <InputField label="客戶" value={newProject.client} onChange={e => setNewProject({ ...newProject, client: e.target.value })} placeholder="例：王小明" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="專案類型" type="select" value={newProject.type} onChange={e => setNewProject({ ...newProject, type: e.target.value })}>
+                        <option value="翻修">翻修</option>
+                        <option value="新建">新建</option>
+                        <option value="設計">設計</option>
+                        <option value="裝潢">裝潢</option>
+                    </InputField>
+                    <InputField label="預算" type="number" value={newProject.budget} onChange={e => setNewProject({ ...newProject, budget: e.target.value })} placeholder="例：500000" />
+                </div>
                 <LocationField label="專案地點" value={newProject.location || ''} onChange={e => setNewProject({ ...newProject, location: e.target.value })} placeholder="例：台北市信義區松智路1號" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="開始日期" type="date" value={newProject.startDate} onChange={e => setNewProject({ ...newProject, startDate: e.target.value })} />
+                    <InputField label="預計完工" type="date" value={newProject.endDate} onChange={e => setNewProject({ ...newProject, endDate: e.target.value })} />
+                </div>
             </Modal>
         </>
     );
