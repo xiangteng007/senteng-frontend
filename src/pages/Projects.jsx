@@ -11,6 +11,7 @@ import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
 import { ProgressBar } from '../components/common/Indicators';
+import { GoogleService } from '../services/GoogleService';
 
 // --- Missing Detail Widgets (Implementing inline for safety) ---
 const WidgetProjectRecords = ({ records, size, onAddRecord }) => (
@@ -334,7 +335,14 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                     ))}
                 </div>
             </div>
-            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="建立新專案" onConfirm={handleAddProject}>
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title="建立新專案"
+                onConfirm={handleAddProject}
+                confirmDisabled={isSaving}
+                confirmText={isSaving ? '處理中...' : '確認'}
+            >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="專案名稱" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} placeholder="例：信義區住宅翻修" />
                     <InputField label="客戶" value={newProject.client} onChange={e => setNewProject({ ...newProject, client: e.target.value })} placeholder="例：王小明" />
@@ -357,5 +365,4 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         </>
     );
 };
-
 export default Projects;
