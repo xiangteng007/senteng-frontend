@@ -17,20 +17,19 @@ const AccountCard = ({ account, onEdit, onViewDetails, onDragStart, onDragOver, 
         >
             <div
                 onClick={() => setExpanded(!expanded)}
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50/50"
+                className="p-3 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50/50"
             >
-                <div className="flex items-center gap-3">
-                    <div className="text-gray-300 cursor-grab active:cursor-grabbing p-1" onMouseDown={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="hidden sm:block text-gray-300 cursor-grab active:cursor-grabbing p-1" onMouseDown={e => e.stopPropagation()}>
                         <GripVertical size={16} />
                     </div>
                     <div>
-                        <div className="font-bold text-gray-800">{account.name}</div>
-                        {/* Show last tx summary if collapsed? For now show simple info */}
+                        <div className="font-bold text-sm sm:text-base text-gray-800">{account.name}</div>
                         {!expanded && <div className="text-xs text-gray-400">最新收支: -</div>}
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className={`font-bold font-mono ${account.balance < 0 ? 'text-red-500' : 'text-gray-800'}`}>
+                    <div className={`font-bold font-mono text-sm sm:text-base ${account.balance < 0 ? 'text-red-500' : 'text-gray-800'}`}>
                         ${account.balance.toLocaleString()}
                     </div>
                     <div className="flex justify-end mt-1 text-gray-400">
@@ -41,22 +40,22 @@ const AccountCard = ({ account, onEdit, onViewDetails, onDragStart, onDragOver, 
 
             {/* Expanded Details */}
             {expanded && (
-                <div className="px-4 pb-4 bg-gray-50/30 border-t border-gray-100 animate-slide-up">
-                    <div className="grid grid-cols-2 gap-4 text-sm mb-3 pt-3">
+                <div className="px-3 sm:px-4 pb-3 sm:pb-4 bg-gray-50/30 border-t border-gray-100 animate-slide-up">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 text-sm mb-3 pt-3">
                         <div>
                             <span className="block text-xs text-gray-500 mb-1">銀行機構</span>
-                            <div className="font-medium">{account.bank}</div>
+                            <div className="font-medium text-sm">{account.bank}</div>
                         </div>
                         <div>
                             <span className="block text-xs text-gray-500 mb-1">帳號</span>
-                            <div className="font-mono text-gray-600 tracking-wide">{account.number}</div>
+                            <div className="font-mono text-xs sm:text-sm text-gray-600 tracking-wide">{account.number}</div>
                         </div>
                     </div>
                     <div className="flex justify-end gap-2">
-                        <button onClick={(e) => { e.stopPropagation(); onEdit(account); }} className="px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg hover:border-morandi-blue-300 text-gray-600 transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(account); }} className="px-2 sm:px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg hover:border-morandi-blue-300 text-gray-600 transition-colors">
                             編輯帳戶
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); onViewDetails(account); }} className="px-3 py-1.5 text-xs bg-morandi-text-accent text-white rounded-lg hover:bg-gray-800 transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); onViewDetails(account); }} className="px-2 sm:px-3 py-1.5 text-xs bg-morandi-text-accent text-white rounded-lg hover:bg-gray-800 transition-colors">
                             查看明細
                         </button>
                     </div>
