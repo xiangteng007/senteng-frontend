@@ -66,60 +66,60 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
     }
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-slide-up">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-auto flex flex-col animate-slide-up max-h-[95vh]">
                 {/* Header */}
-                <div className="flex justify-between items-start p-6 border-b border-gray-100">
+                <div className="flex justify-between items-start p-4 sm:p-6 border-b border-gray-100 flex-shrink-0">
                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800">{accountName}</h3>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-800">{accountName}</h3>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500 flex-wrap">
                             <span>{accountBank}</span>
-                            <span>•</span>
-                            <span className="font-mono">{accountNumber}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="font-mono text-xs">{accountNumber}</span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
                         <X size={24} className="text-gray-400" />
                     </button>
                 </div>
 
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50">
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 p-4 sm:p-6 bg-gray-50 flex-shrink-0">
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
                         <div className="text-xs text-gray-500 mb-1">當前餘額</div>
-                        <div className="text-2xl font-bold text-gray-800">${accountBalance.toLocaleString()}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-gray-800">${accountBalance.toLocaleString()}</div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
                         <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
                             <TrendingUp size={12} className="text-green-500" />
                             總收入
                         </div>
-                        <div className="text-2xl font-bold text-green-600">${stats.income.toLocaleString()}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-green-600">${stats.income.toLocaleString()}</div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
                         <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
                             <TrendingDown size={12} className="text-red-500" />
                             總支出
                         </div>
-                        <div className="text-2xl font-bold text-red-600">${stats.expense.toLocaleString()}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-red-600">${stats.expense.toLocaleString()}</div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
                         <div className="text-xs text-gray-500 mb-1">淨額</div>
-                        <div className={`text-2xl font-bold ${stats.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`text-lg sm:text-2xl font-bold ${stats.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             ${Math.abs(stats.net).toLocaleString()}
                         </div>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <Filter size={16} className="text-gray-400" />
                         <span className="text-sm font-medium text-gray-600">篩選：</span>
                     </div>
 
                     {/* Type Filter */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         <button
                             onClick={() => setFilterType('all')}
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filterType === 'all'

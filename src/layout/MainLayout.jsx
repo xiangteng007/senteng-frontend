@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 
@@ -23,6 +23,7 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick }) => (
 export const MainLayout = ({ activeTab, setActiveTab, children }) => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [hasUpcomingEvents, setHasUpcomingEvents] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const menuItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
@@ -60,9 +61,36 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
         return () => clearInterval(interval);
     }, []);
 
+    // Close mobile menu when clicking outside or changing tab
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [activeTab]);
+
     return (
         <div className="flex h-screen bg-morandi-base font-sans text-gray-900 overflow-hidden">
-            <aside className="w-68 bg-white/80 backdrop-blur-md border-r border-white/50 flex flex-col z-20 shadow-glass">
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            {/* Sidebar - Responsive */}
+            <aside className={`
+                w-68 bg-white/80 backdrop-blur-md border-r border-white/50 flex flex-col z-50 shadow-glass
+                fixed lg:relative h-full
+                transform transition-transform duration-300 ease-in-out
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                {/* Close button for mobile */}
+                <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="lg:hidden absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                    <X size={24} />
+                </button>
+
                 <div className="p-8">
                     <h1 className="text-xl font-bold flex items-center gap-3 text-morandi-text-primary tracking-wide">
                         <div className="w-10 h-10 bg-morandi-text-accent rounded-xl flex items-center justify-center text-white font-serif text-lg shadow-lg">S</div>
@@ -83,11 +111,19 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
             </aside>
 
             <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                <header className="h-20 flex items-center justify-between px-8 z-10">
-                    <div>
+                <header className="h-16 lg:h-20 flex items-center justify-between px-4 lg:px-8 z-10">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100"
+                    >
+                        <Menu size={24} />
+                    </button>
+
+                    <div className="flex-1 lg:flex-none">
                         {/* Breadcrumb or Title handled by page usually, but we show simple one here */}
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 lg:gap-4">
                         <button
                             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                             className="p-2 text-gray-400 hover:text-gray-600 bg-white rounded-full shadow-sm hover:shadow transition-all relative"
@@ -97,7 +133,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-400 rounded-full border border-white animate-pulse"></span>
                             )}
                         </button>
-                        <div className="w-10 h-10 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center font-bold text-gray-600">A</div>
+                        <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center font-bold text-gray-600 text-sm lg:text-base">A</div>
                     </div>
                 </header>
 
@@ -106,7 +142,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                     onClose={() => setIsNotificationOpen(false)}
                 />
 
-                <div className="flex-1 overflow-auto p-8 pt-0 scroll-smooth">
+                <div className="flex-1 overflow-auto p-4 lg:p-8 pt-0 scroll-smooth">
                     <div className="max-w-7xl mx-auto h-full">
                         {children}
                     </div>
