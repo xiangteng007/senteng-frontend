@@ -263,5 +263,77 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message, folders: [] };
     }
+  },
+
+  // 建立「營建物料成本快速估算指標與公式」資料夾及 Sheets
+  createCostEstimatorFolder: async () => {
+    console.log(`📁 Creating Cost Estimator folder and database...`);
+
+    try {
+      const result = await callGASWithJSONP('create_cost_estimator_folder', {
+        folderName: '營建物料成本快速估算指標與公式'
+      });
+
+      if (result.success) {
+        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        console.log(`✅ Cost Estimator folder created: ${folderUrl}`);
+        return {
+          success: true,
+          url: folderUrl,
+          folderId: result.data?.folderId,
+          sheetId: result.data?.sheetId,
+          sheetUrl: result.data?.sheetUrl
+        };
+      } else {
+        console.error(`❌ Cost Estimator folder creation failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 從 Drive 讀取物料價格資料
+  getMaterialPrices: async () => {
+    console.log(`📊 Fetching material prices from Drive...`);
+
+    try {
+      const result = await callGASWithJSONP('get_material_prices', {});
+
+      if (result.success) {
+        console.log(`✅ Material prices loaded`);
+        return { success: true, data: result.data };
+      } else {
+        console.error(`❌ Failed to load material prices:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 更新物料價格
+  updateMaterialPrice: async (category, material) => {
+    console.log(`📝 Updating material price: ${material.name}...`);
+
+    try {
+      const result = await callGASWithJSONP('update_material_price', {
+        category,
+        material
+      });
+
+      if (result.success) {
+        console.log(`✅ Material price updated`);
+        return { success: true };
+      } else {
+        console.error(`❌ Failed to update material price:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
