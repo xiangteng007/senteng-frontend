@@ -63,7 +63,16 @@ const App = () => {
           activeProject={activeProject}
           setActiveProject={setActiveProject}
           onSelectProject={setActiveProject}
-          onUpdateProject={(p) => handleUpdate('projects', data.projects.map(proj => proj.id === p.id ? p : proj))}
+          onUpdateProject={(p) => {
+            const exists = data.projects.find(proj => proj.id === p.id);
+            if (exists) {
+              // Update existing project
+              handleUpdate('projects', data.projects.map(proj => proj.id === p.id ? p : proj));
+            } else {
+              // Add new project
+              handleUpdate('projects', [...data.projects, p]);
+            }
+          }}
           allTransactions={data.finance.transactions}
           onAddGlobalTx={handleAddGlobalTx}
           accounts={data.finance.accounts}
