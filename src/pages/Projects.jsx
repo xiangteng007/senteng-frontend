@@ -29,25 +29,108 @@ const WidgetProjectRecords = ({ records, size, onAddRecord }) => (
     </div>
 );
 
-const WidgetProjectFinanceDetail = ({ transactions, size, onAddTx }) => {
-    const income = transactions.filter(t => t.type === '收入').reduce((acc, c) => acc + c.amount, 0); const expense = transactions.filter(t => t.type === '支出').reduce((acc, c) => acc + c.amount, 0);
+const WidgetProjectFinanceDetail = ({ transactions, size, onAddTx, onSyncToSheet, project }) => {
+    const income = transactions.filter(t => t.type === '收入').reduce((acc, c) => acc + c.amount, 0);
+    const expense = transactions.filter(t => t.type === '支出').reduce((acc, c) => acc + c.amount, 0);
+    const balance = income - expense;
+
+    // 按類別分組支出
+    const expenseByCategory = transactions
+        .filter(t => t.type === '支出')
+        .reduce((acc, t) => {
+            const cat = t.category || '其他支出';
+            acc[cat] = (acc[cat] || 0) + t.amount;
+            return acc;
+        }, {});
+
+    const categoryColors = {
+        '材料費': 'bg-orange-400',
+        '人工費': 'bg-blue-400',
+        '設備費': 'bg-purple-400',
+        '運輸費': 'bg-yellow-400',
+        '其他支出': 'bg-gray-400'
+    };
+
     return (
         <div className="flex flex-col h-full">
-            <div className="flex justify-between mb-2 p-2 bg-gray-50 rounded-xl">
-                <div className="text-xs"><span className="text-gray-500">收</span> <span className="text-green-600 font-bold ml-1">{income}</span></div>
-                <div className="text-xs"><span className="text-gray-500">支</span> <span className="text-red-600 font-bold ml-1">{expense}</span></div>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                {transactions.map(t => (
-                    <div key={t.id} className="flex justify-between text-xs border-b border-gray-50 pb-2 last:border-0 hover:bg-gray-50 p-1 rounded">
-                        <span className="truncate w-2/3 text-gray-700">{t.desc}</span>
-                        <span className={`font-bold ${t.type === '收入' ? 'text-green-600' : 'text-red-500'}`}>{t.amount}</span>
+            {/* 收支摘要 */}
+            <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="bg-green-50 rounded-lg p-2 text-center">
+                    <div className="text-xs text-gray-500">收入</div>
+                    <div className="text-sm font-bold text-green-600">${income.toLocaleString()}</div>
+                </div>
+                <div className="bg-red-50 rounded-lg p-2 text-center">
+                    <div className="text-xs text-gray-500">支出</div>
+                    <div className="text-sm font-bold text-red-600">${expense.toLocaleString()}</div>
+                </div>
+                <div className={`${balance >= 0 ? 'bg-blue-50' : 'bg-orange-50'} rounded-lg p-2 text-center`}>
+                    <div className="text-xs text-gray-500">淨額</div>
+                    <div className={`text-sm font-bold ${balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                        ${balance.toLocaleString()}
                     </div>
-                ))}
+                </div>
             </div>
-            <button onClick={onAddTx} className="mt-2 w-full py-1.5 text-xs bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">新增收支</button>
+
+            {/* 支出類別分佈 */}
+            {expense > 0 && (
+                <div className="mb-3">
+                    <div className="text-xs text-gray-500 mb-1">支出分佈</div>
+                    <div className="flex h-2 rounded-full overflow-hidden bg-gray-100">
+                        {Object.entries(expenseByCategory).map(([cat, amount]) => (
+                            <div
+                                key={cat}
+                                className={`${categoryColors[cat] || 'bg-gray-400'}`}
+                                style={{ width: `${(amount / expense) * 100}%` }}
+                                title={`${cat}: $${amount.toLocaleString()}`}
+                            />
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                        {Object.entries(expenseByCategory).map(([cat, amount]) => (
+                            <span key={cat} className="text-[10px] text-gray-500 flex items-center gap-1">
+                                <span className={`w-2 h-2 rounded-full ${categoryColors[cat] || 'bg-gray-400'}`}></span>
+                                {cat} ${amount.toLocaleString()}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* 交易列表 */}
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar mb-2">
+                {transactions.length > 0 ? (
+                    transactions.slice(0, 10).map(t => (
+                        <div key={t.id} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-800 truncate">{t.desc || t.category || '無摘要'}</div>
+                                <div className="text-[10px] text-gray-400">{t.date} · {t.category || '-'}</div>
+                            </div>
+                            <span className={`font-bold ml-2 ${t.type === '收入' ? 'text-green-600' : 'text-red-500'}`}>
+                                {t.type === '收入' ? '+' : '-'}${t.amount.toLocaleString()}
+                            </span>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center text-gray-400 text-xs py-4">尚無收支記錄</div>
+                )}
+                {transactions.length > 10 && (
+                    <div className="text-center text-xs text-gray-400">...還有 {transactions.length - 10} 筆</div>
+                )}
+            </div>
+
+            {/* 操作按鈕 */}
+            <div className="flex gap-2">
+                <button onClick={onAddTx} className="flex-1 py-1.5 text-xs bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    新增收支
+                </button>
+                {project?.folderId && (
+                    <button onClick={onSyncToSheet} className="py-1.5 px-3 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" title="同步到專案 Sheet">
+                        同步
+                    </button>
+                )}
+            </div>
         </div>
-    )
+    );
 }
 
 const Projects = ({ data, loading, addToast, onSelectProject, activeProject, setActiveProject, onUpdateProject, allTransactions, onAddGlobalTx, accounts, allVendors, allInventory }) => {
@@ -299,6 +382,48 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         addToast(`已記錄${inventoryData.type === '出' ? '出庫' : '入庫'}：${inventoryData.itemName} x${inventoryData.quantity}`, 'success');
     };
 
+    // Sync project transactions to Sheet
+    const handleSyncProjectFinance = async () => {
+        if (!activeProject?.folderId) {
+            addToast('此專案沒有 Drive 資料夾', 'error');
+            return;
+        }
+
+        const projectTx = allTransactions.filter(t => t.projectId === activeProject.id);
+        if (projectTx.length === 0) {
+            addToast('尚無收支記錄可同步', 'info');
+            return;
+        }
+
+        addToast('正在同步專案收支...', 'info');
+        try {
+            const result = await GoogleService.syncAllProjectTransactions(
+                activeProject.folderId,
+                activeProject.name,
+                projectTx.map(t => ({
+                    date: t.date,
+                    type: t.type,
+                    category: t.category || '',
+                    amount: t.amount,
+                    target: '',
+                    account: accounts?.find(a => a.id === t.accountId)?.name || '',
+                    invoiceNo: '',
+                    note: t.desc || ''
+                }))
+            );
+
+            if (result.success) {
+                addToast(`已同步 ${projectTx.length} 筆收支到專案 Sheet`, 'success', {
+                    action: { label: '開啟 Sheet', onClick: () => window.open(result.sheetUrl, '_blank') }
+                });
+            } else {
+                addToast(`同步失敗: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            addToast(`同步失敗: ${error.message}`, 'error');
+        }
+    };
+
     if (activeProject) {
         const projectTx = allTransactions.filter(t => t.projectId === activeProject.id);
 
@@ -371,7 +496,13 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                             {/* Reuse Widgets */}
                             {w.type === 'files' && <WidgetProjectFiles files={activeProject.files} size={w.size} onUpload={() => { }} />}
                             {w.type === 'records' && <WidgetProjectRecords records={activeProject.records} size={w.size} onAddRecord={() => setIsRecordModalOpen(true)} />}
-                            {w.type === 'finance' && <WidgetProjectFinanceDetail transactions={projectTx} size={w.size} onAddTx={() => { }} />}
+                            {w.type === 'finance' && <WidgetProjectFinanceDetail
+                                transactions={projectTx}
+                                size={w.size}
+                                onAddTx={() => { }}
+                                onSyncToSheet={handleSyncProjectFinance}
+                                project={activeProject}
+                            />}
                             {w.type === 'vendors' && <WidgetProjectVendors vendors={activeProject.vendors || []} size={w.size} onAddVendor={() => setIsVendorModalOpen(true)} onRemoveVendor={handleRemoveVendor} />}
                             {w.type === 'inventory' && <WidgetProjectInventory inventory={activeProject.inventory || []} size={w.size} onAddRecord={() => setIsInventoryModalOpen(true)} />}
                         </WidgetWrapper>
