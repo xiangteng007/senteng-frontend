@@ -466,6 +466,13 @@ const Inventory = ({ data, addToast }) => {
         setIsSyncing(false);
     };
 
+    // 重置 Sheet 連結
+    const resetSheet = () => {
+        localStorage.removeItem('inventorySheet');
+        setInventorySheet(null);
+        addToast('已清除 Sheet 連結，請重新建立', 'info');
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -508,6 +515,13 @@ const Inventory = ({ data, addToast }) => {
                                 <ExternalLink size={16} />
                                 開啟 Sheet
                             </a>
+                            <button
+                                onClick={resetSheet}
+                                className="flex items-center gap-1 px-2 py-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors text-sm"
+                                title="重置 Sheet 連結"
+                            >
+                                <X size={16} />
+                            </button>
                         </>
                     )}
                     <button
