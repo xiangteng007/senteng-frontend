@@ -9,7 +9,7 @@ import { SectionTitle, LoadingSkeleton } from '../components/common/Indicators';
 import {
     Phone, Mail, Folder, Edit2, Trash2, Cloud, ChevronLeft, Save, Plus,
     Search, Filter, User, UserCheck, UserX, Clock, MessageCircle,
-    MapPin, Calendar, FileText, Star, X, ChevronRight
+    MapPin, Calendar, FileText, Star, X, ChevronRight, Briefcase
 } from 'lucide-react';
 import { GoogleService } from '../services/GoogleService';
 
@@ -95,7 +95,7 @@ const ContactLogItem = ({ log }) => (
     </div>
 );
 
-const Clients = ({ data = [], loading, addToast, onUpdateClients }) => {
+const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = [] }) => {
     // 狀態管理
     const [activeClient, setActiveClient] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -375,6 +375,47 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients }) => {
                                 </div>
                             )}
                         </div>
+                    </Card>
+
+                    {/* 關聯專案 */}
+                    <Card className="lg:col-span-3">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <Briefcase size={18} /> 參與專案
+                        </h3>
+                        {(() => {
+                            const relatedProjects = allProjects.filter(p =>
+                                p.client === activeClient.name ||
+                                p.clientId === activeClient.id
+                            );
+                            return relatedProjects.length > 0 ? (
+                                <div className="space-y-2">
+                                    {relatedProjects.map(project => (
+                                        <div key={project.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <Briefcase size={14} className="text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-gray-800">{project.name}</div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {project.status || '進行中'} • {project.startDate || '未設定'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {project.folderUrl && (
+                                                <a href={project.folderUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700">
+                                                    <Folder size={16} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-sm text-gray-400 text-center py-8">
+                                    尚無關聯專案
+                                </div>
+                            );
+                        })()}
                     </Card>
                 </div>
 

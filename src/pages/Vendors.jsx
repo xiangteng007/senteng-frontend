@@ -9,7 +9,7 @@ import { SectionTitle, LoadingSkeleton } from '../components/common/Indicators';
 import {
     Phone, Folder, Edit2, Trash2, Cloud, ChevronLeft, Save, Plus,
     Search, HardHat, Star, Building, MapPin, User, Tag, X, ChevronRight,
-    ThumbsUp, ThumbsDown, MessageSquare, Clock, Wrench
+    ThumbsUp, ThumbsDown, MessageSquare, Clock, Wrench, Briefcase
 } from 'lucide-react';
 import { GoogleService } from '../services/GoogleService';
 
@@ -90,9 +90,9 @@ const VendorRow = ({ vendor, onSelect, onDelete }) => {
         >
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${categoryConfig.color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                        categoryConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                            categoryConfig.color === 'purple' ? 'bg-purple-100 text-purple-600' :
-                                'bg-gray-100 text-gray-600'
+                    categoryConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                        categoryConfig.color === 'purple' ? 'bg-purple-100 text-purple-600' :
+                            'bg-gray-100 text-gray-600'
                     }`}>
                     <CategoryIcon size={20} className="sm:w-6 sm:h-6" />
                 </div>
@@ -139,7 +139,7 @@ const ReviewItem = ({ review }) => (
     </div>
 );
 
-const Vendors = ({ data = [], loading, addToast }) => {
+const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
     // 狀態管理
     const [vendorsList, setVendorsList] = useState(data);
     const [activeVendor, setActiveVendor] = useState(null);
@@ -447,6 +447,47 @@ const Vendors = ({ data = [], loading, addToast }) => {
                                 </div>
                             )}
                         </div>
+                    </Card>
+
+                    {/* 服務專案 */}
+                    <Card className="lg:col-span-3">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <Briefcase size={18} /> 服務專案
+                        </h3>
+                        {(() => {
+                            const relatedProjects = allProjects.filter(p =>
+                                p.vendors?.some(v => v.name === activeVendor.name || v.id === activeVendor.id) ||
+                                p.vendorIds?.includes(activeVendor.id)
+                            );
+                            return relatedProjects.length > 0 ? (
+                                <div className="space-y-2">
+                                    {relatedProjects.map(project => (
+                                        <div key={project.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <Briefcase size={14} className="text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-gray-800">{project.name}</div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {project.status || '進行中'} • {project.startDate || '未設定'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {project.folderUrl && (
+                                                <a href={project.folderUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700">
+                                                    <Folder size={16} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-sm text-gray-400 text-center py-8">
+                                    尚無服務專案記錄
+                                </div>
+                            );
+                        })()}
                     </Card>
                 </div>
 
