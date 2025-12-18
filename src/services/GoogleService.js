@@ -32,11 +32,16 @@ const callGASWithJSONP = (action, data = {}) => {
       clearTimeout(timeout);
       cleanup();
 
-      // 檢查回應狀態
-      if (response.status === 'success') {
+      // 檢查回應狀態 - 處理兩種回應格式
+      // 格式1: {success: true, data: {...}}
+      // 格式2: {status: 'success', ...}
+      if (response.success === true) {
+        resolve({ success: true, data: response.data });
+      } else if (response.status === 'success') {
         resolve({ success: true, data: response });
       } else {
-        resolve({ success: false, error: response.error || response.message || 'Unknown error' });
+        const errorMsg = response.error || response.data?.error || response.message || 'Unknown error';
+        resolve({ success: false, error: errorMsg });
       }
     };
 

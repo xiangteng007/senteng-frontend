@@ -298,7 +298,11 @@ const Inventory = ({ data, addToast }) => {
     const [movementType, setMovementType] = useState('入');
 
     // 庫存 Sheet 狀態
-    const [inventorySheet, setInventorySheet] = useState(null);
+    const [inventorySheet, setInventorySheet] = useState(() => {
+        // 從 localStorage 載入已儲存的 Sheet 資訊
+        const saved = localStorage.getItem('inventorySheet');
+        return saved ? JSON.parse(saved) : null;
+    });
     const [isInitializing, setIsInitializing] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -306,6 +310,13 @@ const Inventory = ({ data, addToast }) => {
     useEffect(() => {
         if (data) setItems(data);
     }, [data]);
+
+    // 當 inventorySheet 變更時儲存到 localStorage
+    useEffect(() => {
+        if (inventorySheet) {
+            localStorage.setItem('inventorySheet', JSON.stringify(inventorySheet));
+        }
+    }, [inventorySheet]);
 
     // 篩選邏輯
     const filteredItems = useMemo(() => {
