@@ -81,7 +81,7 @@ const App = () => {
           onAddGlobalTx={handleAddGlobalTx}
           accounts={data.finance.accounts}
         />;
-      case 'finance': return <Finance data={data.finance} loading={loading} addToast={addToast} onAddTx={handleAddGlobalTx} onUpdateAccounts={(accs) => handleUpdate('finance', { ...data.finance, accounts: accs })} />;
+      case 'finance': return <Finance data={data.finance} loading={loading} addToast={addToast} onAddTx={handleAddGlobalTx} onUpdateAccounts={(accs) => handleUpdate('finance', { ...data.finance, accounts: accs })} allProjects={data.projects} />;
       case 'clients': return <Clients data={data.clients} loading={loading} addToast={addToast} onUpdateClients={(d) => handleUpdate('clients', d)} />;
       case 'vendors': return <Vendors data={data.vendors} loading={loading} addToast={addToast} />;
       case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} />;

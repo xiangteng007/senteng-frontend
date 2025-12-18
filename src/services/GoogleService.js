@@ -443,5 +443,61 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // 同步收支記錄到專案資料夾
+  syncTransactionToProjectSheet: async (projectFolderId, projectName, transaction) => {
+    console.log(`💰 Syncing transaction to project: ${projectName}...`);
+
+    try {
+      const result = await callGASWithJSONP('sync_project_transaction', {
+        folderId: projectFolderId,
+        projectName,
+        transaction: JSON.stringify(transaction)
+      });
+
+      if (result.success) {
+        console.log(`✅ Transaction synced to project Sheet`);
+        return {
+          success: true,
+          sheetUrl: result.data?.sheetUrl,
+          sheetId: result.data?.sheetId
+        };
+      } else {
+        console.error(`❌ Failed to sync transaction:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 同步所有專案收支記錄
+  syncAllProjectTransactions: async (projectFolderId, projectName, transactions) => {
+    console.log(`💰 Syncing ${transactions.length} transactions to project: ${projectName}...`);
+
+    try {
+      const result = await callGASWithJSONP('sync_all_project_transactions', {
+        folderId: projectFolderId,
+        projectName,
+        transactions: JSON.stringify(transactions)
+      });
+
+      if (result.success) {
+        console.log(`✅ All transactions synced to project Sheet`);
+        return {
+          success: true,
+          sheetUrl: result.data?.sheetUrl,
+          sheetId: result.data?.sheetId
+        };
+      } else {
+        console.error(`❌ Failed to sync transactions:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };

@@ -7,8 +7,15 @@ import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
 import { Plus } from 'lucide-react';
+import { GoogleService } from '../services/GoogleService';
 
-const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
+// 收支類別選項
+const TX_CATEGORIES = {
+    '收入': ['工程款', '設計費', '顧問費', '其他收入'],
+    '支出': ['材料費', '人工費', '設備費', '運輸費', '其他支出']
+};
+
+const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjects = [] }) => {
     const [accounts, setAccounts] = useState(data.accounts || []);
     const accountsRef = useRef(accounts);
 
@@ -29,7 +36,7 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
 
     // Transaction Modal State
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
-    const [newTx, setNewTx] = useState({ type: "支出", amount: "", date: "", desc: "", accountId: "" });
+    const [newTx, setNewTx] = useState({ type: "支出", amount: "", date: "", desc: "", accountId: "", projectId: "", category: "" });
 
     // Account Modal State
     const [isAccModalOpen, setIsAccModalOpen] = useState(false);
@@ -123,10 +130,36 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
         }
 
         const txWithNumber = { ...newTx, amount: parseFloat(newTx.amount) };
+
+        // 若選擇了專案，同步到專案收支 Sheet
+        if (newTx.projectId) {
+            const selectedProject = allProjects.find(p => p.id === newTx.projectId);
+            if (selectedProject?.folderId) {
+                try {
+                    await GoogleService.syncTransactionToProjectSheet(
+                        selectedProject.folderId,
+                        selectedProject.name,
+                        {
+                            date: newTx.date,
+                            type: newTx.type,
+                            category: newTx.category,
+                            amount: parseFloat(newTx.amount),
+                            target: '', // 可以之後擴展
+                            account: accounts.find(a => a.id === newTx.accountId)?.name || '',
+                            invoiceNo: '',
+                            note: newTx.desc
+                        }
+                    );
+                    addToast(`已同步到專案「${selectedProject.name}」`, 'info');
+                } catch (err) {
+                    console.error('Sync to project failed:', err);
+                }
+            }
+        }
+
         onAddTx(txWithNumber); // Handles App State update and Toast inside App.jsx
         setIsTxModalOpen(false);
-        setNewTx({ type: "支出", amount: "", date: "", desc: "", accountId: "" });
-        // await GoogleService.syncToSheet('transactions', txWithNumber); // TODO: Implement sync
+        setNewTx({ type: "支出", amount: "", date: "", desc: "", accountId: "", projectId: "", category: "" });
     };
 
     const renderWidget = (w) => {
@@ -170,20 +203,34 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
             {/* Transaction Modal */}
             <Modal isOpen={isTxModalOpen} onClose={() => setIsTxModalOpen(false)} title="新增收支紀錄" onConfirm={handleConfirmTx}>
                 <div className="flex gap-4 mb-6 bg-gray-50 p-1 rounded-xl">
-                    <button onClick={() => setNewTx({ ...newTx, type: '收入' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '收入' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'}`}>收入</button>
-                    <button onClick={() => setNewTx({ ...newTx, type: '支出' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '支出' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400'}`}>支出</button>
+                    <button onClick={() => setNewTx({ ...newTx, type: '收入', category: '' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '收入' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'}`}>收入</button>
+                    <button onClick={() => setNewTx({ ...newTx, type: '支出', category: '' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '支出' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400'}`}>支出</button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="金額" type="number" value={newTx.amount} onChange={e => setNewTx({ ...newTx, amount: e.target.value })} placeholder="請輸入金額" />
                     <InputField label="日期" type="date" value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
                 </div>
-                <InputField label="摘要" value={newTx.desc} onChange={e => setNewTx({ ...newTx, desc: e.target.value })} placeholder="例：油漆補料" />
-                <InputField label="帳戶" type="select" value={newTx.accountId} onChange={e => setNewTx({ ...newTx, accountId: e.target.value })}>
-                    <option value="" disabled>請選擇帳戶</option>
-                    {accounts.map(acc => (
-                        <option key={acc.id} value={acc.id}>{acc.name}</option>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="類別" type="select" value={newTx.category} onChange={e => setNewTx({ ...newTx, category: e.target.value })}>
+                        <option value="">請選擇類別</option>
+                        {TX_CATEGORIES[newTx.type]?.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </InputField>
+                    <InputField label="帳戶" type="select" value={newTx.accountId} onChange={e => setNewTx({ ...newTx, accountId: e.target.value })}>
+                        <option value="" disabled>請選擇帳戶</option>
+                        {accounts.map(acc => (
+                            <option key={acc.id} value={acc.id}>{acc.name}</option>
+                        ))}
+                    </InputField>
+                </div>
+                <InputField label="關聯專案 (選填)" type="select" value={newTx.projectId} onChange={e => setNewTx({ ...newTx, projectId: e.target.value })}>
+                    <option value="">無關聯專案</option>
+                    {allProjects.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                 </InputField>
+                <InputField label="摘要" value={newTx.desc} onChange={e => setNewTx({ ...newTx, desc: e.target.value })} placeholder="例：油漆補料" />
             </Modal>
 
             {/* Account Modal */}
