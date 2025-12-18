@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import {
     Calculator, Building2, Layers, Grid3X3, Paintbrush, BarChart3,
-    Info, RotateCcw, Settings2, ChevronDown, ChevronUp, Copy, Check
+    Info, RotateCcw, Settings2, ChevronDown, ChevronUp, Copy, Check,
+    FileSpreadsheet, Plus, Trash2, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
+import { GoogleService } from '../services/GoogleService';
 
 // ============================================
 // 計算公式與常數定義
@@ -156,7 +158,7 @@ const WastageControl = ({ wastage, setWastage, defaultValue, useCustom, setUseCu
 );
 
 // 結果顯示組件
-const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true }) => {
+const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true, onAddRecord, subType = '' }) => {
     const [copied, setCopied] = useState(false);
 
     const copyValue = () => {
@@ -165,15 +167,28 @@ const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true })
         setTimeout(() => setCopied(false), 1500);
     };
 
+    const handleAddRecord = () => {
+        if (onAddRecord && value > 0) {
+            onAddRecord(subType, label, value, unit, wastageValue || value);
+        }
+    };
+
     return (
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
             <div className="text-xs opacity-80 mb-1">{label}</div>
             <div className="flex items-end gap-2">
                 <span className="text-2xl font-bold">{formatNumber(value)}</span>
                 <span className="text-sm opacity-80 mb-1">{unit}</span>
-                <button onClick={copyValue} className="ml-auto p-1 hover:bg-white/20 rounded">
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                </button>
+                <div className="ml-auto flex gap-1">
+                    {onAddRecord && value > 0 && (
+                        <button onClick={handleAddRecord} className="p-1 hover:bg-white/20 rounded" title="加入記錄">
+                            <Plus size={16} />
+                        </button>
+                    )}
+                    <button onClick={copyValue} className="p-1 hover:bg-white/20 rounded" title="複製">
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+                </div>
             </div>
             {showWastage && wastageValue && wastageValue !== value && (
                 <div className="mt-2 pt-2 border-t border-white/30 text-sm">
@@ -189,7 +204,7 @@ const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true })
 // ============================================
 
 // 1️⃣ 結構工程計算器
-const StructureCalculator = () => {
+const StructureCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('concrete');
 
     // 混凝土計算
@@ -346,7 +361,7 @@ const StructureCalculator = () => {
 };
 
 // 2️⃣ 泥作工程計算器
-const MasonryCalculator = () => {
+const MasonryCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('mortar');
 
     // 砂漿計算
@@ -477,7 +492,7 @@ const MasonryCalculator = () => {
 };
 
 // 3️⃣ 磁磚工程計算器
-const TileCalculator = () => {
+const TileCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('tiles');
 
     // 磁磚片數
@@ -652,7 +667,7 @@ const TileCalculator = () => {
 };
 
 // 4️⃣ 裝修工程計算器  
-const FinishCalculator = () => {
+const FinishCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('paint');
 
     // 油漆計算
@@ -762,7 +777,7 @@ const FinishCalculator = () => {
 };
 
 // 5️⃣ 建築概估計算器
-const BuildingEstimator = () => {
+const BuildingEstimator = ({ onAddRecord }) => {
     const [buildingType, setBuildingType] = useState(1);
     const [floorArea, setFloorArea] = useState('');
 
@@ -850,6 +865,12 @@ const BuildingEstimator = () => {
 export const MaterialCalculator = ({ addToast }) => {
     const [activeTab, setActiveTab] = useState('structure');
 
+    // 計算記錄
+    const [calcRecords, setCalcRecords] = useState([]);
+    const [exportName, setExportName] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportedSheet, setExportedSheet] = useState(null);
+
     const tabs = [
         { id: 'structure', icon: Building2, label: '結構工程' },
         { id: 'masonry', icon: Layers, label: '泥作工程' },
@@ -858,14 +879,85 @@ export const MaterialCalculator = ({ addToast }) => {
         { id: 'estimate', icon: BarChart3, label: '建築概估' },
     ];
 
+    // 新增計算記錄
+    const addRecord = (category, subType, label, value, unit, wastageValue) => {
+        const record = {
+            id: Date.now(),
+            category,
+            subType,
+            label,
+            value: parseFloat(value) || 0,
+            unit,
+            wastageValue: parseFloat(wastageValue) || parseFloat(value) || 0,
+            createdAt: new Date().toLocaleString('zh-TW')
+        };
+        setCalcRecords(prev => [...prev, record]);
+        addToast?.(`已加入記錄: ${label}`, 'success');
+    };
+
+    // 刪除記錄
+    const removeRecord = (id) => {
+        setCalcRecords(prev => prev.filter(r => r.id !== id));
+    };
+
+    // 清空記錄
+    const clearRecords = () => {
+        setCalcRecords([]);
+        addToast?.('已清空計算記錄', 'info');
+    };
+
+    // 匯出到 Google Sheet
+    const exportToSheet = async () => {
+        if (calcRecords.length === 0) {
+            addToast?.('請先加入計算記錄', 'warning');
+            return;
+        }
+
+        const name = exportName.trim() || `物料換算_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}`;
+
+        setIsExporting(true);
+        try {
+            // 將記錄轉換為匯出格式
+            const items = calcRecords.map(r => ({
+                category: r.category,
+                name: r.label,
+                spec: r.subType,
+                unit: r.unit,
+                price: 0,
+                quantity: r.value,
+                subtotal: r.wastageValue,
+                note: r.wastageValue !== r.value ? `含損耗: ${r.wastageValue}` : ''
+            }));
+
+            const result = await GoogleService.exportEstimateToSheet(name, items, 0);
+
+            if (result.success) {
+                setExportedSheet(result);
+                addToast?.('已匯出到 Google Sheet！', 'success', {
+                    action: {
+                        label: '開啟 Sheet',
+                        onClick: () => window.open(result.sheetUrl, '_blank')
+                    }
+                });
+            } else {
+                addToast?.(result.error || '匯出失敗', 'error');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            addToast?.('匯出失敗：' + error.message, 'error');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const renderCalculator = () => {
         switch (activeTab) {
-            case 'structure': return <StructureCalculator />;
-            case 'masonry': return <MasonryCalculator />;
-            case 'tile': return <TileCalculator />;
-            case 'finish': return <FinishCalculator />;
-            case 'estimate': return <BuildingEstimator />;
-            default: return <StructureCalculator />;
+            case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w) => addRecord('結構工程', s, l, v, u, w)} />;
+            case 'masonry': return <MasonryCalculator onAddRecord={(s, l, v, u, w) => addRecord('泥作工程', s, l, v, u, w)} />;
+            case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w) => addRecord('磁磚工程', s, l, v, u, w)} />;
+            case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w) => addRecord('裝修工程', s, l, v, u, w)} />;
+            case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w) => addRecord('建築概估', s, l, v, u, w)} />;
+            default: return <StructureCalculator onAddRecord={(s, l, v, u, w) => addRecord('結構工程', s, l, v, u, w)} />;
         }
     };
 
@@ -873,63 +965,173 @@ export const MaterialCalculator = ({ addToast }) => {
         <div className="space-y-6 animate-fade-in">
             <SectionTitle title="營建物料快速換算" />
 
-            {/* 工項選擇 */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                    {tabs.map(tab => {
-                        const Icon = tab.icon;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-3 rounded-xl whitespace-nowrap transition-all ${activeTab === tab.id
-                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                                    }`}
-                            >
-                                <Icon size={18} />
-                                <span className="font-medium">{tab.label}</span>
-                            </button>
-                        );
-                    })}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* 左側：計算器 */}
+                <div className="lg:col-span-2 space-y-4">
+                    {/* 工項選擇 */}
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                            {tabs.map(tab => {
+                                const Icon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-2 px-4 py-3 rounded-xl whitespace-nowrap transition-all ${activeTab === tab.id
+                                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                            }`}
+                                    >
+                                        <Icon size={18} />
+                                        <span className="font-medium">{tab.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* 計算器區域 */}
+                    <div className="bg-gray-50 rounded-2xl p-5">
+                        {renderCalculator()}
+                    </div>
+
+                    {/* 公式說明 */}
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <Calculator size={18} />
+                            常用換算公式
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                                <div className="font-medium text-gray-700">🧱 鋼筋重量</div>
+                                <div className="text-gray-500 mt-1">每米重 = 0.00617 × d²</div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                                <div className="font-medium text-gray-700">🧱 紅磚數量</div>
+                                <div className="text-gray-500 mt-1">24牆 = 128塊/m²</div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                                <div className="font-medium text-gray-700">🔲 磁磚片數</div>
+                                <div className="text-gray-500 mt-1">每坪 = 32400 ÷ (長×寬)</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* 計算器區域 */}
-            <div className="bg-gray-50 rounded-2xl p-5">
-                {renderCalculator()}
-            </div>
+                {/* 右側：計算記錄與匯出 */}
+                <div className="space-y-4">
+                    {/* 計算記錄 */}
+                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 text-white">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="font-bold flex items-center gap-2">
+                                <Calculator size={18} />
+                                計算記錄
+                            </span>
+                            {calcRecords.length > 0 && (
+                                <button
+                                    onClick={clearRecords}
+                                    className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded"
+                                >
+                                    清空
+                                </button>
+                            )}
+                        </div>
 
-            {/* 公式說明 */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <Calculator size={18} />
-                    常用換算公式
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="font-medium text-gray-700">🧱 鋼筋重量</div>
-                        <div className="text-gray-500 mt-1">每米重 = 0.00617 × d²</div>
+                        {calcRecords.length === 0 ? (
+                            <div className="text-center py-8 text-orange-200">
+                                <Calculator size={40} className="mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">計算後點擊「加入記錄」</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                {calcRecords.map(record => (
+                                    <div key={record.id} className="flex items-center justify-between py-2 border-b border-white/20 last:border-0">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate">{record.label}</div>
+                                            <div className="text-xs text-orange-200">
+                                                {record.category} - {record.subType}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold">
+                                                {formatNumber(record.wastageValue)} {record.unit}
+                                            </span>
+                                            <button
+                                                onClick={() => removeRecord(record.id)}
+                                                className="p-1 hover:bg-white/20 rounded text-red-200"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="font-medium text-gray-700">🧱 紅磚數量</div>
-                        <div className="text-gray-500 mt-1">24牆 = 128塊/m²</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="font-medium text-gray-700">🔲 磁磚片數</div>
-                        <div className="text-gray-500 mt-1">每坪 = 32400 ÷ (長×寬)</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="font-medium text-gray-700">🧱 打底砂漿</div>
-                        <div className="text-gray-500 mt-1">2.5cm: 水泥10.6kg/m²</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="font-medium text-gray-700">🎨 油漆用量</div>
-                        <div className="text-gray-500 mt-1">每坪 ≈ 0.5 加侖</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="font-medium text-gray-700">📐 模板估算</div>
-                        <div className="text-gray-500 mt-1">模板 ≈ 建築面積 × 2.2</div>
+
+                    {/* 匯出到 Google Sheet */}
+                    {calcRecords.length > 0 && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <FileSpreadsheet size={18} className="text-blue-600" />
+                                <span className="font-medium text-blue-800">匯出到 Google Sheet</span>
+                            </div>
+                            <div className="space-y-3">
+                                <input
+                                    type="text"
+                                    value={exportName}
+                                    onChange={(e) => setExportName(e.target.value)}
+                                    placeholder="輸入報表名稱（選填）"
+                                    className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                />
+                                <button
+                                    onClick={exportToSheet}
+                                    disabled={isExporting}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isExporting ? (
+                                        <>
+                                            <RefreshCw size={16} className="animate-spin" />
+                                            匯出中...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FileSpreadsheet size={16} />
+                                            匯出到 Google Sheet
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {exportedSheet && (
+                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                    <a
+                                        href={exportedSheet.sheetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                    >
+                                        <ExternalLink size={14} />
+                                        開啟已匯出的 Sheet
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 使用提示 */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                        <div className="flex gap-2">
+                            <Info size={16} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                            <div className="text-xs text-orange-700">
+                                <p className="font-medium mb-1">使用說明</p>
+                                <ol className="list-decimal list-inside space-y-0.5 text-orange-600">
+                                    <li>選擇工程類別進行計算</li>
+                                    <li>點「加入記錄」保存結果</li>
+                                    <li>匯出到 Google Sheet</li>
+                                </ol>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -938,3 +1140,4 @@ export const MaterialCalculator = ({ addToast }) => {
 };
 
 export default MaterialCalculator;
+
