@@ -4,7 +4,8 @@ import {
     Package, Plus, Search, Filter, Edit2, Trash2,
     ArrowDownCircle, ArrowUpCircle, AlertTriangle,
     CheckCircle, XCircle, X, Save, History, MapPin,
-    BarChart3, TrendingDown, TrendingUp, Box
+    BarChart3, TrendingDown, TrendingUp, Box,
+    FileSpreadsheet, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
@@ -241,6 +242,11 @@ const Inventory = ({ data, addToast }) => {
     const [selectedItem, setSelectedItem] = useState(null);
     const [movementType, setMovementType] = useState('入');
 
+    // 庫存 Sheet 狀態
+    const [inventorySheet, setInventorySheet] = useState(null);
+    const [isInitializing, setIsInitializing] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
     // 初始化
     useEffect(() => {
         if (data) setItems(data);
@@ -346,17 +352,99 @@ const Inventory = ({ data, addToast }) => {
         setIsMovementModalOpen(true);
     };
 
+    // 初始化庫存 Sheet
+    const initSheet = async () => {
+        setIsInitializing(true);
+        try {
+            const result = await GoogleService.initInventorySheet();
+            if (result.success) {
+                setInventorySheet({
+                    sheetId: result.sheetId,
+                    sheetUrl: result.sheetUrl,
+                    folderUrl: result.folderUrl
+                });
+                addToast('庫存 Sheet 建立成功！', 'success');
+            } else {
+                addToast('建立失敗：' + result.error, 'error');
+            }
+        } catch (err) {
+            addToast('建立失敗：' + err.message, 'error');
+        }
+        setIsInitializing(false);
+    };
+
+    // 同步到 Sheet
+    const syncToSheet = async () => {
+        if (!inventorySheet?.sheetId) {
+            addToast('請先建立庫存 Sheet', 'warning');
+            return;
+        }
+        setIsSyncing(true);
+        try {
+            const result = await GoogleService.syncInventoryToSheet(inventorySheet.sheetId, items);
+            if (result.success) {
+                addToast('同步成功！', 'success');
+            } else {
+                addToast('同步失敗：' + result.error, 'error');
+            }
+        } catch (err) {
+            addToast('同步失敗：' + err.message, 'error');
+        }
+        setIsSyncing(false);
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <SectionTitle title="庫存管理" />
-                <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    <Plus size={18} />
-                    新增品項
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Sheet 管理按鈕 */}
+                    {!inventorySheet ? (
+                        <button
+                            onClick={initSheet}
+                            disabled={isInitializing}
+                            className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
+                        >
+                            {isInitializing ? (
+                                <RefreshCw size={16} className="animate-spin" />
+                            ) : (
+                                <FileSpreadsheet size={16} />
+                            )}
+                            建立 Sheet
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={syncToSheet}
+                                disabled={isSyncing}
+                                className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 text-sm"
+                            >
+                                {isSyncing ? (
+                                    <RefreshCw size={16} className="animate-spin" />
+                                ) : (
+                                    <RefreshCw size={16} />
+                                )}
+                                同步到 Sheet
+                            </button>
+                            <a
+                                href={inventorySheet.sheetUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                            >
+                                <ExternalLink size={16} />
+                                開啟 Sheet
+                            </a>
+                        </>
+                    )}
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <Plus size={18} />
+                        新增品項
+                    </button>
+                </div>
             </div>
 
             {/* 統計卡片 */}

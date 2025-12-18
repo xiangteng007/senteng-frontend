@@ -375,5 +375,67 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // 初始化庫存 Sheet（建立資料夾和分頁）
+  initInventorySheet: async () => {
+    console.log(`📦 Initializing Inventory Sheet...`);
+
+    try {
+      const result = await callGASWithJSONP('init_inventory_sheet', {});
+
+      if (result.success) {
+        console.log(`✅ Inventory Sheet initialized`);
+        return {
+          success: true,
+          folderId: result.data?.folderId,
+          folderUrl: result.data?.folderUrl,
+          sheetId: result.data?.sheetId,
+          sheetUrl: result.data?.sheetUrl
+        };
+      } else {
+        console.error(`❌ Failed to initialize Inventory Sheet:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 同步庫存資料到 Sheet
+  syncInventoryToSheet: async (sheetId, items) => {
+    console.log(`📦 Syncing ${items.length} items to Inventory Sheet...`);
+
+    try {
+      const result = await callGASWithJSONP('sync_inventory_to_sheet', {
+        sheetId,
+        items: JSON.stringify(items.map(item => ({
+          name: item.name,
+          spec: item.spec || '',
+          quantity: item.quantity,
+          unit: item.unit,
+          safeStock: item.safeStock,
+          location: item.location || '',
+          status: item.status,
+          category: item.category || '其他'
+        })))
+      });
+
+      if (result.success) {
+        console.log(`✅ Inventory synced to Sheet`);
+        return {
+          success: true,
+          sheetUrl: result.data?.sheetUrl,
+          updatedAt: result.data?.updatedAt
+        };
+      } else {
+        console.error(`❌ Failed to sync inventory:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
