@@ -1,44 +1,168 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 
-const SidebarItem = ({ id, icon: Icon, label, active, onClick }) => (
-    <button
-        onClick={() => onClick(id)}
-        className={`
-      w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300
-      ${active
-                ? 'bg-morandi-text-accent text-white shadow-lg shadow-gray-200'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-morandi-text-accent'
-            }
-    `}
-    >
-        <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-        <span className={`font-medium ${active ? 'font-bold' : ''}`}>{label}</span>
-    </button>
-);
+// DnD Kit imports
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// 預設選單順序
+const DEFAULT_MENU_ITEMS = [
+    { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
+    { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
+    { id: 'projects', icon: Briefcase, label: '專案管理' },
+    { id: 'clients', icon: Users, label: '客戶管理' },
+    { id: 'finance', icon: Wallet, label: '財務管理' },
+    { id: 'vendors', icon: HardHat, label: '廠商管理' },
+    { id: 'inventory', icon: Package, label: '庫存管理' },
+    { id: 'materials', icon: ImageIcon, label: '材質圖庫' },
+    { id: 'invoice', icon: FileText, label: '發票小幫手' },
+    { id: 'unit', icon: Ruler, label: '單位換算' },
+    { id: 'cost', icon: Calculator, label: '成本估算' },
+    { id: 'calc', icon: Building2, label: '物料換算' },
+];
+
+// localStorage key
+const MENU_ORDER_KEY = 'senteng_menu_order';
+
+// 可排序的側邊欄項目
+const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : undefined,
+        opacity: isDragging ? 0.8 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`
+                flex items-center gap-1 rounded-2xl transition-all duration-300
+                ${isDragging ? 'shadow-lg bg-white' : ''}
+            `}
+        >
+            {/* 拖曳把手 */}
+            <button
+                {...attributes}
+                {...listeners}
+                className="p-2 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none"
+                title="拖曳排序"
+            >
+                <GripVertical size={16} />
+            </button>
+
+            {/* 選單項目 */}
+            <button
+                onClick={() => onClick(id)}
+                className={`
+                    flex-1 flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300
+                    ${active
+                        ? 'bg-morandi-text-accent text-white shadow-lg shadow-gray-200'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-morandi-text-accent'
+                    }
+                `}
+            >
+                <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+                <span className={`font-medium ${active ? 'font-bold' : ''}`}>{label}</span>
+            </button>
+        </div>
+    );
+};
 
 export const MainLayout = ({ activeTab, setActiveTab, children }) => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [hasUpcomingEvents, setHasUpcomingEvents] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [menuItems, setMenuItems] = useState(DEFAULT_MENU_ITEMS);
 
-    const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
-        { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
-        { id: 'projects', icon: Briefcase, label: '專案管理' },
-        { id: 'clients', icon: Users, label: '客戶管理' },
-        { id: 'finance', icon: Wallet, label: '財務管理' },
-        { id: 'vendors', icon: HardHat, label: '廠商管理' },
-        { id: 'inventory', icon: Package, label: '庫存管理' },
-        { id: 'materials', icon: ImageIcon, label: '材質圖庫' },
-        { id: 'invoice', icon: FileText, label: '發票小幫手' },
-        { id: 'unit', icon: Ruler, label: '單位換算' },
-        { id: 'cost', icon: Calculator, label: '成本估算' },
-        { id: 'calc', icon: Building2, label: '物料換算' },
-    ];
+    // 從 localStorage 讀取選單順序
+    useEffect(() => {
+        const savedOrder = localStorage.getItem(MENU_ORDER_KEY);
+        if (savedOrder) {
+            try {
+                const orderIds = JSON.parse(savedOrder);
+                // 根據儲存的順序重新排列選單
+                const reorderedItems = orderIds
+                    .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
+                    .filter(Boolean);
+
+                // 補上任何新增的選單項目（如果有的話）
+                DEFAULT_MENU_ITEMS.forEach(item => {
+                    if (!reorderedItems.find(i => i.id === item.id)) {
+                        reorderedItems.push(item);
+                    }
+                });
+
+                setMenuItems(reorderedItems);
+            } catch (e) {
+                console.error('Failed to parse menu order:', e);
+            }
+        }
+    }, []);
+
+    // DnD sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5, // 需要移動 5px 才開始拖曳
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // 處理拖曳結束
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            setMenuItems((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                const newItems = arrayMove(items, oldIndex, newIndex);
+
+                // 儲存新順序到 localStorage
+                const orderIds = newItems.map(item => item.id);
+                localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(orderIds));
+
+                return newItems;
+            });
+        }
+    };
+
+    // 重設為預設順序
+    const resetMenuOrder = () => {
+        setMenuItems(DEFAULT_MENU_ITEMS);
+        localStorage.removeItem(MENU_ORDER_KEY);
+    };
 
     // 檢查是否有即將到來的行程
     useEffect(() => {
@@ -70,6 +194,10 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
         setIsMobileMenuOpen(false);
     }, [activeTab]);
 
+    // 檢查順序是否被修改過
+    const isOrderCustomized = JSON.stringify(menuItems.map(i => i.id)) !==
+        JSON.stringify(DEFAULT_MENU_ITEMS.map(i => i.id));
+
     return (
         <div className="flex h-screen bg-morandi-base font-sans text-gray-900 overflow-hidden">
             {/* Mobile Menu Overlay */}
@@ -82,7 +210,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
 
             {/* Sidebar - Responsive */}
             <aside className={`
-                w-68 bg-white/80 backdrop-blur-md border-r border-white/50 flex flex-col z-50 shadow-glass
+                w-72 bg-white/80 backdrop-blur-md border-r border-white/50 flex flex-col z-50 shadow-glass
                 fixed lg:relative h-full
                 transform transition-transform duration-300 ease-in-out
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -101,17 +229,43 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                         SENTENG.CO
                     </h1>
                 </div>
-                <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-                    {menuItems.map(item => (
-                        <SidebarItem
-                            key={item.id}
-                            {...item}
-                            active={activeTab === item.id}
-                            onClick={setActiveTab}
-                        />
-                    ))}
+
+                {/* 可排序選單 */}
+                <nav className="flex-1 px-2 space-y-1 overflow-y-auto custom-scrollbar">
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={menuItems.map(item => item.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            {menuItems.map(item => (
+                                <SortableSidebarItem
+                                    key={item.id}
+                                    {...item}
+                                    active={activeTab === item.id}
+                                    onClick={setActiveTab}
+                                />
+                            ))}
+                        </SortableContext>
+                    </DndContext>
                 </nav>
-                <div className="p-6 text-xs text-gray-400 text-center">v3.1.0 Morandi Build</div>
+
+                {/* 重設順序按鈕 + 版本號 */}
+                <div className="p-4 border-t border-gray-100">
+                    {isOrderCustomized && (
+                        <button
+                            onClick={resetMenuOrder}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-2"
+                        >
+                            <RotateCcw size={14} />
+                            重設選單順序
+                        </button>
+                    )}
+                    <div className="text-xs text-gray-400 text-center">v3.1.0 Morandi Build</div>
+                </div>
             </aside>
 
             <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
