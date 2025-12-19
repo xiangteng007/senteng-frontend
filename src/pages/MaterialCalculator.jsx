@@ -46,14 +46,33 @@ const TILE_SIZES = [
     { label: '自訂', l: 0, w: 0 },
 ];
 
-// 建築類型概估指標
+// 磁磚施工方法分類
+const TILE_METHODS = [
+    { value: 'none', label: '未選擇' },
+    { value: 'wet', label: '濕式工法(軟底)' },
+    { value: 'dry', label: '乾式工法(硬底)' },
+    { value: 'semi', label: '半乾濕式(騷底)' },
+    { value: 'hang', label: '乾掛式工法' },
+];
+
+// 粉光配比對照表
+const PLASTER_RATIOS = {
+    '1:2': { label: '1:2 粉光 (細)', cementPerM3: 650, sandPerM3: 800, desc: '細緻粉光面' },
+    '1:3': { label: '1:3 打底 (粗)', cementPerM3: 450, sandPerM3: 950, desc: '一般打底用' },
+};
+
+// 建築類型概估指標 (擴充版)
 const BUILDING_TYPES = [
-    { label: '多層砌體住宅', rebar: 30, concrete: 0.315 },
-    { label: '多層框架結構', rebar: 40, concrete: 0.34 },
-    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35 },
-    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36 },
-    { label: '高層 (30F)', rebar: 70, concrete: 0.445 },
-    { label: '別墅', rebar: 40, concrete: 0.33 },
+    { label: '多層砌體住宅', rebar: 30, concrete: 0.315, formwork: 2.0, sand: 0.5, structure: 'RC' },
+    { label: '多層框架結構', rebar: 40, concrete: 0.34, formwork: 2.2, sand: 0.55, structure: 'RC' },
+    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35, formwork: 2.3, sand: 0.6, structure: 'RC' },
+    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36, formwork: 2.4, sand: 0.65, structure: 'RC' },
+    { label: '高層 (30F)', rebar: 70, concrete: 0.445, formwork: 2.6, sand: 0.75, structure: 'RC' },
+    { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC' },
+    { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC' },
+    { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC' },
+    { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC' },
+    { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC' },
 ];
 
 // 鋼筋規格表
@@ -199,12 +218,95 @@ const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true, o
     );
 };
 
-// ============================================
-// 工項計算器組件
-// ============================================
+// 成本輸入組件
+const CostInput = ({ label, quantity, unit, vendors = [], onChange, placeholder = {} }) => {
+    const [selectedVendor, setSelectedVendor] = useState('');
+    const [spec, setSpec] = useState('');
+    const [price, setPrice] = useState('');
+    const [note, setNote] = useState('');
+
+    const subtotal = (parseFloat(price) || 0) * (parseFloat(quantity) || 0);
+
+    // 當數值變更時通知父組件
+    React.useEffect(() => {
+        onChange?.({
+            vendor: vendors.find(v => v.id === selectedVendor)?.name || '',
+            vendorId: selectedVendor,
+            spec,
+            price: parseFloat(price) || 0,
+            subtotal,
+            note
+        });
+    }, [selectedVendor, spec, price, note, quantity]);
+
+    return (
+        <div className="bg-orange-50 rounded-lg p-3 space-y-3 border border-orange-100 mt-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-orange-800">
+                <span className="bg-orange-200 text-orange-700 p-1 rounded">
+                    <Calculator size={14} />
+                </span>
+                {label}成本估算
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">廠商選擇</label>
+                    <select
+                        value={selectedVendor}
+                        onChange={(e) => setSelectedVendor(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+                    >
+                        <option value="">選擇廠商...</option>
+                        {vendors.map(v => (
+                            <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">規格/種類</label>
+                    <input
+                        type="text"
+                        value={spec}
+                        onChange={(e) => setSpec(e.target.value)}
+                        placeholder={placeholder.spec || "例：3000psi"}
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">單價 ({unit ? `元/${unit}` : '元'})</label>
+                    <input
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="0"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">備註</label>
+                    <input
+                        type="text"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="備註說明"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm"
+                    />
+                </div>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-orange-200/50">
+                <div className="text-xs text-orange-600">
+                    數量: {formatNumber(quantity)} {unit}
+                </div>
+                <div className="text-sm font-bold text-orange-700">
+                    小計: $ {formatNumber(subtotal, 0)}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 // 1️⃣ 結構工程計算器 (支援多列輸入)
-const StructureCalculator = ({ onAddRecord }) => {
+const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
     const [calcType, setCalcType] = useState('concrete');
 
     // 混凝土計算 - 多列支援
@@ -213,6 +315,13 @@ const StructureCalculator = ({ onAddRecord }) => {
     ]);
     const [concreteWastage, setConcreteWastage] = useState(DEFAULT_WASTAGE.concrete);
     const [concreteCustomWastage, setConcreteCustomWastage] = useState(false);
+    const [concreteCost, setConcreteCost] = useState(null);
+
+    // 泵浦車記錄
+    const [pumpTruckCount, setPumpTruckCount] = useState('');
+    const [pumpTruckTrips, setPumpTruckTrips] = useState('');
+    const [pumpTruckNote, setPumpTruckNote] = useState('');
+    const [pumpTruckCost, setPumpTruckCost] = useState(null);
 
     // 鋼筋計算
     const [rebarSpec, setRebarSpec] = useState(0);
@@ -220,9 +329,6 @@ const StructureCalculator = ({ onAddRecord }) => {
     const [rebarCount, setRebarCount] = useState('');
     const [rebarWastage, setRebarWastage] = useState(DEFAULT_WASTAGE.rebar);
     const [rebarCustomWastage, setRebarCustomWastage] = useState(false);
-
-    // 模板計算
-    const [formworkArea, setFormworkArea] = useState('');
     const [formworkRatio, setFormworkRatio] = useState('2.2');
     const [formworkWastage, setFormworkWastage] = useState(DEFAULT_WASTAGE.formwork);
     const [formworkCustomWastage, setFormworkCustomWastage] = useState(false);
@@ -438,9 +544,60 @@ const StructureCalculator = ({ onAddRecord }) => {
                         value={totalConcreteVolume}
                         unit="m³"
                         wastageValue={totalConcreteWithWastage}
-                        onAddRecord={onAddRecord}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
                         subType="混凝土"
                     />
+
+                    {/* 混凝土成本計算 */}
+                    <CostInput
+                        label="混凝土"
+                        quantity={totalConcreteWithWastage}
+                        unit="m³"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('混凝土'))}
+                        onChange={setConcreteCost}
+                        placeholder={{ spec: '例：3000psi' }}
+                    />
+
+                    {/* 泵浦車欄位 */}
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-3 mt-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <span className="bg-orange-100 text-orange-600 p-1 rounded">
+                                <Building2 size={16} />
+                            </span>
+                            混凝土泵浦車紀錄 (非必填)
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                <InputField label="車輛數" value={pumpTruckCount} onChange={setPumpTruckCount} unit="輛" placeholder="0" />
+                                <InputField label="總車次" value={pumpTruckTrips} onChange={setPumpTruckTrips} unit="車次" placeholder="0" />
+                            </div>
+                            <InputField label="備註說明" value={pumpTruckNote} onChange={setPumpTruckNote} placeholder="例：45米泵浦車" type="text" />
+                        </div>
+
+                        {/* 泵浦車成本計算 */}
+                        <CostInput
+                            label="泵浦車"
+                            quantity={parseFloat(pumpTruckTrips) || parseFloat(pumpTruckCount) || 0}
+                            unit="車次"
+                            vendors={vendors.filter(v => v.category === '工程工班' || v.tradeType?.includes('泵浦'))}
+                            onChange={setPumpTruckCost}
+                            placeholder={{ spec: '例：45米' }}
+                        />
+
+                        {(pumpTruckCount || pumpTruckTrips) && (
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={() => onAddRecord?.('結構工程', '泵浦車',
+                                        `泵浦車 ${pumpTruckCount ? pumpTruckCount + '輛' : ''} ${pumpTruckTrips ? pumpTruckTrips + '車次' : ''} ${pumpTruckNote ? '(' + pumpTruckNote + ')' : ''}`,
+                                        parseFloat(pumpTruckTrips) || parseFloat(pumpTruckCount) || 0, '車次', 0, pumpTruckCost)}
+                                    className="px-3 py-1.5 bg-orange-100 text-orange-600 rounded text-xs hover:bg-orange-200 transition-colors flex items-center gap-1"
+                                >
+                                    <Plus size={12} /> 加入記錄
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     {/* 各列明細 */}
                     {concreteRowResults.filter(r => r.volume > 0).length > 1 && (
@@ -488,8 +645,18 @@ const StructureCalculator = ({ onAddRecord }) => {
                         value={rebarWeight}
                         unit="kg"
                         wastageValue={rebarWithWastage}
-                        onAddRecord={onAddRecord}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
                         subType="鋼筋"
+                    />
+
+                    <CostInput
+                        label="鋼筋"
+                        quantity={rebarWithWastage}
+                        unit="kg"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('鋼筋'))}
+                        onChange={setRebarCost}
+                        placeholder={{ spec: '例：#4 鋼筋' }}
                     />
                 </div>
             )}
@@ -526,8 +693,18 @@ const StructureCalculator = ({ onAddRecord }) => {
                         value={formworkResult}
                         unit="m²"
                         wastageValue={formworkWithWastage}
-                        onAddRecord={onAddRecord}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
                         subType="模板"
+                    />
+
+                    <CostInput
+                        label="模板"
+                        quantity={formworkWithWastage}
+                        unit="m²"
+                        vendors={vendors.filter(v => v.category === '工程工班' || v.tradeType?.includes('模板'))}
+                        onChange={setFormworkCost}
+                        placeholder={{ spec: '例：清水模板' }}
                     />
                 </div>
             )}
@@ -536,7 +713,7 @@ const StructureCalculator = ({ onAddRecord }) => {
 };
 
 // 2️⃣ 泥作工程計算器 (支援多列輸入)
-const MasonryCalculator = ({ onAddRecord }) => {
+const MasonryCalculator = ({ onAddRecord, vendors = [] }) => {
     const [calcType, setCalcType] = useState('mortar');
 
     // 打底砂漿 - 多列支援
@@ -545,6 +722,7 @@ const MasonryCalculator = ({ onAddRecord }) => {
     ]);
     const [mortarWastage, setMortarWastage] = useState(DEFAULT_WASTAGE.cement);
     const [mortarCustomWastage, setMortarCustomWastage] = useState(false);
+    const [mortarCost, setMortarCost] = useState(null);
 
     // 紅磚 - 多列支援
     const [brickRows, setBrickRows] = useState([
@@ -552,9 +730,16 @@ const MasonryCalculator = ({ onAddRecord }) => {
     ]);
     const [brickWastage, setBrickWastage] = useState(DEFAULT_WASTAGE.brick);
     const [brickCustomWastage, setBrickCustomWastage] = useState(false);
+    const [brickCost, setBrickCost] = useState(null);
 
     // 快速估算
     const [quickArea, setQuickArea] = useState('');
+
+    // 粉光配比計算器
+    const [plasterRatio, setPlasterRatio] = useState('1:3');
+    const [plasterArea, setPlasterArea] = useState('');
+    const [plasterThickness, setPlasterThickness] = useState('1.5');
+    const [plasterCost, setPlasterCost] = useState(null);
 
     // 計算每列砂漿結果
     const mortarRowResults = mortarRows.map(row => {
@@ -620,11 +805,20 @@ const MasonryCalculator = ({ onAddRecord }) => {
     const quickCement = (parseFloat(quickArea) || 0) * 0.4;
     const quickSand = (parseFloat(quickArea) || 0) * 0.05;
 
+    // 粉光配比計算
+    const selectedPlaster = PLASTER_RATIOS[plasterRatio];
+    const plasterAreaNum = parseFloat(plasterArea) || 0;
+    const plasterThicknessNum = parseFloat(plasterThickness) / 100; // cm to m
+    const plasterVolume = plasterAreaNum * plasterThicknessNum; // m³
+    const plasterCement = plasterVolume * selectedPlaster.cementPerM3;
+    const plasterSand = plasterVolume * selectedPlaster.sandPerM3;
+
     return (
         <div className="space-y-4">
             <div className="flex gap-2 flex-wrap">
                 {[
                     { id: 'mortar', label: '打底砂漿' },
+                    { id: 'plaster', label: '粉光配比' },
                     { id: 'brick', label: '紅磚用量' },
                     { id: 'quick', label: '快速估算' },
                 ].map(item => (
@@ -639,13 +833,67 @@ const MasonryCalculator = ({ onAddRecord }) => {
                 ))}
             </div>
 
+            {/* 粉光配比計算器 */}
+            {calcType === 'plaster' && (
+                <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Info size={16} />
+                        <div>
+                            <p>1:2 粉光: 水泥 650kg/m³ + 砂 800kg/m³ (細緻)</p>
+                            <p>1:3 打底: 水泥 450kg/m³ + 砂 950kg/m³ (一般)</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <SelectField
+                            label="配比選擇"
+                            value={plasterRatio}
+                            onChange={setPlasterRatio}
+                            options={Object.entries(PLASTER_RATIOS).map(([k, v]) => ({ value: k, label: v.label }))}
+                        />
+                        <InputField label="施作面積" value={plasterArea} onChange={setPlasterArea} unit="m²" placeholder="0" />
+                        <InputField label="塗抹厚度" value={plasterThickness} onChange={setPlasterThickness} unit="cm" placeholder="1.5" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <ResultDisplay
+                            label="水泥用量"
+                            value={plasterCement}
+                            unit="kg"
+                            showWastage={false}
+                            onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                onAddRecord(subType, label, value, unit, wastageValue, plasterCost)}
+                            subType={`粉光 ${plasterRatio}`}
+                        />
+                        <ResultDisplay
+                            label="砂用量"
+                            value={plasterSand}
+                            unit="kg"
+                            showWastage={false}
+                            onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                onAddRecord(subType, label, value, unit, wastageValue, plasterCost)}
+                            subType={`粉光 ${plasterRatio}`}
+                        />
+                    </div>
+
+                    <CostInput
+                        label="水泥/砂"
+                        quantity={plasterCement + plasterSand} // 簡易加總，實際可能需分開但此處簡化
+                        unit="kg"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('水泥'))}
+                        onChange={setPlasterCost}
+                        placeholder={{ spec: '例：水泥+砂' }}
+                    />
+                </div>
+            )}
+
             {/* 打底砂漿 - 多列模式 */}
             {calcType === 'mortar' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Info size={16} />
-                            配比 1:3 | 基準: 2.5cm厚 → 水泥 10.6kg/m², 砂 42.8kg/m²
+                            公式: 1:3 砂漿, 基準: 2.5cm厚 → 水泥 10.6kg/m², 砂 42.8kg/m²
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500">{mortarRows.length} 列</span>
@@ -752,7 +1000,8 @@ const MasonryCalculator = ({ onAddRecord }) => {
                             value={totalCement}
                             unit="kg"
                             wastageValue={totalCementWithWastage}
-                            onAddRecord={onAddRecord}
+                            onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                onAddRecord(subType, label, value, unit, wastageValue, mortarCost)}
                             subType="打底砂漿"
                         />
                         <ResultDisplay
@@ -760,10 +1009,20 @@ const MasonryCalculator = ({ onAddRecord }) => {
                             value={totalSand}
                             unit="kg"
                             wastageValue={totalSandWithWastage}
-                            onAddRecord={onAddRecord}
+                            onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                onAddRecord(subType, label, value, unit, wastageValue, mortarCost)}
                             subType="打底砂漿"
                         />
                     </div>
+
+                    <CostInput
+                        label="水泥/砂"
+                        quantity={totalCementWithWastage + totalSandWithWastage}
+                        unit="kg"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('水泥'))}
+                        onChange={setMortarCost}
+                        placeholder={{ spec: '例：水泥+砂' }}
+                    />
 
                     {mortarRowResults.filter(r => r.cement > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
@@ -893,8 +1152,18 @@ const MasonryCalculator = ({ onAddRecord }) => {
                         value={totalBricks}
                         unit="塊"
                         wastageValue={totalBricksWithWastage}
-                        onAddRecord={onAddRecord}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, brickCost)}
                         subType="紅磚"
+                    />
+
+                    <CostInput
+                        label="紅磚"
+                        quantity={totalBricksWithWastage}
+                        unit="塊"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('磚'))}
+                        onChange={setBrickCost}
+                        placeholder={{ spec: '例：2寸紅磚' }}
                     />
 
                     {brickRowResults.filter(r => r.count > 0).length > 1 && (
@@ -932,17 +1201,18 @@ const MasonryCalculator = ({ onAddRecord }) => {
 
 
 // 3️⃣ 磁磚工程計算器 (支援多列輸入)
-const TileCalculator = ({ onAddRecord }) => {
+const TileCalculator = ({ onAddRecord, vendors = [] }) => {
     const [calcType, setCalcType] = useState('tiles');
 
     // 磁磚片數 - 多列支援
     const [tileRows, setTileRows] = useState([
-        { id: 1, name: '', area: '', unit: 'ping', sizeIdx: 3 }
+        { id: 1, name: '', area: '', unit: 'ping', sizeIdx: 3, method: 'none' }
     ]);
     const [customTileL, setCustomTileL] = useState('60');
     const [customTileW, setCustomTileW] = useState('60');
     const [tileWastage, setTileWastage] = useState(DEFAULT_WASTAGE.tile);
     const [tileCustomWastage, setTileCustomWastage] = useState(false);
+    const [tileCost, setTileCost] = useState(null);
 
     // 填縫劑 - 多列支援
     const [groutRows, setGroutRows] = useState([
@@ -954,6 +1224,7 @@ const TileCalculator = ({ onAddRecord }) => {
     const [groutDepth, setGroutDepth] = useState('5');
     const [groutWastage, setGroutWastage] = useState(DEFAULT_WASTAGE.grout);
     const [groutCustomWastage, setGroutCustomWastage] = useState(false);
+    const [groutCost, setGroutCost] = useState(null);
 
     // 黏著劑 - 多列支援
     const [adhesiveRows, setAdhesiveRows] = useState([
@@ -961,6 +1232,7 @@ const TileCalculator = ({ onAddRecord }) => {
     ]);
     const [adhesiveWastage, setAdhesiveWastage] = useState(DEFAULT_WASTAGE.adhesive);
     const [adhesiveCustomWastage, setAdhesiveCustomWastage] = useState(false);
+    const [adhesiveCost, setAdhesiveCost] = useState(null);
 
     // 計算每列磁磚結果
     const tileRowResults = tileRows.map(row => {
@@ -985,7 +1257,7 @@ const TileCalculator = ({ onAddRecord }) => {
     // 磁磚列操作
     const addTileRow = () => {
         const newId = Math.max(...tileRows.map(r => r.id), 0) + 1;
-        setTileRows([...tileRows, { id: newId, name: '', area: '', unit: 'ping', sizeIdx: 3 }]);
+        setTileRows([...tileRows, { id: newId, name: '', area: '', unit: 'ping', sizeIdx: 3, method: 'none' }]);
     };
     const removeTileRow = (id) => {
         if (tileRows.length <= 1) return;
@@ -1105,12 +1377,12 @@ const TileCalculator = ({ onAddRecord }) => {
                         {tileRows.map((row, index) => (
                             <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                                 <div className="grid grid-cols-12 gap-2 items-end">
-                                    <div className="col-span-12 sm:col-span-2">
+                                    <div className="col-span-6 sm:col-span-2">
                                         <label className="block text-xs text-gray-500 mb-1">名稱</label>
                                         <input type="text" value={row.name} onChange={(e) => updateTileRow(row.id, 'name', e.target.value)}
                                             placeholder={`區域 ${index + 1}`} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
                                     </div>
-                                    <div className="col-span-4 sm:col-span-2">
+                                    <div className="col-span-6 sm:col-span-2">
                                         <label className="block text-xs text-gray-500 mb-1">面積</label>
                                         <div className="relative">
                                             <input type="number" value={row.area} onChange={(e) => updateTileRow(row.id, 'area', e.target.value)}
@@ -1118,7 +1390,7 @@ const TileCalculator = ({ onAddRecord }) => {
                                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">{row.unit === 'ping' ? '坪' : 'm²'}</span>
                                         </div>
                                     </div>
-                                    <div className="col-span-4 sm:col-span-2">
+                                    <div className="col-span-4 sm:col-span-1">
                                         <label className="block text-xs text-gray-500 mb-1">單位</label>
                                         <select value={row.unit} onChange={(e) => updateTileRow(row.id, 'unit', e.target.value)}
                                             className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
@@ -1133,7 +1405,14 @@ const TileCalculator = ({ onAddRecord }) => {
                                             {TILE_SIZES.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
                                         </select>
                                     </div>
-                                    <div className="col-span-6 sm:col-span-3 flex items-center">
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">施工方法</label>
+                                        <select value={row.method} onChange={(e) => updateTileRow(row.id, 'method', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            {TILE_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-10 sm:col-span-2 flex items-center">
                                         <div className="flex-1">
                                             <label className="block text-xs text-gray-500 mb-1">片數</label>
                                             <div className="text-sm font-bold text-orange-600">
@@ -1162,7 +1441,24 @@ const TileCalculator = ({ onAddRecord }) => {
 
                     <WastageControl wastage={tileWastage} setWastage={setTileWastage} defaultValue={DEFAULT_WASTAGE.tile} useCustom={tileCustomWastage} setUseCustom={setTileCustomWastage} />
 
-                    <ResultDisplay label={`磁磚片數 (共 ${tileRowResults.filter(r => r.count > 0).length} 項)`} value={totalTiles} unit="片" wastageValue={totalTilesWithWastage} onAddRecord={onAddRecord} subType="磁磚" />
+                    <ResultDisplay
+                        label={`磁磚片數 (共 ${tileRowResults.filter(r => r.count > 0).length} 項)`}
+                        value={totalTiles}
+                        unit="片"
+                        wastageValue={totalTilesWithWastage}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, tileCost)}
+                        subType="磁磚"
+                    />
+
+                    <CostInput
+                        label="磁磚"
+                        quantity={totalTilesWithWastage}
+                        unit="片"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('磁磚'))}
+                        onChange={setTileCost}
+                        placeholder={{ spec: '例：60x60cm 拋光石英磚' }}
+                    />
 
                     {tileRowResults.filter(r => r.count > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
@@ -1255,8 +1551,24 @@ const TileCalculator = ({ onAddRecord }) => {
 
                     <WastageControl wastage={groutWastage} setWastage={setGroutWastage} defaultValue={DEFAULT_WASTAGE.grout} useCustom={groutCustomWastage} setUseCustom={setGroutCustomWastage} />
 
-                    <ResultDisplay label={`填縫劑用量 (共 ${groutRowResults.filter(r => r.amount > 0).length} 項)`} value={totalGrout} unit="kg" wastageValue={totalGroutWithWastage} onAddRecord={onAddRecord} subType="填縫劑" />
+                    <ResultDisplay
+                        label={`填縫劑用量 (共 ${groutRowResults.filter(r => r.amount > 0).length} 項)`}
+                        value={totalGrout}
+                        unit="kg"
+                        wastageValue={totalGroutWithWastage}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, groutCost)}
+                        subType="填縫劑"
+                    />
 
+                    <CostInput
+                        label="填縫劑"
+                        quantity={totalGroutWithWastage}
+                        unit="kg"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('磁磚'))}
+                        onChange={setGroutCost}
+                        placeholder={{ spec: '例：本色填縫劑' }}
+                    />
                     {groutRowResults.filter(r => r.amount > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
                             <div className="font-medium text-gray-700 mb-2">各項明細:</div>
@@ -1344,7 +1656,24 @@ const TileCalculator = ({ onAddRecord }) => {
 
                     <WastageControl wastage={adhesiveWastage} setWastage={setAdhesiveWastage} defaultValue={DEFAULT_WASTAGE.adhesive} useCustom={adhesiveCustomWastage} setUseCustom={setAdhesiveCustomWastage} />
 
-                    <ResultDisplay label={`黏著劑用量 (共 ${adhesiveRowResults.filter(r => r.amount > 0).length} 項)`} value={totalAdhesive} unit="kg" wastageValue={totalAdhesiveWithWastage} onAddRecord={onAddRecord} subType="黏著劑" />
+                    <ResultDisplay
+                        label={`黏著劑用量 (共 ${adhesiveRowResults.filter(r => r.amount > 0).length} 項)`}
+                        value={totalAdhesive}
+                        unit="kg"
+                        wastageValue={totalAdhesiveWithWastage}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, adhesiveCost)}
+                        subType="黏著劑"
+                    />
+
+                    <CostInput
+                        label="黏著劑"
+                        quantity={totalAdhesiveWithWastage}
+                        unit="kg"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('磁磚'))}
+                        onChange={setAdhesiveCost}
+                        placeholder={{ spec: '例：高分子益膠泥' }}
+                    />
 
                     {adhesiveRowResults.filter(r => r.amount > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
@@ -1367,7 +1696,7 @@ const TileCalculator = ({ onAddRecord }) => {
 
 
 // 4️⃣ 裝修工程計算器 (支援多列輸入)
-const FinishCalculator = ({ onAddRecord }) => {
+const FinishCalculator = ({ onAddRecord, vendors = [] }) => {
     const [calcType, setCalcType] = useState('paint');
 
     // 油漆計算 - 多列支援
@@ -1376,6 +1705,7 @@ const FinishCalculator = ({ onAddRecord }) => {
     ]);
     const [paintWastage, setPaintWastage] = useState(DEFAULT_WASTAGE.paint);
     const [paintCustomWastage, setPaintCustomWastage] = useState(false);
+    const [paintCost, setPaintCost] = useState(null);
 
     // 批土計算 - 多列支援
     const [puttyRows, setPuttyRows] = useState([
@@ -1383,6 +1713,7 @@ const FinishCalculator = ({ onAddRecord }) => {
     ]);
     const [puttyWastage, setPuttyWastage] = useState(DEFAULT_WASTAGE.putty);
     const [puttyCustomWastage, setPuttyCustomWastage] = useState(false);
+    const [puttyCost, setPuttyCost] = useState(null);
 
     // 塗刷面積估算
     const [buildingArea, setBuildingArea] = useState('');
@@ -1535,7 +1866,24 @@ const FinishCalculator = ({ onAddRecord }) => {
 
                     <WastageControl wastage={paintWastage} setWastage={setPaintWastage} defaultValue={DEFAULT_WASTAGE.paint} useCustom={paintCustomWastage} setUseCustom={setPaintCustomWastage} />
 
-                    <ResultDisplay label={`油漆用量 (共 ${paintRowResults.filter(r => r.gallons > 0).length} 項)`} value={totalPaintGallons} unit="加侖" wastageValue={totalPaintWithWastage} onAddRecord={onAddRecord} subType="油漆" />
+                    <ResultDisplay
+                        label={`油漆用量 (共 ${paintRowResults.filter(r => r.gallons > 0).length} 項)`}
+                        value={totalPaintGallons}
+                        unit="加侖"
+                        wastageValue={totalPaintWithWastage}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, paintCost)}
+                        subType="油漆"
+                    />
+
+                    <CostInput
+                        label="油漆"
+                        quantity={totalPaintWithWastage}
+                        unit="加侖"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('油漆'))}
+                        onChange={setPaintCost}
+                        placeholder={{ spec: '例：乳膠漆' }}
+                    />
 
                     {paintRowResults.filter(r => r.gallons > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
@@ -1616,7 +1964,24 @@ const FinishCalculator = ({ onAddRecord }) => {
 
                     <WastageControl wastage={puttyWastage} setWastage={setPuttyWastage} defaultValue={DEFAULT_WASTAGE.putty} useCustom={puttyCustomWastage} setUseCustom={setPuttyCustomWastage} />
 
-                    <ResultDisplay label={`批土用量 (共 ${puttyRowResults.filter(r => r.amount > 0).length} 項)`} value={totalPutty} unit="kg" wastageValue={totalPuttyWithWastage} onAddRecord={onAddRecord} subType="批土" />
+                    <ResultDisplay
+                        label={`批土用量 (共 ${puttyRowResults.filter(r => r.amount > 0).length} 項)`}
+                        value={totalPutty}
+                        unit="kg"
+                        wastageValue={totalPuttyWithWastage}
+                        onAddRecord={(subType, label, value, unit, wastageValue) =>
+                            onAddRecord(subType, label, value, unit, wastageValue, puttyCost)}
+                        subType="批土"
+                    />
+
+                    <CostInput
+                        label="批土"
+                        quantity={totalPuttyWithWastage}
+                        unit="kg"
+                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('油漆'))}
+                        onChange={setPuttyCost}
+                        placeholder={{ spec: '例：AB批土' }}
+                    />
 
                     {puttyRowResults.filter(r => r.amount > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
@@ -1660,7 +2025,8 @@ const BuildingEstimator = ({ onAddRecord }) => {
     const selected = BUILDING_TYPES[buildingType];
     const totalRebar = (parseFloat(floorArea) || 0) * selected.rebar;
     const totalConcrete = (parseFloat(floorArea) || 0) * selected.concrete;
-    const totalFormwork = (parseFloat(floorArea) || 0) * 2.2;
+    const totalFormwork = (parseFloat(floorArea) || 0) * selected.formwork;
+    const totalSand = (parseFloat(floorArea) || 0) * selected.sand;
 
     return (
         <div className="space-y-4">
@@ -1686,18 +2052,19 @@ const BuildingEstimator = ({ onAddRecord }) => {
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-3 text-sm">
-                    <div className="grid grid-cols-2 gap-2 text-gray-600">
-                        <span>鋼筋指標:</span>
-                        <span className="font-medium">{selected.rebar} kg/m²</span>
-                        <span>混凝土指標:</span>
-                        <span className="font-medium">{selected.concrete} m³/m²</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-gray-600">
+                        <span>結構: <strong className="text-gray-800">{selected.structure}</strong></span>
+                        <span>鋼筋: {selected.rebar} kg/m²</span>
+                        <span>混凝土: {selected.concrete} m³/m²</span>
+                        <span>模板: {selected.formwork} m²/m²</span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <ResultDisplay label="鋼筋總量" value={totalRebar} unit="kg" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
                     <ResultDisplay label="混凝土總量" value={totalConcrete} unit="m³" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
                     <ResultDisplay label="模板總量" value={totalFormwork} unit="m²" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
+                    <ResultDisplay label="砂用量" value={totalSand} unit="m³" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
                 </div>
 
                 <div className="text-xs text-gray-500">
@@ -1710,20 +2077,26 @@ const BuildingEstimator = ({ onAddRecord }) => {
             <div className="bg-white rounded-xl p-4 border border-gray-100">
                 <h4 className="font-medium text-gray-700 mb-3">建築類型參考指標</h4>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm whitespace-nowrap">
                         <thead>
                             <tr className="border-b">
                                 <th className="text-left py-2 px-2">建築類型</th>
-                                <th className="text-right py-2 px-2">鋼筋 (kg/m²)</th>
-                                <th className="text-right py-2 px-2">混凝土 (m³/m²)</th>
+                                <th className="text-center py-2 px-2">結構</th>
+                                <th className="text-right py-2 px-2">鋼筋(kg/m²)</th>
+                                <th className="text-right py-2 px-2">混凝土(m³/m²)</th>
+                                <th className="text-right py-2 px-2">模板(m²/m²)</th>
+                                <th className="text-right py-2 px-2">砂(m³/m²)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {BUILDING_TYPES.map((t, i) => (
                                 <tr key={i} className={`border-b ${i === buildingType ? 'bg-orange-50' : ''}`}>
                                     <td className="py-2 px-2">{t.label}</td>
+                                    <td className="text-center py-2 px-2">{t.structure}</td>
                                     <td className="text-right py-2 px-2">{t.rebar}</td>
                                     <td className="text-right py-2 px-2">{t.concrete}</td>
+                                    <td className="text-right py-2 px-2">{t.formwork}</td>
+                                    <td className="text-right py-2 px-2">{t.sand}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -1738,7 +2111,7 @@ const BuildingEstimator = ({ onAddRecord }) => {
 // 主組件
 // ============================================
 
-export const MaterialCalculator = ({ addToast }) => {
+export const MaterialCalculator = ({ addToast, vendors = [] }) => {
     const [activeTab, setActiveTab] = useState('structure');
 
     // 計算記錄
@@ -1756,7 +2129,7 @@ export const MaterialCalculator = ({ addToast }) => {
     ];
 
     // 新增計算記錄
-    const addRecord = (category, subType, label, value, unit, wastageValue) => {
+    const addRecord = (category, subType, label, value, unit, wastageValue, costData) => {
         const record = {
             id: Date.now(),
             category,
@@ -1765,7 +2138,13 @@ export const MaterialCalculator = ({ addToast }) => {
             value: parseFloat(value) || 0,
             unit,
             wastageValue: parseFloat(wastageValue) || parseFloat(value) || 0,
-            createdAt: new Date().toLocaleString('zh-TW')
+            createdAt: new Date().toLocaleString('zh-TW'),
+            // 成本資訊
+            vendor: costData?.vendor || '',
+            spec: costData?.spec || '',
+            price: costData?.price || 0,
+            subtotal: costData?.subtotal || 0,
+            note: costData?.note || ''
         };
         setCalcRecords(prev => [...prev, record]);
         addToast?.(`已加入記錄: ${label}`, 'success');

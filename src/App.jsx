@@ -86,9 +86,9 @@ const App = () => {
       case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} />;
       case 'materials': return <MaterialGallery addToast={addToast} />;
       case 'invoice': return <InvoiceHelper addToast={addToast} />;
-      case 'unit': return <MaterialCalculator addToast={addToast} />;
+      case 'unit': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
       case 'cost': return <CostEstimator addToast={addToast} />;
-      case 'calc': return <MaterialCalculator addToast={addToast} />;
+      case 'calc': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
       default: return <Dashboard events={data.calendar} />;
     }
   };
