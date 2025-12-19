@@ -3,10 +3,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { WidgetWrapper } from '../components/common/WidgetWrapper';
 import { WidgetFinanceAccounts, WidgetFinanceTrend, WidgetFinanceTransactions } from '../components/widgets/FinanceWidgets';
 import { AccountDetailsModal } from '../components/finance/AccountDetailsModal';
+import { FinanceExportModal, FinanceSearchBar } from '../components/finance/FinanceExportModal';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
-import { Plus } from 'lucide-react';
+import { Plus, Download, Search } from 'lucide-react';
 import { GoogleService } from '../services/GoogleService';
 
 // 收支類別選項
@@ -50,6 +51,11 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
     // Account Details State
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState(null);
+
+    // Export Modal State
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     // Drag Refs
     const dragItem = useRef(null);
@@ -122,6 +128,31 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
         setIsDetailsModalOpen(true);
     };
 
+    // Finance Export Handler
+    const handleExportFinance = async (transactions, options) => {
+        const result = await GoogleService.exportFinanceReport(transactions, options);
+        if (result.success) {
+            addToast(`財務報表已匯出！${result.isNewSheet ? '(新建月份Sheet)' : ''}`, 'success', {
+                action: { label: '開啟報表', onClick: () => window.open(result.sheetUrl, '_blank') }
+            });
+        } else {
+            addToast(`匯出失敗：${result.error}`, 'error');
+        }
+    };
+
+    // Finance Search Handler
+    const handleSearchFinance = async (query, options) => {
+        setIsSearching(true);
+        const result = await GoogleService.searchFinanceRecords(query, options);
+        setIsSearching(false);
+        if (result.success) {
+            setSearchResults(result.results);
+            addToast(`搜尋完成，找到 ${result.count} 筆記錄`, 'info');
+        } else {
+            addToast(`搜尋失敗：${result.error}`, 'error');
+        }
+    };
+
     const handleConfirmTx = async () => {
         // Validation
         if (!newTx.accountId || !newTx.amount || parseFloat(newTx.amount) <= 0) {
@@ -190,7 +221,16 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <SectionTitle title="財務管理" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <SectionTitle title="財務管理" />
+                <button
+                    onClick={() => setIsExportModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-all shadow-sm"
+                >
+                    <Download size={18} />
+                    匯出報表
+                </button>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 auto-rows-auto">
                 {widgets.map((w, i) => (
@@ -270,6 +310,16 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
                 onClose={() => setIsDetailsModalOpen(false)}
                 account={selectedAccount}
                 allTransactions={data.transactions || []}
+            />
+
+            {/* Finance Export Modal */}
+            <FinanceExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                transactions={data.transactions || []}
+                accounts={accounts}
+                projects={allProjects}
+                onExport={handleExportFinance}
             />
         </div>
     );

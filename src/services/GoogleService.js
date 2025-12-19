@@ -560,5 +560,115 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // ========================================
+  // 財務報表功能
+  // ========================================
+
+  // 初始化「財務報表」資料夾
+  initFinanceReportFolder: async () => {
+    console.log(`📁 Initializing '財務報表' folder...`);
+
+
+    try {
+      const result = await callGASWithJSONP('init_finance_folder', {});
+
+      if (result.success) {
+        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        console.log(`✅ Finance report folder ready: ${folderUrl}`);
+        return {
+          success: true,
+          folderId: result.data?.folderId,
+          folderUrl: folderUrl
+        };
+      } else {
+        console.error(`❌ Finance report folder failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 匯出財務報表到 Sheet（按月份自動分類）
+  exportFinanceReport: async (transactions, options = {}) => {
+    const { dateRange, accountsMap = {}, projectsMap = {} } = options;
+    console.log(`📊 Exporting ${transactions.length} transactions to finance report...`);
+
+    try {
+      // 先確保資料夾存在
+      const folderResult = await GoogleService.initFinanceReportFolder();
+      if (!folderResult.success) {
+        return { success: false, error: `無法建立財務報表資料夾: ${folderResult.error}` };
+      }
+
+      // 豐富交易資料（加入帳戶名稱、專案名稱）
+      const enrichedTransactions = transactions.map(tx => ({
+        ...tx,
+        accountName: accountsMap[tx.accountId] || tx.accountName || '',
+        projectName: projectsMap[tx.projectId] || tx.projectName || ''
+      }));
+
+      const result = await callGASWithJSONP('export_finance_report', {
+        transactions: enrichedTransactions,
+        dateRange,
+        folderId: folderResult.folderId
+      });
+
+      if (result.success) {
+        console.log(`✅ Finance report exported: ${result.data?.sheetUrl}`);
+        return {
+          success: true,
+          sheetUrl: result.data?.sheetUrl,
+          rowsAdded: result.data?.rowsAdded,
+          yearMonth: result.data?.yearMonth,
+          isNewSheet: result.data?.isNewSheet
+        };
+      } else {
+        console.error(`❌ Finance report export failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 搜尋財務記錄（跨 Sheet 搜尋）
+  searchFinanceRecords: async (query, options = {}) => {
+    const { startDate, endDate } = options;
+    console.log(`🔍 Searching finance records: "${query}"...`);
+
+    try {
+      // 先取得財務報表資料夾 ID
+      const folderResult = await GoogleService.initFinanceReportFolder();
+      if (!folderResult.success) {
+        return { success: false, error: `無法存取財務報表資料夾: ${folderResult.error}`, results: [] };
+      }
+
+      const result = await callGASWithJSONP('search_finance_records', {
+        query,
+        folderId: folderResult.folderId,
+        startDate,
+        endDate
+      });
+
+      if (result.success) {
+        console.log(`✅ Found ${result.data?.count || 0} records`);
+        return {
+          success: true,
+          results: result.data?.results || [],
+          count: result.data?.count || 0
+        };
+      } else {
+        console.error(`❌ Finance search failed:`, result.error);
+        return { success: false, error: result.error, results: [] };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message, results: [] };
+    }
   }
 };
