@@ -499,5 +499,66 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // 匯出物料算量到專屬資料夾
+  exportMaterialCalculationToFolder: async (records, customName = '') => {
+    // 產生檔名 (含日期時間)
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\//g, '-');
+    const timeStr = now.toLocaleTimeString('zh-TW', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/:/g, '-');
+    const sheetName = customName.trim() || `物料算量_${dateStr}_${timeStr}`;
+
+    console.log(`📊 Exporting material calculation to Sheet: ${sheetName}...`);
+
+    try {
+      const result = await callGASWithJSONP('export_material_calculation_to_folder', {
+        sheetName,
+        folderName: '物料算量',
+        records: records.map((r, index) => ({
+          index: index + 1,
+          category: r.category || '未分類',
+          subType: r.subType || '',
+          label: r.label || `項目 ${index + 1}`,
+          value: r.value || 0,
+          unit: r.unit || '',
+          wastageValue: r.wastageValue || r.value || 0,
+          createdAt: r.createdAt || ''
+        })),
+        createdAt: now.toISOString()
+      });
+
+      if (result.success) {
+        // GAS 回傳結構可能是 { success, data: { success, data: { sheetUrl, ... } } }
+        // 需要處理雙層包裝的情況
+        const innerData = result.data?.data || result.data || {};
+        const sheetUrl = innerData.sheetUrl || result.data?.sheetUrl || '';
+        const sheetId = innerData.sheetId || result.data?.sheetId || '';
+        const folderUrl = innerData.folderUrl || result.data?.folderUrl || '';
+
+        console.log(`✅ Material calculation exported to Sheet: ${sheetUrl}`);
+        return {
+          success: true,
+          sheetUrl,
+          sheetId,
+          folderUrl
+        };
+      } else {
+        console.error(`❌ Failed to export material calculation:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };

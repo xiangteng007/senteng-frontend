@@ -203,14 +203,14 @@ const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true, o
 // 工項計算器組件
 // ============================================
 
-// 1️⃣ 結構工程計算器
+// 1️⃣ 結構工程計算器 (支援多列輸入)
 const StructureCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('concrete');
 
-    // 混凝土計算
-    const [concreteL, setConcreteL] = useState('');
-    const [concreteW, setConcreteW] = useState('');
-    const [concreteH, setConcreteH] = useState('');
+    // 混凝土計算 - 多列支援
+    const [concreteRows, setConcreteRows] = useState([
+        { id: 1, name: '', length: '', width: '', height: '' }
+    ]);
     const [concreteWastage, setConcreteWastage] = useState(DEFAULT_WASTAGE.concrete);
     const [concreteCustomWastage, setConcreteCustomWastage] = useState(false);
 
@@ -227,14 +227,46 @@ const StructureCalculator = ({ onAddRecord }) => {
     const [formworkWastage, setFormworkWastage] = useState(DEFAULT_WASTAGE.formwork);
     const [formworkCustomWastage, setFormworkCustomWastage] = useState(false);
 
-    // 計算結果
-    const concreteVolume = (parseFloat(concreteL) || 0) * (parseFloat(concreteW) || 0) * (parseFloat(concreteH) || 0);
-    const concreteWithWastage = applyWastage(concreteVolume, concreteCustomWastage ? concreteWastage : DEFAULT_WASTAGE.concrete);
+    // 計算每列混凝土體積
+    const concreteRowResults = concreteRows.map(row => {
+        const volume = (parseFloat(row.length) || 0) * (parseFloat(row.width) || 0) * (parseFloat(row.height) || 0);
+        return { ...row, volume };
+    });
 
+    // 總計混凝土體積
+    const totalConcreteVolume = concreteRowResults.reduce((sum, row) => sum + row.volume, 0);
+    const totalConcreteWithWastage = applyWastage(totalConcreteVolume, concreteCustomWastage ? concreteWastage : DEFAULT_WASTAGE.concrete);
+
+    // 新增混凝土列
+    const addConcreteRow = () => {
+        const newId = Math.max(...concreteRows.map(r => r.id), 0) + 1;
+        setConcreteRows([...concreteRows, { id: newId, name: '', length: '', width: '', height: '' }]);
+    };
+
+    // 刪除混凝土列
+    const removeConcreteRow = (id) => {
+        if (concreteRows.length <= 1) return;
+        setConcreteRows(concreteRows.filter(row => row.id !== id));
+    };
+
+    // 更新混凝土列
+    const updateConcreteRow = (id, field, value) => {
+        setConcreteRows(concreteRows.map(row =>
+            row.id === id ? { ...row, [field]: value } : row
+        ));
+    };
+
+    // 清空所有列
+    const clearConcreteRows = () => {
+        setConcreteRows([{ id: 1, name: '', length: '', width: '', height: '' }]);
+    };
+
+    // 鋼筋計算結果
     const selectedRebar = REBAR_SPECS[rebarSpec];
     const rebarWeight = selectedRebar.weight * (parseFloat(rebarLength) || 0) * (parseFloat(rebarCount) || 0);
     const rebarWithWastage = applyWastage(rebarWeight, rebarCustomWastage ? rebarWastage : DEFAULT_WASTAGE.rebar);
 
+    // 模板計算結果
     const formworkResult = (parseFloat(formworkArea) || 0) * parseFloat(formworkRatio);
     const formworkWithWastage = applyWastage(formworkResult, formworkCustomWastage ? formworkWastage : DEFAULT_WASTAGE.formwork);
 
@@ -260,18 +292,138 @@ const StructureCalculator = ({ onAddRecord }) => {
                 ))}
             </div>
 
-            {/* 混凝土計算 */}
+            {/* 混凝土計算 - 多列模式 */}
             {calcType === 'concrete' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: 體積(m³) = 長 × 寬 × 高
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            公式: 體積(m³) = 長 × 寬 × 高
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{concreteRows.length} 列</span>
+                            <button
+                                onClick={() => concreteRows.length > 1 && removeConcreteRow(concreteRows[concreteRows.length - 1].id)}
+                                disabled={concreteRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                title="減少一列"
+                            >
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button
+                                onClick={addConcreteRow}
+                                className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors"
+                                title="新增一列"
+                            >
+                                <Plus size={16} />
+                            </button>
+                            {concreteRows.length > 1 && (
+                                <button
+                                    onClick={clearConcreteRows}
+                                    className="text-xs text-gray-500 hover:text-gray-700 ml-1"
+                                >
+                                    清空
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <InputField label="長度" value={concreteL} onChange={setConcreteL} unit="m" placeholder="0" />
-                        <InputField label="寬度" value={concreteW} onChange={setConcreteW} unit="m" placeholder="0" />
-                        <InputField label="高度/厚度" value={concreteH} onChange={setConcreteH} unit="m" placeholder="0" />
+
+                    {/* 多列輸入區 */}
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {concreteRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    {/* 項目名稱 */}
+                                    <div className="col-span-12 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input
+                                            type="text"
+                                            value={row.name}
+                                            onChange={(e) => updateConcreteRow(row.id, 'name', e.target.value)}
+                                            placeholder={`項目 ${index + 1}`}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                    {/* 長度 */}
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">長度</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={row.length}
+                                                onChange={(e) => updateConcreteRow(row.id, 'length', e.target.value)}
+                                                placeholder="0"
+                                                min="0"
+                                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-7"
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m</span>
+                                        </div>
+                                    </div>
+                                    {/* 寬度 */}
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">寬度</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={row.width}
+                                                onChange={(e) => updateConcreteRow(row.id, 'width', e.target.value)}
+                                                placeholder="0"
+                                                min="0"
+                                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-7"
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m</span>
+                                        </div>
+                                    </div>
+                                    {/* 高度/厚度 */}
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">高度/厚度</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={row.height}
+                                                onChange={(e) => updateConcreteRow(row.id, 'height', e.target.value)}
+                                                placeholder="0"
+                                                min="0"
+                                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-7"
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m</span>
+                                        </div>
+                                    </div>
+                                    {/* 計算結果 */}
+                                    <div className="col-span-10 sm:col-span-3 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">體積</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {concreteRowResults[index].volume > 0
+                                                    ? `${formatNumber(concreteRowResults[index].volume, 4)} m³`
+                                                    : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* 刪除按鈕 */}
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button
+                                            onClick={() => removeConcreteRow(row.id)}
+                                            disabled={concreteRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
+
+                    {/* 快速新增按鈕 */}
+                    <button
+                        onClick={addConcreteRow}
+                        className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                        <Plus size={16} />
+                        +增加新欄位
+                    </button>
+
                     <WastageControl
                         wastage={concreteWastage}
                         setWastage={setConcreteWastage}
@@ -279,14 +431,31 @@ const StructureCalculator = ({ onAddRecord }) => {
                         useCustom={concreteCustomWastage}
                         setUseCustom={setConcreteCustomWastage}
                     />
+
+                    {/* 總計結果 */}
                     <ResultDisplay
-                        label="混凝土用量"
-                        value={concreteVolume}
+                        label={`混凝土用量 (共 ${concreteRowResults.filter(r => r.volume > 0).length} 項)`}
+                        value={totalConcreteVolume}
                         unit="m³"
-                        wastageValue={concreteWithWastage}
+                        wastageValue={totalConcreteWithWastage}
                         onAddRecord={onAddRecord}
                         subType="混凝土"
                     />
+
+                    {/* 各列明細 */}
+                    {concreteRowResults.filter(r => r.volume > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {concreteRowResults.filter(r => r.volume > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `項目 ${idx + 1}`} ({row.length}×{row.width}×{row.height})</span>
+                                        <span className="font-medium">{formatNumber(row.volume, 4)} m³</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -912,30 +1081,20 @@ export const MaterialCalculator = ({ addToast }) => {
         addToast?.('已清空計算記錄', 'info');
     };
 
-    // 匯出到 Google Sheet
+    // 匯出到 Google Sheet (存入物料算量資料夾)
     const exportToSheet = async () => {
         if (calcRecords.length === 0) {
             addToast?.('請先加入計算記錄', 'warning');
             return;
         }
 
-        const name = exportName.trim() || `物料換算_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}`;
-
         setIsExporting(true);
         try {
-            // 將記錄轉換為匯出格式
-            const items = calcRecords.map(r => ({
-                category: r.category,
-                name: r.label,
-                spec: r.subType,
-                unit: r.unit,
-                price: 0,
-                quantity: r.value,
-                subtotal: r.wastageValue,
-                note: r.wastageValue !== r.value ? `含損耗: ${r.wastageValue}` : ''
-            }));
-
-            const result = await GoogleService.exportEstimateToSheet(name, items, 0);
+            // 使用新的匯出功能，會自動建立物料算量資料夾並以日期時間命名
+            const result = await GoogleService.exportMaterialCalculationToFolder(
+                calcRecords,
+                exportName // 如果有自訂名稱則使用，否則會自動產生含日期時間的檔名
+            );
 
             if (result.success) {
                 setExportedSheet(result);
