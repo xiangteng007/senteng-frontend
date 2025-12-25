@@ -59,13 +59,14 @@ const TAIWAN_HOLIDAYS = {
     '2026-12-25': '行憲紀念日',
 };
 
-const Schedule = ({ data = [], loans = [], addToast }) => {
+const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newEvent, setNewEvent] = useState({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
     const [isSaving, setIsSaving] = useState(false);
     const [showHolidays, setShowHolidays] = useState(true);
     const [showLoanReminders, setShowLoanReminders] = useState(true);
+    const [localEvents, setLocalEvents] = useState(data);
 
     // 生成貸款還款提醒事件
     const loanPaymentEvents = useMemo(() => {
@@ -103,8 +104,8 @@ const Schedule = ({ data = [], loans = [], addToast }) => {
 
     // 合併一般事件和貸款還款事件
     const allEvents = useMemo(() => {
-        return [...data, ...loanPaymentEvents];
-    }, [data, loanPaymentEvents]);
+        return [...localEvents, ...loanPaymentEvents];
+    }, [localEvents, loanPaymentEvents]);
 
     const getDaysInMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1).getDay();
@@ -130,16 +131,29 @@ const Schedule = ({ data = [], loans = [], addToast }) => {
         }
 
         setIsSaving(true);
+
+        // 創建本地事件物件
+        const eventToAdd = {
+            id: `evt-${Date.now()}`,
+            ...newEvent
+        };
+
+        // 嘗試同步到 Google Calendar
         const result = await GoogleService.addToCalendar(newEvent);
         setIsSaving(false);
 
+        // 無論 GAS 成功與否，都新增到本地
+        const updatedEvents = [...localEvents, eventToAdd];
+        setLocalEvents(updatedEvents);
+        if (onUpdateCalendar) onUpdateCalendar(updatedEvents);
+
         if (result.success) {
             addToast(`行程「${newEvent.title}」已新增至 Google Calendar`, 'success');
-            setNewEvent({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
         } else {
-            addToast(`行程建立失敗: ${result.error}`, 'error');
+            addToast(`行程已新增（本地）`, 'success');
         }
 
+        setNewEvent({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
         setIsAddModalOpen(false);
     };
 
@@ -280,8 +294,8 @@ const Schedule = ({ data = [], loans = [], addToast }) => {
                                                 <div
                                                     key={evt.id}
                                                     className={`text-[10px] px-2 py-1 rounded-lg border truncate cursor-pointer ${evt.type === 'loan'
-                                                            ? 'bg-indigo-100/50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                                            : 'bg-morandi-blue-100/50 text-morandi-blue-600 border-morandi-blue-100 hover:bg-morandi-blue-100'
+                                                        ? 'bg-indigo-100/50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                                        : 'bg-morandi-blue-100/50 text-morandi-blue-600 border-morandi-blue-100 hover:bg-morandi-blue-100'
                                                         }`}
                                                 >
                                                     {evt.type === 'loan' ? `🏦 $${evt.amount?.toLocaleString() || ''} ` : `${evt.time} `}{evt.title}
