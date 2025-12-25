@@ -1,44 +1,6 @@
 
 export const MOCK_DB = {
-    clients: [
-        {
-            id: "c-1",
-            name: "林先生",
-            status: "已簽約",
-            source: "網路廣告",
-            phone: "0912-345-678",
-            email: "lin@example.com",
-            lineId: "@linxr888",
-            address: "台北市信義區...",
-            budget: "300-500萬",
-            driveFolder: "https://drive.google.com/drive/folders/mock-lin",
-            customFields: [
-                { label: "房屋類型", value: "電梯大樓" },
-                { label: "風格偏好", value: "現代簡約" },
-                { label: "家庭成員", value: "夫妻+1子" },
-                { label: "備註", value: "喜歡大理石，主臥需有更衣室。" }
-            ],
-            lastContact: "2025-12-06"
-        },
-        {
-            id: "c-2",
-            name: "陳小姐",
-            status: "提案/報價",
-            source: "朋友介紹",
-            phone: "0922-333-444",
-            email: "chen@example.com",
-            lineId: "chen_design",
-            address: "台北市大安區...",
-            budget: "200-300萬",
-            driveFolder: "https://drive.google.com/drive/folders/mock-chen",
-            customFields: [
-                { label: "房屋類型", value: "電梯大樓" },
-                { label: "風格偏好", value: "北歐風" },
-                { label: "特殊需求", value: "有養兩隻貓，需貓跳台。" }
-            ],
-            lastContact: "2025-12-07"
-        }
-    ],
+    clients: [],
 
     projects: [
         {
@@ -102,31 +64,8 @@ export const MOCK_DB = {
         transactions: [],
         loans: []
     },
-    vendors: [
-        { id: "v-1", name: "大師兄精緻木工坊", category: "工程工班", tradeType: "木工", contactPerson: "王大哥", phone: "0912-345-678", address: "新北市板橋區文化路一段...", status: "長期合作", rating: 4.9, lastProject: "信義區林公館", tags: ["配合度高", "手工細緻"] },
-        { id: "v-2", name: "永亮專業水電", category: "工程工班", tradeType: "水電", contactPerson: "張師傅", phone: "0922-333-444", address: "新店區...", status: "合作中", rating: 4.5, lastProject: "南港軟體園區", tags: ["配線整齊"] },
-        { id: "v-3", name: "佳佳油漆", category: "工程工班", tradeType: "油漆", contactPerson: "李老闆", phone: "0911-222-333", address: "台北市松山區...", status: "觀察中", rating: 3.8, lastProject: "內湖張公館", tags: ["價格便宜"] },
-        { id: "v-4", name: "美居家飾", category: "建材供應", tradeType: "軟裝", contactPerson: "Amy", phone: "02-2345-6789", address: "台北市內湖區...", status: "長期合作", rating: 4.8, lastProject: "大安森林公園", tags: ["品項多"] },
-        // 新增廠商以支援營建物料計算器
-        { id: "v-5", name: "強固混凝土", category: "建材供應", tradeType: "混凝土", contactPerson: "陳經理", phone: "02-2600-8888", address: "林口工三區", status: "合作中", rating: 4.7, lastProject: "大安森林公園", tags: ["品質穩定"] },
-        { id: "v-6", name: "高力專業泵浦", category: "工程工班", tradeType: "泵浦", contactPerson: "阿力", phone: "0955-666-777", address: "五股工業區", status: "長期合作", rating: 4.6, lastProject: "大安森林公園", tags: ["配合度高"] },
-        { id: "v-7", name: "建宏建材行", category: "建材供應", tradeType: "水泥,磚,磁磚,砂", contactPerson: "王老闆", phone: "02-2700-1234", address: "台北市文山區", status: "長期合作", rating: 4.8, lastProject: "信義區林公館", tags: ["送貨快"] },
-        { id: "v-8", name: "冠軍磁磚經銷", category: "建材供應", tradeType: "磁磚", contactPerson: "張小姐", phone: "02-8787-9999", address: "台北市內湖區", status: "合作中", rating: 4.9, lastProject: "南港辦公室", tags: ["樣式多"] }
-    ],
-    inventory: [
-        { id: "i-1", name: "Panasonic 開關", spec: "PN-001", category: "電氣", quantity: 50, unit: "組", safeStock: 10, location: "A-01", status: "充足" },
-        { id: "i-2", name: "得利乳膠漆 (白)", spec: "PT-W01", category: "油漆", quantity: 5, unit: "桶", safeStock: 10, location: "B-02", status: "庫存偏低" },
-        { id: "i-3", name: "T5 層板燈", spec: "LGT-T5", category: "燈具", quantity: 100, unit: "支", safeStock: 20, location: "A-03", status: "充足" },
-        { id: "i-4", name: "木芯板 4x8", spec: "WD-48", category: "木料", quantity: 25, unit: "片", safeStock: 10, location: "C-01", status: "充足" },
-        { id: "i-5", name: "不鏽鋼門把", spec: "HW-SS01", category: "五金", quantity: 30, unit: "組", safeStock: 15, location: "D-02", status: "充足" },
-        { id: "i-6", name: "得利乳膠漆 (灰)", spec: "PT-G01", category: "油漆", quantity: 0, unit: "桶", safeStock: 5, location: "B-02", status: "缺貨" },
-        { id: "i-7", name: "LED 崁燈 6W", spec: "LGT-LED6", category: "燈具", quantity: 80, unit: "個", safeStock: 30, location: "A-04", status: "充足" },
-        { id: "i-8", name: "電線 2.0mm", spec: "EL-20", category: "電氣", quantity: 500, unit: "米", safeStock: 100, location: "E-01", status: "充足" },
-        { id: "i-9", name: "PVC 管 3/4", spec: "PL-34", category: "五金", quantity: 40, unit: "支", safeStock: 20, location: "D-03", status: "充足" },
-        { id: "i-10", name: "夾板 18mm", spec: "WD-18", category: "木料", quantity: 8, unit: "片", safeStock: 15, location: "C-02", status: "庫存偏低" },
-        { id: "i-11", name: "虹牌調合漆", spec: "PT-MX01", category: "油漆", quantity: 12, unit: "加侖", safeStock: 10, location: "B-03", status: "充足" },
-        { id: "i-12", name: "插座面板", spec: "EL-SOC01", category: "電氣", quantity: 3, unit: "組", safeStock: 20, location: "A-02", status: "庫存偏低" }
-    ],
+    vendors: [],
+    inventory: [],
     calendar: [
         // 過去的行程
         { id: "evt-1", title: "信義林公館-木工進場", date: "2025-12-07", time: "10:00", type: "construction", location: "台北市信義區松智路1號", description: "確認木作施工細節" },
