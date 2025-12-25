@@ -108,7 +108,7 @@ const AppContent = () => {
 
     switch (activeTab) {
       case 'dashboard': return <Dashboard events={data.calendar} finance={data.finance} projects={data.projects} clients={data.clients} />;
-      case 'schedule': return <Schedule data={data.calendar} addToast={addToast} />;
+      case 'schedule': return <Schedule data={data.calendar} loans={data.finance.loans || []} addToast={addToast} />;
       case 'projects':
         return <Projects
           data={data.projects}

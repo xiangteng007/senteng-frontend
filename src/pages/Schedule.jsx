@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Building2 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
@@ -59,12 +59,52 @@ const TAIWAN_HOLIDAYS = {
     '2026-12-25': '行憲紀念日',
 };
 
-const Schedule = ({ data = [], addToast }) => {
+const Schedule = ({ data = [], loans = [], addToast }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newEvent, setNewEvent] = useState({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
     const [isSaving, setIsSaving] = useState(false);
     const [showHolidays, setShowHolidays] = useState(true);
+    const [showLoanReminders, setShowLoanReminders] = useState(true);
+
+    // 生成貸款還款提醒事件
+    const loanPaymentEvents = useMemo(() => {
+        if (!showLoanReminders || !loans.length) return [];
+
+        const events = [];
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        loans.forEach(loan => {
+            if (loan.status !== 'active') return;
+
+            const paymentDay = loan.paymentDay || 15;
+            // 確保日期在月份範圍內
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const actualDay = Math.min(paymentDay, daysInMonth);
+
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+
+            events.push({
+                id: `loan-${loan.id}-${dateStr}`,
+                title: `🏦 ${loan.bankName} 還款`,
+                date: dateStr,
+                time: '09:00',
+                type: 'loan',
+                description: `每月還款 $${loan.monthlyPayment?.toLocaleString() || 0}`,
+                location: loan.bankName,
+                loanId: loan.id,
+                amount: loan.monthlyPayment
+            });
+        });
+
+        return events;
+    }, [loans, currentDate, showLoanReminders]);
+
+    // 合併一般事件和貸款還款事件
+    const allEvents = useMemo(() => {
+        return [...data, ...loanPaymentEvents];
+    }, [data, loanPaymentEvents]);
 
     const getDaysInMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1).getDay();
@@ -156,6 +196,20 @@ const Schedule = ({ data = [], addToast }) => {
                     台灣假日
                 </button>
 
+                {/* 貸款還款提醒開關 */}
+                {loans.length > 0 && (
+                    <button
+                        onClick={() => setShowLoanReminders(!showLoanReminders)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${showLoanReminders
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                    >
+                        <Building2 size={16} />
+                        貸款提醒
+                    </button>
+                )}
+
                 {/* 新增行程 */}
                 <button
                     onClick={() => setIsAddModalOpen(true)}
@@ -185,10 +239,11 @@ const Schedule = ({ data = [], addToast }) => {
                 <div className="flex-1 grid grid-cols-7 auto-rows-fr">
                     {days.map((day, idx) => {
                         const dateStr = day ? `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
-                        const events = data.filter(e => e.date === dateStr);
+                        const events = allEvents.filter(e => e.date === dateStr);
                         const holiday = showHolidays && day ? getHoliday(dateStr) : null;
                         const weekend = day ? isWeekend(dateStr) : false;
                         const isToday = dateStr === todayStr;
+                        const hasLoanEvent = events.some(e => e.type === 'loan');
 
                         return (
                             <div
@@ -201,11 +256,13 @@ const Schedule = ({ data = [], addToast }) => {
                                         {/* 日期數字 */}
                                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm mb-1 ${isToday
                                             ? 'bg-blue-500 text-white font-bold shadow-md'
-                                            : events.length > 0
-                                                ? 'bg-morandi-text-accent text-white font-bold shadow-md'
-                                                : holiday || weekend
-                                                    ? 'text-red-500 font-medium'
-                                                    : 'text-gray-500'
+                                            : hasLoanEvent
+                                                ? 'bg-indigo-500 text-white font-bold shadow-md'
+                                                : events.length > 0
+                                                    ? 'bg-morandi-text-accent text-white font-bold shadow-md'
+                                                    : holiday || weekend
+                                                        ? 'text-red-500 font-medium'
+                                                        : 'text-gray-500'
                                             }`}>
                                             {day}
                                         </div>
@@ -222,9 +279,12 @@ const Schedule = ({ data = [], addToast }) => {
                                             {events.map(evt => (
                                                 <div
                                                     key={evt.id}
-                                                    className="text-[10px] px-2 py-1 rounded-lg border truncate cursor-pointer bg-morandi-blue-100/50 text-morandi-blue-600 border-morandi-blue-100 hover:bg-morandi-blue-100"
+                                                    className={`text-[10px] px-2 py-1 rounded-lg border truncate cursor-pointer ${evt.type === 'loan'
+                                                            ? 'bg-indigo-100/50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                                            : 'bg-morandi-blue-100/50 text-morandi-blue-600 border-morandi-blue-100 hover:bg-morandi-blue-100'
+                                                        }`}
                                                 >
-                                                    {evt.time} {evt.title}
+                                                    {evt.type === 'loan' ? `🏦 $${evt.amount?.toLocaleString() || ''} ` : `${evt.time} `}{evt.title}
                                                 </div>
                                             ))}
                                         </div>
