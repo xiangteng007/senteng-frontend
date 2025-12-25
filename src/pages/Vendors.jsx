@@ -147,6 +147,8 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
     const [currentVendor, setCurrentVendor] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingVendor, setDeletingVendor] = useState(null);
 
     // 搜尋與篩選
     const [searchTerm, setSearchTerm] = useState('');
@@ -232,13 +234,25 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
         setIsModalOpen(false);
     };
 
-    const handleDeleteVendor = async (id) => {
-        const updatedList = vendorsList.filter(v => v.id !== id);
+    // 開啟刪除確認 Modal
+    const openDeleteModal = (vendor) => {
+        setDeletingVendor(vendor);
+        setIsDeleteModalOpen(true);
+    };
+
+    // 確認刪除廠商
+    const confirmDeleteVendor = async () => {
+        if (!deletingVendor) return;
+
+        const updatedList = vendorsList.filter(v => v.id !== deletingVendor.id);
         setVendorsList(updatedList);
         if (onUpdateVendors) onUpdateVendors(updatedList);
         await GoogleService.syncToSheet('vendors', updatedList);
-        addToast("廠商已刪除！", 'success');
-        if (activeVendor?.id === id) setActiveVendor(null);
+        addToast(`廠商「${deletingVendor.name}」已刪除！`, 'success');
+
+        if (activeVendor?.id === deletingVendor.id) setActiveVendor(null);
+        setIsDeleteModalOpen(false);
+        setDeletingVendor(null);
     };
 
     const startEdit = () => {
@@ -351,7 +365,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                                     <button onClick={startEdit} className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2">
                                         <Edit2 size={14} /> 編輯
                                     </button>
-                                    <button onClick={() => handleDeleteVendor(activeVendor.id)} className="bg-white border border-red-200 text-red-500 px-3 py-1.5 rounded-lg text-sm hover:bg-red-50 flex items-center gap-2">
+                                    <button onClick={() => openDeleteModal(activeVendor)} className="bg-white border border-red-200 text-red-500 px-3 py-1.5 rounded-lg text-sm hover:bg-red-50 flex items-center gap-2">
                                         <Trash2 size={14} /> 刪除
                                     </button>
                                 </>
@@ -630,7 +644,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                                     key={vendor.id}
                                     vendor={vendor}
                                     onSelect={setActiveVendor}
-                                    onDelete={handleDeleteVendor}
+                                    onDelete={() => openDeleteModal(vendor)}
                                 />
                             ))
                         ) : (
@@ -690,6 +704,27 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* 刪除確認 Modal */}
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => { setIsDeleteModalOpen(false); setDeletingVendor(null); }}
+                title="確認刪除廠商"
+                onConfirm={confirmDeleteVendor}
+                confirmText="確定刪除"
+            >
+                <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-800 font-medium">⚠️ 此操作無法復原</p>
+                    </div>
+                    <p className="text-gray-700">
+                        您確定要刪除廠商「<span className="font-bold">{deletingVendor?.name}</span>」嗎？
+                    </p>
+                    <p className="text-sm text-gray-500">
+                        刪除後，該廠商的所有資料將從系統中移除。
+                    </p>
+                </div>
             </Modal>
         </div>
     );
