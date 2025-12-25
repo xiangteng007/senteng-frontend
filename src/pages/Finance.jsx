@@ -109,9 +109,15 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
     const openEditAcc = (acc) => { setEditingAcc(acc); setNewAcc(acc); setIsAccModalOpen(true); };
 
     const handleSaveAccount = async () => {
+        // 確保 balance 是數字類型
+        const accountData = {
+            ...newAcc,
+            balance: Number(newAcc.balance) || 0
+        };
+
         const updatedAccounts = editingAcc
-            ? accounts.map(a => a.id === editingAcc.id ? { ...editingAcc, ...newAcc } : a)
-            : [...accounts, { ...newAcc, id: `a-${Date.now()}` }];
+            ? accounts.map(a => a.id === editingAcc.id ? { ...a, ...accountData } : a)
+            : [...accounts, { ...accountData, id: `a-${Date.now()}` }];
 
         setAccounts(updatedAccounts);
         onUpdateAccounts(updatedAccounts); // Update App State
@@ -120,6 +126,7 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
         addToast(editingAcc ? "帳戶更新成功！" : "新帳戶建立成功！", 'success');
         setIsAccModalOpen(false);
         setEditingAcc(null);
+        setNewAcc({ name: "", bank: "", number: "", balance: 0 }); // 重置表單
     };
 
     // Delete Account Handler
