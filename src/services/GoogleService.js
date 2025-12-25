@@ -9,21 +9,22 @@ const callGASWithJSONP = (action, data = {}) => {
   return new Promise((resolve, reject) => {
     const callbackName = `gas_callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // 構建 URL 參數
-    const params = new URLSearchParams({
-      action,
-      data: JSON.stringify(data),
-      callback: callbackName
-    });
+    // 構建 URL - 使用 encodeURIComponent 確保正確編碼
+    const dataStr = encodeURIComponent(JSON.stringify(data));
+    const url = `${GAS_API_URL}?action=${action}&data=${dataStr}&callback=${callbackName}`;
+
+    console.log(`🔗 GAS API Request: ${action}`, data);
 
     // 創建 script 標籤
     const script = document.createElement('script');
-    script.src = `${GAS_API_URL}?${params.toString()}`;
+    script.src = url;
     script.async = true;
+    script.crossOrigin = 'anonymous';
 
     // 設定超時（30秒）
     const timeout = setTimeout(() => {
       cleanup();
+      console.error('❌ GAS API Timeout');
       reject(new Error('Request timeout'));
     }, 30000);
 
@@ -31,6 +32,7 @@ const callGASWithJSONP = (action, data = {}) => {
     window[callbackName] = (response) => {
       clearTimeout(timeout);
       cleanup();
+      console.log('✅ GAS API Response:', response);
 
       // 檢查回應狀態 - 處理兩種回應格式
       // 格式1: {success: true, data: {...}}
@@ -54,9 +56,10 @@ const callGASWithJSONP = (action, data = {}) => {
     };
 
     // 錯誤處理
-    script.onerror = () => {
+    script.onerror = (e) => {
       clearTimeout(timeout);
       cleanup();
+      console.error('❌ Script load failed:', e);
       reject(new Error('Script load failed'));
     };
 
@@ -64,6 +67,7 @@ const callGASWithJSONP = (action, data = {}) => {
     document.head.appendChild(script);
   });
 };
+
 
 export const GoogleService = {
   login: () => new Promise(resolve => setTimeout(() => resolve({ name: "Admin", email: "admin@senteng.co", photo: "A" }), 1500)),
