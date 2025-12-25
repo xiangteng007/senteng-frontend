@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 import { useAuth } from '../context/AuthContext';
+import { saveUserMenuOrder, getUserMenuOrder } from '../services/firebase';
 
 // DnD Kit imports
 import {
@@ -102,13 +102,16 @@ const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
     );
 };
 
-export const MainLayout = ({ activeTab, setActiveTab, children }) => {
+export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
     const { user, role, allowedPages, signOut } = useAuth();
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [hasUpcomingEvents, setHasUpcomingEvents] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [menuItems, setMenuItems] = useState(DEFAULT_MENU_ITEMS);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [hasPendingChanges, setHasPendingChanges] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [savedOrder, setSavedOrder] = useState(null); // 已儲存的順序
 
     // Filter menu items based on user permissions
     const visibleMenuItems = useMemo(() => {
@@ -125,30 +128,58 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
         return items;
     }, [menuItems, allowedPages, role]);
 
-    // 從 localStorage 讀取選單順序
+    // 從 Firestore 或 localStorage 讀取選單順序
     useEffect(() => {
-        const savedOrder = localStorage.getItem(MENU_ORDER_KEY);
-        if (savedOrder) {
-            try {
-                const orderIds = JSON.parse(savedOrder);
-                // 根據儲存的順序重新排列選單
-                const reorderedItems = orderIds
-                    .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
-                    .filter(Boolean);
+        const loadMenuOrder = async () => {
+            // 先嘗試從 Firestore 讀取
+            if (user?.uid) {
+                const firestoreOrder = await getUserMenuOrder(user.uid);
+                if (firestoreOrder && firestoreOrder.length > 0) {
+                    const reorderedItems = firestoreOrder
+                        .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
+                        .filter(Boolean);
 
-                // 補上任何新增的選單項目（如果有的話）
-                DEFAULT_MENU_ITEMS.forEach(item => {
-                    if (!reorderedItems.find(i => i.id === item.id)) {
-                        reorderedItems.push(item);
-                    }
-                });
+                    // 補上任何新增的選單項目
+                    DEFAULT_MENU_ITEMS.forEach(item => {
+                        if (!reorderedItems.find(i => i.id === item.id)) {
+                            reorderedItems.push(item);
+                        }
+                    });
 
-                setMenuItems(reorderedItems);
-            } catch (e) {
-                console.error('Failed to parse menu order:', e);
+                    setMenuItems(reorderedItems);
+                    setSavedOrder(firestoreOrder);
+                    localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(firestoreOrder));
+                    return;
+                }
             }
-        }
-    }, []);
+
+            // 如果 Firestore 沒有，讀取 localStorage
+            const savedOrder = localStorage.getItem(MENU_ORDER_KEY);
+            if (savedOrder) {
+                try {
+                    const orderIds = JSON.parse(savedOrder);
+                    const reorderedItems = orderIds
+                        .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
+                        .filter(Boolean);
+
+                    DEFAULT_MENU_ITEMS.forEach(item => {
+                        if (!reorderedItems.find(i => i.id === item.id)) {
+                            reorderedItems.push(item);
+                        }
+                    });
+
+                    setMenuItems(reorderedItems);
+                    setSavedOrder(orderIds);
+                } catch (e) {
+                    console.error('Failed to parse menu order:', e);
+                }
+            } else {
+                setSavedOrder(DEFAULT_MENU_ITEMS.map(i => i.id));
+            }
+        };
+
+        loadMenuOrder();
+    }, [user?.uid]);
 
     // DnD sensors
     const sensors = useSensors(
@@ -172,19 +203,55 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                 const newIndex = items.findIndex(item => item.id === over.id);
                 const newItems = arrayMove(items, oldIndex, newIndex);
 
-                // 儲存新順序到 localStorage
+                // 儲存新順序到 localStorage (暫存)
                 const orderIds = newItems.map(item => item.id);
                 localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(orderIds));
+
+                // 檢查是否有未儲存的變更
+                if (savedOrder && JSON.stringify(orderIds) !== JSON.stringify(savedOrder)) {
+                    setHasPendingChanges(true);
+                } else {
+                    setHasPendingChanges(false);
+                }
 
                 return newItems;
             });
         }
     };
 
+    // 確認並儲存選單順序到後台
+    const confirmMenuOrder = async () => {
+        if (!user?.uid) {
+            addToast?.('請先登入', 'error');
+            return;
+        }
+
+        setIsSaving(true);
+        const orderIds = menuItems.map(item => item.id);
+        const result = await saveUserMenuOrder(user.uid, orderIds);
+
+        if (result.success) {
+            setSavedOrder(orderIds);
+            setHasPendingChanges(false);
+            addToast?.('選單順序已儲存！', 'success');
+        } else {
+            addToast?.(`儲存失敗: ${result.error}`, 'error');
+        }
+        setIsSaving(false);
+    };
+
     // 重設為預設順序
-    const resetMenuOrder = () => {
+    const resetMenuOrder = async () => {
+        const defaultOrder = DEFAULT_MENU_ITEMS.map(i => i.id);
         setMenuItems(DEFAULT_MENU_ITEMS);
-        localStorage.removeItem(MENU_ORDER_KEY);
+        localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(defaultOrder));
+
+        // 如果已儲存的順序和預設不同，顯示待確認
+        if (savedOrder && JSON.stringify(defaultOrder) !== JSON.stringify(savedOrder)) {
+            setHasPendingChanges(true);
+        } else {
+            setHasPendingChanges(false);
+        }
     };
 
     // 檢查是否有即將到來的行程
@@ -217,7 +284,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
         setIsMobileMenuOpen(false);
     }, [activeTab]);
 
-    // 檢查順序是否被修改過
+    // 檢查順序是否被修改過（相對於預設）
     const isOrderCustomized = JSON.stringify(menuItems.map(i => i.id)) !==
         JSON.stringify(DEFAULT_MENU_ITEMS.map(i => i.id));
 
@@ -288,8 +355,25 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                     </DndContext>
                 </nav>
 
-                {/* 重設順序按鈕 + 版本號 - Enhanced */}
+                {/* 選單順序控制按鈕 + 版本號 */}
                 <div className="p-4 pt-2 border-t border-gray-100/50 mt-auto">
+                    {/* 確認順序按鈕 - 當有未儲存變更時顯示 */}
+                    {hasPendingChanges && (
+                        <button
+                            onClick={confirmMenuOrder}
+                            disabled={isSaving}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 mb-2 disabled:opacity-50"
+                        >
+                            {isSaving ? (
+                                <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                                <Check size={14} />
+                            )}
+                            {isSaving ? '儲存中...' : '確認順序'}
+                        </button>
+                    )}
+
+                    {/* 重設按鈕 - 當順序和預設不同時顯示 */}
                     {isOrderCustomized && (
                         <button
                             onClick={resetMenuOrder}
@@ -299,9 +383,12 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                             重設選單順序
                         </button>
                     )}
+
                     <div className="flex items-center justify-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        <span className="text-[11px] text-gray-400 font-medium">v3.2.0 Premium</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${hasPendingChanges ? 'bg-orange-400' : 'bg-green-400'} animate-pulse`} />
+                        <span className="text-[11px] text-gray-400 font-medium">
+                            {hasPendingChanges ? '順序未儲存' : 'v3.2.0 Premium'}
+                        </span>
                     </div>
                 </div>
             </aside>

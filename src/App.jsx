@@ -171,7 +171,7 @@ const AppContent = () => {
   }
 
   return (
-    <MainLayout activeTab={activeTab} setActiveTab={handleTabChange}>
+    <MainLayout activeTab={activeTab} setActiveTab={handleTabChange} addToast={addToast}>
       {renderContent()}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </MainLayout>

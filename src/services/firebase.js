@@ -291,5 +291,43 @@ export const initializeDefaultRoles = async () => {
     }
 };
 
+// ==================== User Preferences Functions ====================
+
+/**
+ * Save user menu order to Firestore
+ * @param {string} uid - User ID
+ * @param {Array<string>} menuOrder - Array of menu item IDs
+ */
+export const saveUserMenuOrder = async (uid, menuOrder) => {
+    try {
+        await updateDoc(doc(db, 'users', uid), {
+            menuOrder: menuOrder,
+            menuOrderUpdatedAt: serverTimestamp(),
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving menu order:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Get user menu order from Firestore
+ * @param {string} uid - User ID
+ * @returns {Promise<Array<string>|null>} Menu order or null
+ */
+export const getUserMenuOrder = async (uid) => {
+    try {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (userDoc.exists()) {
+            return userDoc.data().menuOrder || null;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting menu order:', error);
+        return null;
+    }
+};
+
 // Export constants
 export { auth, db, DEFAULT_ROLES };
