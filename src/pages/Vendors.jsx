@@ -139,7 +139,7 @@ const ReviewItem = ({ review }) => (
     </div>
 );
 
-const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
+const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = [] }) => {
     // 狀態管理
     const [vendorsList, setVendorsList] = useState(data);
     const [activeVendor, setActiveVendor] = useState(null);
@@ -214,6 +214,7 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
             ? vendorsList.map(v => v.id === vendorToSave.id ? vendorToSave : v)
             : [...vendorsList, vendorToSave];
         setVendorsList(newVendorsList);
+        if (onUpdateVendors) onUpdateVendors(newVendorsList);
 
         const syncResult = await GoogleService.syncToSheet('vendors', newVendorsList);
         setIsSaving(false);
@@ -234,6 +235,7 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
     const handleDeleteVendor = async (id) => {
         const updatedList = vendorsList.filter(v => v.id !== id);
         setVendorsList(updatedList);
+        if (onUpdateVendors) onUpdateVendors(updatedList);
         await GoogleService.syncToSheet('vendors', updatedList);
         addToast("廠商已刪除！", 'success');
         if (activeVendor?.id === id) setActiveVendor(null);
@@ -253,6 +255,7 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
 
         const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
         setVendorsList(newList);
+        if (onUpdateVendors) onUpdateVendors(newList);
 
         const syncResult = await GoogleService.syncToSheet('vendors', newList);
         setIsSaving(false);
@@ -278,6 +281,7 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
         const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
         setVendorsList(newList);
         setActiveVendor(updatedVendor);
+        if (onUpdateVendors) onUpdateVendors(newList);
 
         await GoogleService.syncToSheet('vendors', newList);
         setIsReviewModalOpen(false);

@@ -145,8 +145,8 @@ const AppContent = () => {
         allProjects={data.projects}
       />;
       case 'clients': return <Clients data={data.clients} loading={loading} addToast={addToast} onUpdateClients={(d) => handleUpdate('clients', d)} allProjects={data.projects} />;
-      case 'vendors': return <Vendors data={data.vendors} loading={loading} addToast={addToast} allProjects={data.projects} />;
-      case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} />;
+      case 'vendors': return <Vendors data={data.vendors} loading={loading} addToast={addToast} onUpdateVendors={(d) => handleUpdate('vendors', d)} allProjects={data.projects} />;
+      case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} onUpdateInventory={(d) => handleUpdate('inventory', d)} />;
       case 'materials': return <MaterialGallery addToast={addToast} />;
       case 'invoice': return <InvoiceHelper addToast={addToast} />;
       case 'unit': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;

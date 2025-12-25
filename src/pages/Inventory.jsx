@@ -281,7 +281,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, item, onConfirm }) => (
 );
 
 // 主組件
-const Inventory = ({ data, addToast }) => {
+const Inventory = ({ data, addToast, onUpdateInventory }) => {
     const [items, setItems] = useState(data || []);
     const [movements, setMovements] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -357,6 +357,7 @@ const Inventory = ({ data, addToast }) => {
         const itemToAdd = { ...newItem, id: `i-${Date.now()}` };
         const newItems = [...items, itemToAdd];
         setItems(newItems);
+        if (onUpdateInventory) onUpdateInventory(newItems);
         await GoogleService.syncToSheet('inventory', newItems);
         addToast('品項新增成功！', 'success');
         setIsAddModalOpen(false);
@@ -366,6 +367,7 @@ const Inventory = ({ data, addToast }) => {
     const handleEditItem = async (updatedItem) => {
         const newItems = items.map(i => i.id === updatedItem.id ? updatedItem : i);
         setItems(newItems);
+        if (onUpdateInventory) onUpdateInventory(newItems);
         await GoogleService.syncToSheet('inventory', newItems);
         addToast('品項更新成功！', 'success');
         setIsEditModalOpen(false);
@@ -376,6 +378,7 @@ const Inventory = ({ data, addToast }) => {
     const handleDeleteItem = async () => {
         const newItems = items.filter(i => i.id !== selectedItem.id);
         setItems(newItems);
+        if (onUpdateInventory) onUpdateInventory(newItems);
         await GoogleService.syncToSheet('inventory', newItems);
         addToast('品項已刪除', 'info');
         setIsDeleteModalOpen(false);
@@ -400,6 +403,7 @@ const Inventory = ({ data, addToast }) => {
 
         setItems(newItems);
         setMovements(newMovements);
+        if (onUpdateInventory) onUpdateInventory(newItems);
         await GoogleService.syncToSheet('inventory', newItems);
         addToast(`${movement.type === '入' ? '入庫' : '出庫'}成功！`, 'success');
         setIsMovementModalOpen(false);
