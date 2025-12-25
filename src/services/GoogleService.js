@@ -235,7 +235,7 @@ export const GoogleService = {
     try {
       const result = await callGASWithJSONP('create_drive_folder', {
         folderName,
-        parentFolderId // 如果有指定父資料夾ID
+        parentId: parentFolderId // 修正：GAS 端使用 parentId
       });
 
       if (result.success) {
