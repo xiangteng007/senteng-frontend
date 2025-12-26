@@ -121,7 +121,12 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
 
         setAccounts(updatedAccounts);
         onUpdateAccounts(updatedAccounts); // Update App State
-        // await GoogleService.syncToSheet('accounts', updatedAccounts); // TODO: Implement sync
+
+        // 同步帳戶到 Google Sheets
+        const syncResult = await GoogleService.syncToSheet('accounts', updatedAccounts);
+        if (!syncResult.success) {
+            console.error('帳戶同步失敗:', syncResult.error);
+        }
 
         addToast(editingAcc ? "帳戶更新成功！" : "新帳戶建立成功！", 'success');
         setIsAccModalOpen(false);

@@ -63,17 +63,22 @@ const AppContent = () => {
 
       try {
         // Load all data types in parallel
-        const [clientsResult, vendorsResult, inventoryResult] = await Promise.all([
+        const [clientsResult, vendorsResult, inventoryResult, accountsResult] = await Promise.all([
           GoogleService.loadFromSheet('clients'),
           GoogleService.loadFromSheet('vendors'),
-          GoogleService.loadFromSheet('inventory')
+          GoogleService.loadFromSheet('inventory'),
+          GoogleService.loadFromSheet('accounts')
         ]);
 
         setData(prev => ({
           ...prev,
           clients: clientsResult.success && clientsResult.data.length > 0 ? clientsResult.data : prev.clients,
           vendors: vendorsResult.success && vendorsResult.data.length > 0 ? vendorsResult.data : prev.vendors,
-          inventory: inventoryResult.success && inventoryResult.data.length > 0 ? inventoryResult.data : prev.inventory
+          inventory: inventoryResult.success && inventoryResult.data.length > 0 ? inventoryResult.data : prev.inventory,
+          finance: {
+            ...prev.finance,
+            accounts: accountsResult.success && accountsResult.data.length > 0 ? accountsResult.data : prev.finance.accounts
+          }
         }));
 
         console.log('✅ Data loaded from Sheets');
