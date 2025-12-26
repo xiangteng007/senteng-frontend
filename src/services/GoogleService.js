@@ -72,11 +72,27 @@ const callGASWithJSONP = (action, data = {}) => {
 export const GoogleService = {
   login: () => new Promise(resolve => setTimeout(() => resolve({ name: "Admin", email: "admin@senteng.co", photo: "A" }), 1500)),
 
-  // Still using Mock Data for read operations
-  fetchSheetData: async (sheetName) => {
-    return new Promise(resolve => {
-      setTimeout(() => { if (MOCK_DB[sheetName]) resolve(MOCK_DB[sheetName]); }, 800);
-    });
+  // 從 Google Sheets 載入資料
+  loadFromSheet: async (sheetType) => {
+    console.log(`📥 Loading ${sheetType} from Google Sheets...`);
+
+    try {
+      const result = await callGASWithJSONP('load_from_sheet', { sheetType });
+
+      if (result.success && result.data?.items) {
+        console.log(`✅ Loaded ${result.data.items.length} ${sheetType} items`);
+        return { success: true, data: result.data.items };
+      } else if (result.success && result.data?.status === 'empty') {
+        console.log(`📭 No ${sheetType} data found in Sheets`);
+        return { success: true, data: [] };
+      } else {
+        console.error(`❌ Failed to load ${sheetType}:`, result.error);
+        return { success: false, error: result.error, data: [] };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message, data: [] };
+    }
   },
 
   fetchCalendarEvents: () => new Promise(resolve => { setTimeout(() => resolve(MOCK_DB.calendar), 1000); }),

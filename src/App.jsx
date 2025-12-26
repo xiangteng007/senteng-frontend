@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MainLayout } from './layout/MainLayout';
 import { MOCK_DB } from './services/MockData';
+import { GoogleService } from './services/GoogleService';
 import { ToastContainer } from './components/common/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -39,7 +40,7 @@ const LoadingScreen = () => (
 const AppContent = () => {
   const { isAuthenticated, loading: authLoading, canAccessPage, role } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState(MOCK_DB);
   const [toasts, setToasts] = useState([]);
 
@@ -55,9 +56,36 @@ const AppContent = () => {
 
 
   useEffect(() => {
-    // Simulate initial fetch
-    setLoading(true);
-    setTimeout(() => { setData(MOCK_DB); setLoading(false); }, 800);
+    // Load data from Google Sheets
+    const loadData = async () => {
+      setLoading(true);
+      console.log('📥 Loading data from Google Sheets...');
+
+      try {
+        // Load all data types in parallel
+        const [clientsResult, vendorsResult, inventoryResult] = await Promise.all([
+          GoogleService.loadFromSheet('clients'),
+          GoogleService.loadFromSheet('vendors'),
+          GoogleService.loadFromSheet('inventory')
+        ]);
+
+        setData(prev => ({
+          ...prev,
+          clients: clientsResult.success && clientsResult.data.length > 0 ? clientsResult.data : prev.clients,
+          vendors: vendorsResult.success && vendorsResult.data.length > 0 ? vendorsResult.data : prev.vendors,
+          inventory: inventoryResult.success && inventoryResult.data.length > 0 ? inventoryResult.data : prev.inventory
+        }));
+
+        console.log('✅ Data loaded from Sheets');
+      } catch (error) {
+        console.error('❌ Failed to load data:', error);
+        addToast('從雲端載入資料失敗，使用本地資料', 'warning');
+      }
+
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
   const handleUpdate = (key, newData) => {
