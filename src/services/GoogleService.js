@@ -2,7 +2,7 @@
 import { MOCK_DB } from './MockData';
 
 // GAS deployment URL
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxUrPvBxCavNiXkhVkK-Afqrfkx4N64NEFQFGzXCFUK5h5Qq_5JZlZT7ptrBiTTPvqMfg/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycby1ESLlxfybbOK58_7tbJUqcFYhCLdI0QXhbUlVvursR1o6dS9CeYV3cVNAPPrG4Ctj7A/exec";
 
 // JSONP 調用函數（繞過 CORS）
 const callGASWithJSONP = (action, data = {}) => {
