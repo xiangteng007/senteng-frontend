@@ -203,7 +203,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
 
         let driveResult = null;
         if (!currentVendor.id) {
-            driveResult = await GoogleService.createDriveFolder(currentVendor.name);
+            driveResult = await GoogleService.createVendorFolder(currentVendor.name);
             if (!driveResult.success) {
                 setIsSaving(false);
                 return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, 'error');

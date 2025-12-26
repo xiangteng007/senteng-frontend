@@ -252,6 +252,31 @@ export const GoogleService = {
     }
   },
 
+  // 廠商專用：在指定的「廠商資料」資料夾下建立廠商資料夾
+  createVendorFolder: async (vendorName) => {
+    const VENDOR_PARENT_FOLDER_ID = '1cO5aF3MBBO6FoBHXgRokEUW1uaGjUjFy';
+    console.log(`📁 Creating vendor folder: ${vendorName} (in vendor root)`);
+
+    try {
+      const result = await callGASWithJSONP('create_drive_folder', {
+        folderName: vendorName,
+        parentId: VENDOR_PARENT_FOLDER_ID
+      });
+
+      if (result.success) {
+        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        console.log(`✅ Vendor folder created: ${folderUrl}`);
+        return { success: true, url: folderUrl, folderId: result.data?.folderId };
+      } else {
+        console.error(`❌ Vendor folder creation failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   // 列出指定資料夾內的子資料夾（用於關聯現有資料夾）
   listDriveFolders: async (parentFolderId = null) => {
     console.log(`📂 Listing Drive folders...`);
