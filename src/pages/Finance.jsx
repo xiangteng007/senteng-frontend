@@ -140,10 +140,17 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
         setIsDeleteAccModalOpen(true);
     };
 
-    const confirmDeleteAccount = () => {
+    const confirmDeleteAccount = async () => {
         const updatedAccounts = accounts.filter(a => a.id !== deletingAcc.id);
         setAccounts(updatedAccounts);
         onUpdateAccounts(updatedAccounts);
+
+        // 同步帳戶刪除到 Google Sheets
+        const syncResult = await GoogleService.syncToSheet('accounts', updatedAccounts);
+        if (!syncResult.success) {
+            console.error('帳戶刪除同步失敗:', syncResult.error);
+        }
+
         addToast(`帳戶「${deletingAcc.name}」已刪除`, 'success');
         setIsDeleteAccModalOpen(false);
         setDeletingAcc(null);
@@ -166,13 +173,20 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
         setIsLoanModalOpen(true);
     };
 
-    const handleSaveLoan = (loanData) => {
+    const handleSaveLoan = async (loanData) => {
         const updatedLoans = editingLoan
             ? loans.map(l => l.id === editingLoan.id ? loanData : l)
             : [...loans, loanData];
 
         setLoans(updatedLoans);
         if (onUpdateLoans) onUpdateLoans(updatedLoans);
+
+        // 同步貸款到 Google Sheets
+        const syncResult = await GoogleService.syncToSheet('loans', updatedLoans);
+        if (!syncResult.success) {
+            console.error('貸款同步失敗:', syncResult.error);
+        }
+
         addToast(editingLoan ? '貸款帳戶已更新！' : '貸款帳戶已新增！', 'success');
         setIsLoanModalOpen(false);
         setEditingLoan(null);
@@ -183,16 +197,23 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
         setIsDeleteLoanModalOpen(true);
     };
 
-    const confirmDeleteLoan = () => {
+    const confirmDeleteLoan = async () => {
         const updatedLoans = loans.filter(l => l.id !== deletingLoan.id);
         setLoans(updatedLoans);
         if (onUpdateLoans) onUpdateLoans(updatedLoans);
+
+        // 同步貸款刪除到 Google Sheets
+        const syncResult = await GoogleService.syncToSheet('loans', updatedLoans);
+        if (!syncResult.success) {
+            console.error('貸款刪除同步失敗:', syncResult.error);
+        }
+
         addToast(`貸款帳戶「${deletingLoan.bankName}」已刪除`, 'success');
         setIsDeleteLoanModalOpen(false);
         setDeletingLoan(null);
     };
 
-    const handleRecordLoanPayment = (loan) => {
+    const handleRecordLoanPayment = async (loan) => {
         // 記錄還款 - 更新已還期數
         const updatedLoan = {
             ...loan,
@@ -202,6 +223,13 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
         const updatedLoans = loans.map(l => l.id === loan.id ? updatedLoan : l);
         setLoans(updatedLoans);
         if (onUpdateLoans) onUpdateLoans(updatedLoans);
+
+        // 同步還款記錄到 Google Sheets
+        const syncResult = await GoogleService.syncToSheet('loans', updatedLoans);
+        if (!syncResult.success) {
+            console.error('還款記錄同步失敗:', syncResult.error);
+        }
+
         addToast(`已記錄第 ${updatedLoan.paidTerms} 期還款`, 'success');
     };
 

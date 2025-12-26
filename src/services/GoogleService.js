@@ -19,7 +19,6 @@ const callGASWithJSONP = (action, data = {}) => {
     const script = document.createElement('script');
     script.src = url;
     script.async = true;
-    script.crossOrigin = 'anonymous';
 
     // 設定超時（30秒）
     const timeout = setTimeout(() => {

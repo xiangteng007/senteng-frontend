@@ -63,11 +63,13 @@ const AppContent = () => {
 
       try {
         // Load all data types in parallel
-        const [clientsResult, vendorsResult, inventoryResult, accountsResult] = await Promise.all([
+        const [clientsResult, vendorsResult, inventoryResult, accountsResult, loansResult, transactionsResult] = await Promise.all([
           GoogleService.loadFromSheet('clients'),
           GoogleService.loadFromSheet('vendors'),
           GoogleService.loadFromSheet('inventory'),
-          GoogleService.loadFromSheet('accounts')
+          GoogleService.loadFromSheet('accounts'),
+          GoogleService.loadFromSheet('loans'),
+          GoogleService.loadFromSheet('transactions')
         ]);
 
         setData(prev => ({
@@ -77,7 +79,9 @@ const AppContent = () => {
           inventory: inventoryResult.success && inventoryResult.data.length > 0 ? inventoryResult.data : prev.inventory,
           finance: {
             ...prev.finance,
-            accounts: accountsResult.success && accountsResult.data.length > 0 ? accountsResult.data : prev.finance.accounts
+            accounts: accountsResult.success && accountsResult.data.length > 0 ? accountsResult.data : prev.finance.accounts,
+            loans: loansResult.success && loansResult.data.length > 0 ? loansResult.data : prev.finance.loans,
+            transactions: transactionsResult.success && transactionsResult.data.length > 0 ? transactionsResult.data : prev.finance.transactions
           }
         }));
 
@@ -97,13 +101,20 @@ const AppContent = () => {
     setData(prev => ({ ...prev, [key]: newData }));
   };
 
-  const handleAddGlobalTx = (newTx) => {
+  const handleAddGlobalTx = async (newTx) => {
     const tx = { ...newTx, id: `t-${Date.now()}` };
     const updatedTx = [tx, ...data.finance.transactions];
     setData(prev => ({
       ...prev,
       finance: { ...prev.finance, transactions: updatedTx }
     }));
+
+    // 同步交易記錄到 Google Sheets
+    const syncResult = await GoogleService.syncToSheet('transactions', updatedTx);
+    if (!syncResult.success) {
+      console.error('交易同步失敗:', syncResult.error);
+    }
+
     addToast("記帳成功！(已同步至財務中心)", 'success');
   };
 
