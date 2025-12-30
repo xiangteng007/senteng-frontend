@@ -105,6 +105,36 @@ const REBAR_SPECS = [
     { label: '#10 D32 (32.2mm)', d: 32.2, weight: 6.39 },
 ];
 
+// 各部位鋼筋用量概算指標 (kg/m²) - 營造經驗數據
+const REBAR_USAGE_BY_COMPONENT = {
+    wall: [
+        { label: 'RC牆 15cm', thickness: 15, usage: 23, desc: '主筋@20+箍筋' },
+        { label: 'RC牆 18cm', thickness: 18, usage: 29, desc: '主筋@15+箍筋' },
+        { label: 'RC牆 20cm', thickness: 20, usage: 34, desc: '雙層主筋+箍筋' },
+        { label: 'RC牆 25cm', thickness: 25, usage: 47, desc: '雙層主筋+加強箍筋' },
+        { label: 'RC牆 30cm', thickness: 30, usage: 58, desc: '雙層主筋+密箍' },
+    ],
+    floor: [
+        { label: '樓板 12cm', thickness: 12, usage: 13, desc: '單層雙向配筋' },
+        { label: '樓板 15cm', thickness: 15, usage: 17, desc: '單層雙向配筋' },
+        { label: '加厚板 18cm', thickness: 18, usage: 25, desc: '雙層雙向配筋' },
+        { label: '屋頂板', thickness: 12, usage: 16, desc: '含隔熱層配筋' },
+    ],
+    stair: [
+        { label: '直跑樓梯', usage: 40, desc: '踏板+斜版' },
+        { label: '迴轉樓梯', usage: 50, desc: '含中間平台' },
+        { label: '懸臂樓梯', usage: 62, desc: '高配筋' },
+    ],
+    beam: [
+        { label: '一般大梁', usage: 85, desc: '主筋+箍筋 (kg/m³)' },
+        { label: '框架梁', usage: 100, desc: '高配筋 (kg/m³)' },
+    ],
+    column: [
+        { label: '一般柱', usage: 120, desc: '主筋+箍筋 (kg/m³)' },
+        { label: '框架柱', usage: 150, desc: '高配筋 (kg/m³)' },
+    ],
+};
+
 // ============================================
 // 工具函數
 // ============================================
@@ -348,6 +378,25 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
     const [rebarWastage, setRebarWastage] = useState(DEFAULT_WASTAGE.rebar);
     const [rebarCustomWastage, setRebarCustomWastage] = useState(false);
     const [rebarCost, setRebarCost] = useState(null);
+
+    // 鋼筋概算模式
+    const [rebarMode, setRebarMode] = useState('exact'); // 'exact' | 'estimate'
+    const [rebarEstimate, setRebarEstimate] = useState({
+        wallType: 0,
+        wallArea: '',
+        floorType: 0,
+        floorArea: '',
+        stairType: 0,
+        stairArea: '',
+    });
+
+    // 鋼筋概算結果計算
+    const rebarEstimateResults = {
+        wall: (parseFloat(rebarEstimate.wallArea) || 0) * REBAR_USAGE_BY_COMPONENT.wall[rebarEstimate.wallType]?.usage,
+        floor: (parseFloat(rebarEstimate.floorArea) || 0) * REBAR_USAGE_BY_COMPONENT.floor[rebarEstimate.floorType]?.usage,
+        stair: (parseFloat(rebarEstimate.stairArea) || 0) * REBAR_USAGE_BY_COMPONENT.stair[rebarEstimate.stairType]?.usage,
+        get total() { return this.wall + this.floor + this.stair; }
+    };
 
     // 模板計算
     const [formworkArea, setFormworkArea] = useState('');
@@ -642,45 +691,216 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
             {/* 鋼筋計算 */}
             {calcType === 'rebar' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: 重量(kg) = 0.00617 × d² × 長度 或 單位重量 × 長度 × 數量
+                    {/* 子分頁切換 */}
+                    <div className="flex gap-2 border-b border-gray-100 pb-3">
+                        <button
+                            onClick={() => setRebarMode('exact')}
+                            className={`px-3 py-1.5 rounded-lg text-sm transition-all ${rebarMode === 'exact'
+                                ? 'bg-orange-100 text-orange-700 font-medium'
+                                : 'text-gray-500 hover:bg-gray-100'}`}
+                        >
+                            精確計算
+                        </button>
+                        <button
+                            onClick={() => setRebarMode('estimate')}
+                            className={`px-3 py-1.5 rounded-lg text-sm transition-all ${rebarMode === 'estimate'
+                                ? 'bg-orange-100 text-orange-700 font-medium'
+                                : 'text-gray-500 hover:bg-gray-100'}`}
+                        >
+                            部位概算
+                        </button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <SelectField
-                            label="鋼筋規格"
-                            value={rebarSpec}
-                            onChange={(v) => setRebarSpec(parseInt(v))}
-                            options={REBAR_SPECS.map((r, i) => ({ value: i, label: `${r.label} (${r.weight}kg/m)` }))}
-                        />
-                        <InputField label="單根長度" value={rebarLength} onChange={setRebarLength} unit="m" placeholder="0" />
-                        <InputField label="數量" value={rebarCount} onChange={setRebarCount} unit="支" placeholder="0" />
-                    </div>
-                    <WastageControl
-                        wastage={rebarWastage}
-                        setWastage={setRebarWastage}
-                        defaultValue={DEFAULT_WASTAGE.rebar}
-                        useCustom={rebarCustomWastage}
-                        setUseCustom={setRebarCustomWastage}
-                    />
-                    <ResultDisplay
-                        label="鋼筋重量"
-                        value={rebarWeight}
-                        unit="kg"
-                        wastageValue={rebarWithWastage}
-                        onAddRecord={(subType, label, value, unit, wastageValue) =>
-                            onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
-                        subType="鋼筋"
-                    />
 
-                    <CostInput
-                        label="鋼筋"
-                        quantity={rebarWithWastage}
-                        unit="kg"
-                        vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('鋼筋'))}
-                        onChange={setRebarCost}
-                        placeholder={{ spec: '例：#4 鋼筋' }}
-                    />
+                    {/* 精確計算模式 */}
+                    {rebarMode === 'exact' && (
+                        <>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Info size={16} />
+                                公式: 重量(kg) = 單位重量 × 長度 × 數量
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <SelectField
+                                    label="鋼筋規格"
+                                    value={rebarSpec}
+                                    onChange={(v) => setRebarSpec(parseInt(v))}
+                                    options={REBAR_SPECS.map((r, i) => ({ value: i, label: `${r.label} (${r.weight}kg/m)` }))}
+                                />
+                                <InputField label="單根長度" value={rebarLength} onChange={setRebarLength} unit="m" placeholder="0" />
+                                <InputField label="數量" value={rebarCount} onChange={setRebarCount} unit="支" placeholder="0" />
+                            </div>
+                            <WastageControl
+                                wastage={rebarWastage}
+                                setWastage={setRebarWastage}
+                                defaultValue={DEFAULT_WASTAGE.rebar}
+                                useCustom={rebarCustomWastage}
+                                setUseCustom={setRebarCustomWastage}
+                            />
+                            <ResultDisplay
+                                label="鋼筋重量"
+                                value={rebarWeight}
+                                unit="kg"
+                                wastageValue={rebarWithWastage}
+                                onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                    onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                subType="鋼筋"
+                            />
+                            <CostInput
+                                label="鋼筋"
+                                quantity={rebarWithWastage}
+                                unit="kg"
+                                vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('鋼筋'))}
+                                onChange={setRebarCost}
+                                placeholder={{ spec: '例：#4 鋼筋' }}
+                            />
+                        </>
+                    )}
+
+                    {/* 部位概算模式 */}
+                    {rebarMode === 'estimate' && (
+                        <>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Info size={16} />
+                                依部位輸入面積，自動估算鋼筋用量 (營造經驗值)
+                            </div>
+
+                            {/* 牆面 */}
+                            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                                <div className="font-medium text-gray-700 text-sm flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                    牆面鋼筋
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <SelectField
+                                        label="牆體類型"
+                                        value={rebarEstimate.wallType}
+                                        onChange={(v) => setRebarEstimate(prev => ({ ...prev, wallType: parseInt(v) }))}
+                                        options={REBAR_USAGE_BY_COMPONENT.wall.map((w, i) => ({ value: i, label: `${w.label} (${w.usage} kg/m²)` }))}
+                                    />
+                                    <InputField
+                                        label="牆面面積"
+                                        value={rebarEstimate.wallArea}
+                                        onChange={(v) => setRebarEstimate(prev => ({ ...prev, wallArea: v }))}
+                                        unit="m²"
+                                        placeholder="0"
+                                    />
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">估算用量</label>
+                                        <div className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-orange-600">
+                                            {formatNumber(rebarEstimateResults.wall)} kg
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 地板 */}
+                            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                                <div className="font-medium text-gray-700 text-sm flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                    地板/樓板鋼筋
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <SelectField
+                                        label="樓板類型"
+                                        value={rebarEstimate.floorType}
+                                        onChange={(v) => setRebarEstimate(prev => ({ ...prev, floorType: parseInt(v) }))}
+                                        options={REBAR_USAGE_BY_COMPONENT.floor.map((f, i) => ({ value: i, label: `${f.label} (${f.usage} kg/m²)` }))}
+                                    />
+                                    <InputField
+                                        label="樓板面積"
+                                        value={rebarEstimate.floorArea}
+                                        onChange={(v) => setRebarEstimate(prev => ({ ...prev, floorArea: v }))}
+                                        unit="m²"
+                                        placeholder="0"
+                                    />
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">估算用量</label>
+                                        <div className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-orange-600">
+                                            {formatNumber(rebarEstimateResults.floor)} kg
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 樓梯 */}
+                            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                                <div className="font-medium text-gray-700 text-sm flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                                    樓梯鋼筋
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <SelectField
+                                        label="樓梯類型"
+                                        value={rebarEstimate.stairType}
+                                        onChange={(v) => setRebarEstimate(prev => ({ ...prev, stairType: parseInt(v) }))}
+                                        options={REBAR_USAGE_BY_COMPONENT.stair.map((s, i) => ({ value: i, label: `${s.label} (${s.usage} kg/m²)` }))}
+                                    />
+                                    <InputField
+                                        label="樓梯面積"
+                                        value={rebarEstimate.stairArea}
+                                        onChange={(v) => setRebarEstimate(prev => ({ ...prev, stairArea: v }))}
+                                        unit="m²"
+                                        placeholder="0"
+                                    />
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">估算用量</label>
+                                        <div className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-orange-600">
+                                            {formatNumber(rebarEstimateResults.stair)} kg
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 總計 */}
+                            <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-orange-200 text-sm">鋼筋概算總量</div>
+                                        <div className="text-3xl font-bold mt-1">
+                                            {formatNumber(rebarEstimateResults.total)} <span className="text-lg">kg</span>
+                                        </div>
+                                        <div className="text-orange-200 text-xs mt-1">
+                                            約 {formatNumber(rebarEstimateResults.total / 1000, 2)} 噸
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => onAddRecord('鋼筋概算', '鋼筋概算總量', rebarEstimateResults.total, 'kg', rebarEstimateResults.total, null)}
+                                        disabled={rebarEstimateResults.total <= 0}
+                                        className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        <Plus size={16} />
+                                        加入記錄
+                                    </button>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-white/20 grid grid-cols-3 gap-2 text-xs">
+                                    <div className="flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-blue-300 rounded-full"></span>
+                                        牆面: {formatNumber(rebarEstimateResults.wall)} kg
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-green-300 rounded-full"></span>
+                                        地板: {formatNumber(rebarEstimateResults.floor)} kg
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-purple-300 rounded-full"></span>
+                                        樓梯: {formatNumber(rebarEstimateResults.stair)} kg
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 參考表格 */}
+                            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                                <div className="font-medium mb-2">📊 營造經驗參考值</div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <div>牆 15cm: 23 kg/m²</div>
+                                    <div>牆 20cm: 34 kg/m²</div>
+                                    <div>牆 25cm: 47 kg/m²</div>
+                                    <div>板 12cm: 13 kg/m²</div>
+                                    <div>板 15cm: 17 kg/m²</div>
+                                    <div>直跑梯: 40 kg/m²</div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
