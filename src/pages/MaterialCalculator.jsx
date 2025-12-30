@@ -506,6 +506,48 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                         </div>
                     </div>
 
+                    {/* 混凝土規格說明 */}
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                        <div className="font-medium text-blue-800 text-sm mb-2 flex items-center gap-2">
+                            <Info size={14} />
+                            混凝土規格與用途說明
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                            <div className="p-2 rounded-lg bg-white border border-gray-200">
+                                <div className="font-bold text-gray-800 mb-1">2000 psi (140 kgf/cm²)</div>
+                                <div className="text-gray-600">
+                                    <span className="text-blue-700 font-medium">一般用途：</span>
+                                    地坪、車道、人行道
+                                </div>
+                            </div>
+                            <div className="p-2 rounded-lg bg-white border border-gray-200">
+                                <div className="font-bold text-gray-800 mb-1">3000 psi (210 kgf/cm²)</div>
+                                <div className="text-gray-600">
+                                    <span className="text-blue-700 font-medium">標準結構：</span>
+                                    樓板、梁柱、牆體
+                                </div>
+                            </div>
+                            <div className="p-2 rounded-lg bg-white border border-gray-200">
+                                <div className="font-bold text-gray-800 mb-1">4000 psi (280 kgf/cm²)</div>
+                                <div className="text-gray-600">
+                                    <span className="text-blue-700 font-medium">高強度：</span>
+                                    高樓主結構、地下室
+                                </div>
+                            </div>
+                            <div className="p-2 rounded-lg bg-white border border-gray-200">
+                                <div className="font-bold text-gray-800 mb-1">5000+ psi (350 kgf/cm²)</div>
+                                <div className="text-gray-600">
+                                    <span className="text-blue-700 font-medium">特殊工程：</span>
+                                    橋梁、預力構件
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-500 flex items-start gap-1">
+                            <span className="text-blue-500">💡</span>
+                            <span>混凝土用量需考慮損耗率（通常 3~5%）。預拌混凝土以立方公尺(m³)計價，建議多備料避免不足。</span>
+                        </div>
+                    </div>
+
                     {/* 多列輸入區 */}
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                         {concreteRows.map((row, index) => (
@@ -728,6 +770,61 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                                 <InputField label="單根長度" value={rebarLength} onChange={setRebarLength} unit="m" placeholder="0" />
                                 <InputField label="數量" value={rebarCount} onChange={setRebarCount} unit="支" placeholder="0" />
                             </div>
+
+                            {/* 鋼筋規格說明 */}
+                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                                <div className="font-medium text-blue-800 text-sm mb-2 flex items-center gap-2">
+                                    <Info size={14} />
+                                    鋼筋規格與常用部位說明
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 0 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#3 D10</div>
+                                        <div className="text-gray-600">箍筋、繫筋</div>
+                                        <div className="text-blue-600 text-[10px]">0.56 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 1 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#4 D13</div>
+                                        <div className="text-gray-600">樓板筋、牆筋</div>
+                                        <div className="text-blue-600 text-[10px]">0.99 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 2 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#5 D16</div>
+                                        <div className="text-gray-600">梁主筋、柱筋</div>
+                                        <div className="text-blue-600 text-[10px]">1.56 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 3 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#6 D19</div>
+                                        <div className="text-gray-600">大梁主筋</div>
+                                        <div className="text-blue-600 text-[10px]">2.25 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 4 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#7 D22</div>
+                                        <div className="text-gray-600">柱主筋、基礎筋</div>
+                                        <div className="text-blue-600 text-[10px]">3.04 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 5 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#8 D25</div>
+                                        <div className="text-gray-600">大柱主筋</div>
+                                        <div className="text-blue-600 text-[10px]">3.98 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 6 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#9 D29</div>
+                                        <div className="text-gray-600">高樓柱筋</div>
+                                        <div className="text-blue-600 text-[10px]">5.08 kg/m</div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${rebarSpec === 7 ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800">#10 D32</div>
+                                        <div className="text-gray-600">特殊工程</div>
+                                        <div className="text-blue-600 text-[10px]">6.39 kg/m</div>
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-500 flex items-start gap-1">
+                                    <span className="text-blue-500">💡</span>
+                                    <span>標準鋼筋長度為 12m（可訂製 6m、9m）。搭接長度依規範約為鋼筋直徑的 40~60 倍。建議損耗率 5%。</span>
+                                </div>
+                            </div>
+
                             <WastageControl
                                 wastage={rebarWastage}
                                 setWastage={setRebarWastage}
