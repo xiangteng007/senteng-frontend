@@ -93,16 +93,16 @@ const BUILDING_TYPES = [
     { label: '加強磚造公寓', rebar: 20, concrete: 0.20, formwork: 1.4, sand: 0.7, structure: 'RB', wallThickness: 24 },
 ];
 
-// 鋼筋規格表
+// 鋼筋規格表 (含工程常用號數)
 const REBAR_SPECS = [
-    { label: 'D10 (9.53mm)', d: 9.53, weight: 0.56 },
-    { label: 'D13 (12.7mm)', d: 12.7, weight: 0.99 },
-    { label: 'D16 (15.9mm)', d: 15.9, weight: 1.56 },
-    { label: 'D19 (19.1mm)', d: 19.1, weight: 2.25 },
-    { label: 'D22 (22.2mm)', d: 22.2, weight: 3.04 },
-    { label: 'D25 (25.4mm)', d: 25.4, weight: 3.98 },
-    { label: 'D29 (28.7mm)', d: 28.7, weight: 5.08 },
-    { label: 'D32 (32.2mm)', d: 32.2, weight: 6.39 },
+    { label: '#3 D10 (9.53mm)', d: 9.53, weight: 0.56 },
+    { label: '#4 D13 (12.7mm)', d: 12.7, weight: 0.99 },
+    { label: '#5 D16 (15.9mm)', d: 15.9, weight: 1.56 },
+    { label: '#6 D19 (19.1mm)', d: 19.1, weight: 2.25 },
+    { label: '#7 D22 (22.2mm)', d: 22.2, weight: 3.04 },
+    { label: '#8 D25 (25.4mm)', d: 25.4, weight: 3.98 },
+    { label: '#9 D29 (28.7mm)', d: 28.7, weight: 5.08 },
+    { label: '#10 D32 (32.2mm)', d: 32.2, weight: 6.39 },
 ];
 
 // ============================================
