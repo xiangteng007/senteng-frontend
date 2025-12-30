@@ -14,7 +14,7 @@ description: Push changes to GitHub and verify functionalities on Vercel
    `git push`
 5. Notify user that deployment has started and wait for ~60 seconds to allow Vercel to build.
 6. Open Browser to Production URL
-   `https://senteng-design-system.vercel.app/`
+   `https://senteng.co/`
 7. Verify Critical Paths:
    - Check Console for Errors (F12)
    - Navigate to modified pages (e.g., Material Calculator)

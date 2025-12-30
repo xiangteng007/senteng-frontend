@@ -83,6 +83,7 @@ const BUILDING_TYPES = [
     { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 18 },
     { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC', wallThickness: 18 },
     { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC', wallThickness: 25 },
+    { label: 'RC透天 (2-3F)', rebar: 35, concrete: 0.28, formwork: 1.8, sand: 0.48, structure: 'RC', wallThickness: 15 },
     { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC', wallThickness: 15 },
     { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC', wallThickness: 30 },
     // RB 加強磚造結構
