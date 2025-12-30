@@ -61,18 +61,34 @@ const PLASTER_RATIOS = {
     '1:3': { label: '1:3 打底 (粗)', cementPerM3: 450, sandPerM3: 950, desc: '一般打底用' },
 };
 
-// 建築類型概估指標 (擴充版)
+// 牆壁厚度選項
+const WALL_THICKNESS_OPTIONS = [
+    { value: 'all', label: '全部厚度' },
+    { value: 15, label: '15 cm' },
+    { value: 18, label: '18 cm' },
+    { value: 20, label: '20 cm' },
+    { value: 24, label: '24 cm (1B磚)' },
+    { value: 25, label: '25 cm' },
+    { value: 30, label: '30 cm' },
+];
+
+// 建築類型概估指標 (擴充版 - 含牆壁厚度與加強磚造)
 const BUILDING_TYPES = [
-    { label: '多層砌體住宅', rebar: 30, concrete: 0.315, formwork: 2.0, sand: 0.5, structure: 'RC' },
-    { label: '多層框架結構', rebar: 40, concrete: 0.34, formwork: 2.2, sand: 0.55, structure: 'RC' },
-    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35, formwork: 2.3, sand: 0.6, structure: 'RC' },
-    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36, formwork: 2.4, sand: 0.65, structure: 'RC' },
-    { label: '高層 (30F)', rebar: 70, concrete: 0.445, formwork: 2.6, sand: 0.75, structure: 'RC' },
-    { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC' },
-    { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC' },
-    { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC' },
-    { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC' },
-    { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC' },
+    // RC 鋼筋混凝土結構
+    { label: '多層砌體住宅', rebar: 30, concrete: 0.315, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 20 },
+    { label: '多層框架結構', rebar: 40, concrete: 0.34, formwork: 2.2, sand: 0.55, structure: 'RC', wallThickness: 20 },
+    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35, formwork: 2.3, sand: 0.6, structure: 'RC', wallThickness: 20 },
+    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36, formwork: 2.4, sand: 0.65, structure: 'RC', wallThickness: 25 },
+    { label: '高層 (30F)', rebar: 70, concrete: 0.445, formwork: 2.6, sand: 0.75, structure: 'RC', wallThickness: 30 },
+    { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 18 },
+    { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC', wallThickness: 18 },
+    { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC', wallThickness: 25 },
+    { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC', wallThickness: 15 },
+    { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC', wallThickness: 30 },
+    // RB 加強磚造結構
+    { label: '透天厝 (3F)', rebar: 18, concrete: 0.18, formwork: 1.2, sand: 0.65, structure: 'RB', wallThickness: 24 },
+    { label: '農舍/倉庫', rebar: 15, concrete: 0.15, formwork: 1.0, sand: 0.6, structure: 'RB', wallThickness: 24 },
+    { label: '加強磚造公寓', rebar: 20, concrete: 0.20, formwork: 1.4, sand: 0.7, structure: 'RB', wallThickness: 24 },
 ];
 
 // 鋼筋規格表
@@ -2063,12 +2079,33 @@ const FinishCalculator = ({ onAddRecord, vendors = [] }) => {
 const BuildingEstimator = ({ onAddRecord }) => {
     const [buildingType, setBuildingType] = useState(1);
     const [floorArea, setFloorArea] = useState('');
+    const [wallThicknessFilter, setWallThicknessFilter] = useState('all');
 
-    const selected = BUILDING_TYPES[buildingType];
+    // 根據牆壁厚度篩選建築類型
+    const filteredTypes = BUILDING_TYPES.map((t, i) => ({ ...t, originalIndex: i }))
+        .filter(t => wallThicknessFilter === 'all' || t.wallThickness === parseInt(wallThicknessFilter));
+
+    // 確保選中的類型在過濾後仍然有效
+    const selectedIndex = filteredTypes.findIndex(t => t.originalIndex === buildingType);
+    const validSelectedIndex = selectedIndex >= 0 ? buildingType : (filteredTypes[0]?.originalIndex ?? 0);
+    const selected = BUILDING_TYPES[validSelectedIndex];
+
     const totalRebar = (parseFloat(floorArea) || 0) * selected.rebar;
     const totalConcrete = (parseFloat(floorArea) || 0) * selected.concrete;
     const totalFormwork = (parseFloat(floorArea) || 0) * selected.formwork;
     const totalSand = (parseFloat(floorArea) || 0) * selected.sand;
+
+    // 當篩選改變時，自動選擇篩選後的第一個類型
+    const handleWallThicknessChange = (value) => {
+        setWallThicknessFilter(value);
+        if (value !== 'all') {
+            const newFiltered = BUILDING_TYPES.map((t, i) => ({ ...t, originalIndex: i }))
+                .filter(t => t.wallThickness === parseInt(value));
+            if (newFiltered.length > 0) {
+                setBuildingType(newFiltered[0].originalIndex);
+            }
+        }
+    };
 
     return (
         <div className="space-y-4">
@@ -2083,19 +2120,26 @@ const BuildingEstimator = ({ onAddRecord }) => {
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <SelectField
+                        label="牆壁厚度篩選"
+                        value={wallThicknessFilter}
+                        onChange={handleWallThicknessChange}
+                        options={WALL_THICKNESS_OPTIONS}
+                    />
                     <SelectField
                         label="建築類型"
-                        value={buildingType}
+                        value={validSelectedIndex}
                         onChange={(v) => setBuildingType(parseInt(v))}
-                        options={BUILDING_TYPES.map((t, i) => ({ value: i, label: t.label }))}
+                        options={filteredTypes.map((t) => ({ value: t.originalIndex, label: `${t.label} (${t.structure})` }))}
                     />
                     <InputField label="總樓地板面積" value={floorArea} onChange={setFloorArea} unit="m²" placeholder="0" />
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-3 text-sm">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-gray-600">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-gray-600">
                         <span>結構: <strong className="text-gray-800">{selected.structure}</strong></span>
+                        <span>牆厚: <strong className="text-gray-800">{selected.wallThickness} cm</strong></span>
                         <span>鋼筋: {selected.rebar} kg/m²</span>
                         <span>混凝土: {selected.concrete} m³/m²</span>
                         <span>模板: {selected.formwork} m²/m²</span>
@@ -2117,13 +2161,21 @@ const BuildingEstimator = ({ onAddRecord }) => {
 
             {/* 參考表格 */}
             <div className="bg-white rounded-xl p-4 border border-gray-100">
-                <h4 className="font-medium text-gray-700 mb-3">建築類型參考指標</h4>
+                <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-gray-700">建築類型參考指標</h4>
+                    {wallThicknessFilter !== 'all' && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                            篩選: 牆厚 {wallThicknessFilter} cm
+                        </span>
+                    )}
+                </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm whitespace-nowrap">
                         <thead>
-                            <tr className="border-b">
+                            <tr className="border-b bg-gray-50">
                                 <th className="text-left py-2 px-2">建築類型</th>
                                 <th className="text-center py-2 px-2">結構</th>
+                                <th className="text-center py-2 px-2">牆厚(cm)</th>
                                 <th className="text-right py-2 px-2">鋼筋(kg/m²)</th>
                                 <th className="text-right py-2 px-2">混凝土(m³/m²)</th>
                                 <th className="text-right py-2 px-2">模板(m²/m²)</th>
@@ -2131,10 +2183,14 @@ const BuildingEstimator = ({ onAddRecord }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {BUILDING_TYPES.map((t, i) => (
-                                <tr key={i} className={`border-b ${i === buildingType ? 'bg-orange-50' : ''}`}>
-                                    <td className="py-2 px-2">{t.label}</td>
+                            {filteredTypes.map((t) => (
+                                <tr key={t.originalIndex} className={`border-b hover:bg-gray-50 transition-colors ${t.originalIndex === validSelectedIndex ? 'bg-orange-50' : ''} ${t.structure === 'RB' ? 'text-amber-700' : ''}`}>
+                                    <td className="py-2 px-2">
+                                        {t.label}
+                                        {t.structure === 'RB' && <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-1 rounded">磚造</span>}
+                                    </td>
                                     <td className="text-center py-2 px-2">{t.structure}</td>
+                                    <td className="text-center py-2 px-2">{t.wallThickness}</td>
                                     <td className="text-right py-2 px-2">{t.rebar}</td>
                                     <td className="text-right py-2 px-2">{t.concrete}</td>
                                     <td className="text-right py-2 px-2">{t.formwork}</td>
@@ -2144,10 +2200,21 @@ const BuildingEstimator = ({ onAddRecord }) => {
                         </tbody>
                     </table>
                 </div>
+                <div className="mt-3 text-xs text-gray-500 flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                        <span className="w-3 h-3 bg-amber-100 rounded"></span>
+                        RB = 加強磚造
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <span className="w-3 h-3 bg-gray-100 rounded"></span>
+                        RC = 鋼筋混凝土 | SRC = 鋼骨鋼筋混凝土 | SC = 鋼構
+                    </span>
+                </div>
             </div>
         </div>
     );
 };
+
 
 // ============================================
 // 主組件

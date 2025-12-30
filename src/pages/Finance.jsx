@@ -422,6 +422,22 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
                     <InputField label="帳號 (選填)" value={newAcc.number} onChange={e => setNewAcc({ ...newAcc, number: e.target.value })} />
                 </div>
                 <InputField label="初始餘額" type="number" value={newAcc.balance} onChange={e => setNewAcc({ ...newAcc, balance: Number(e.target.value) })} />
+
+                {/* Delete Button - Only show when editing */}
+                {editingAcc && (
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                        <button
+                            onClick={() => {
+                                setIsAccModalOpen(false);
+                                handleDeleteAccount(editingAcc);
+                            }}
+                            className="w-full py-2.5 px-4 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span>🗑️</span>
+                            刪除此帳戶
+                        </button>
+                    </div>
+                )}
             </Modal>
 
             {/* Delete Account Modal */}
