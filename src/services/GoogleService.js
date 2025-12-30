@@ -571,7 +571,11 @@ export const GoogleService = {
   },
 
   // 匯出物料算量到專屬資料夾
+  // 輸出路徑：https://drive.google.com/drive/folders/1IXPh77aQVduJMcXLWFtgAQxVkPVP8Baq
   exportMaterialCalculationToFolder: async (records, customName = '') => {
+    // 物料算量專用資料夾 ID
+    const MATERIAL_CALC_FOLDER_ID = '1IXPh77aQVduJMcXLWFtgAQxVkPVP8Baq';
+
     // 產生檔名 (含日期時間)
     const now = new Date();
     const dateStr = now.toLocaleDateString('zh-TW', {
@@ -593,6 +597,7 @@ export const GoogleService = {
       const result = await callGASWithJSONP('export_material_calculation_to_folder', {
         sheetName,
         folderName: '物料算量',
+        parentFolderId: MATERIAL_CALC_FOLDER_ID, // 指定輸出資料夾
         records: records.map((r, index) => ({
           index: index + 1,
           category: r.category || '未分類',

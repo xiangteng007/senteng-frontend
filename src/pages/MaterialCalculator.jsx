@@ -918,11 +918,61 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                             value={formworkRatio}
                             onChange={setFormworkRatio}
                             options={[
-                                { value: '1.3', label: '1.3 (少柱少現澆板)' },
-                                { value: '1.8', label: '1.8 (一般結構)' },
-                                { value: '2.2', label: '2.2 (標準多層住宅)' },
+                                { value: '1.3', label: '1.3 - 簡單結構 (少柱少現澆板)' },
+                                { value: '1.8', label: '1.8 - 一般結構 (標準框架)' },
+                                { value: '2.2', label: '2.2 - 複雜結構 (多層住宅)' },
                             ]}
                         />
+                    </div>
+
+                    {/* 模板係數詳細說明 */}
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                        <div className="font-medium text-blue-800 text-sm mb-2 flex items-center gap-2">
+                            <Info size={14} />
+                            模板係數說明
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                            <div className={`p-2 rounded-lg border ${formworkRatio === '1.3' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                <div className="font-bold text-gray-800 mb-1">係數 1.3</div>
+                                <div className="text-gray-600 leading-relaxed">
+                                    <div className="font-medium text-blue-700 mb-1">適用：簡單結構</div>
+                                    <ul className="list-disc list-inside space-y-0.5">
+                                        <li>少量柱子的建築</li>
+                                        <li>預鑄板為主，現澆板少</li>
+                                        <li>單層或簡易倉庫廠房</li>
+                                        <li>開放式空間較多</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className={`p-2 rounded-lg border ${formworkRatio === '1.8' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                <div className="font-bold text-gray-800 mb-1">係數 1.8</div>
+                                <div className="text-gray-600 leading-relaxed">
+                                    <div className="font-medium text-blue-700 mb-1">適用：一般結構（最常用）</div>
+                                    <ul className="list-disc list-inside space-y-0.5">
+                                        <li>標準框架結構</li>
+                                        <li>一般商業/辦公建築</li>
+                                        <li>標準柱距與樓板配置</li>
+                                        <li>3~5 層樓建築</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className={`p-2 rounded-lg border ${formworkRatio === '2.2' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                <div className="font-bold text-gray-800 mb-1">係數 2.2</div>
+                                <div className="text-gray-600 leading-relaxed">
+                                    <div className="font-medium text-blue-700 mb-1">適用：複雜結構</div>
+                                    <ul className="list-disc list-inside space-y-0.5">
+                                        <li>標準多層住宅大樓</li>
+                                        <li>密集柱子與牆面</li>
+                                        <li>多樓梯/電梯井</li>
+                                        <li>複雜梁配置</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-500 flex items-start gap-1">
+                            <span className="text-blue-500">💡</span>
+                            <span>係數越高代表單位建築面積需要越多模板面積。實際使用時請依現場結構複雜度適當調整。</span>
+                        </div>
                     </div>
                     <WastageControl
                         wastage={formworkWastage}
