@@ -108,4 +108,20 @@ export const usersApi = {
     getById: (id) => api.get(`/users/${id}`),
 };
 
+// ===== Quotations API =====
+export const quotationsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/quotations${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/quotations/${id}`),
+    getVersions: (id) => api.get(`/quotations/${id}/versions`),
+    create: (data) => api.post('/quotations', data),
+    update: (id, data) => api.patch(`/quotations/${id}`, data),
+    submit: (id) => api.post(`/quotations/${id}/submit`),
+    approve: (id) => api.post(`/quotations/${id}/approve`),
+    reject: (id, reason) => api.post(`/quotations/${id}/reject`, { reason }),
+    createNewVersion: (id) => api.post(`/quotations/${id}/new-version`),
+};
+
 export default api;
