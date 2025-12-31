@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2, Receipt, FileSignature, BarChart3 } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,9 @@ const DEFAULT_MENU_ITEMS = [
     { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
     { id: 'projects', icon: Briefcase, label: '專案管理' },
     { id: 'quotations', icon: FileText, label: '估價單' },
+    { id: 'payments', icon: Receipt, label: '請款管理' },
+    { id: 'contracts', icon: FileSignature, label: '合約管理' },
+    { id: 'profit', icon: BarChart3, label: '利潤分析' },
     { id: 'clients', icon: Users, label: '客戶管理' },
     { id: 'finance', icon: Wallet, label: '財務管理' },
     { id: 'vendors', icon: HardHat, label: '廠商管理' },

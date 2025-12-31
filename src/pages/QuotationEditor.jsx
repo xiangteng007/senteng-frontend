@@ -9,9 +9,10 @@ import {
     FileText, Save, ArrowLeft, Plus, Trash2, Copy, Search, Upload,
     Download, Settings2, ChevronDown, ChevronUp, GripVertical,
     MoreVertical, Calculator, Eye, Send, Check, X, Info, AlertCircle,
-    Layers, Package, Percent, FileSpreadsheet, RotateCcw
+    Layers, Package, Percent, FileSpreadsheet, RotateCcw, FilePlus2
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
+import ChangeOrders from './ChangeOrders';
 import QuotationService, {
     QUOTATION_STATUS,
     QUOTATION_STATUS_LABELS,
@@ -452,6 +453,7 @@ const QuotationEditor = ({ quotationId, onBack, addToast }) => {
     const [isEditing, setIsEditing] = useState(true);
     const [selectedItemId, setSelectedItemId] = useState(null);
     const [showCatalog, setShowCatalog] = useState(false);
+    const [showChangeOrders, setShowChangeOrders] = useState(false);
     const [settings, setSettings] = useState({
         discountAmount: 0,
         managementFeeRate: DEFAULT_SETTINGS.managementFee,
@@ -662,6 +664,17 @@ const QuotationEditor = ({ quotationId, onBack, addToast }) => {
         );
     }
 
+    // 變更單模式
+    if (showChangeOrders) {
+        return (
+            <ChangeOrders
+                quotationId={quotationId}
+                onBack={() => setShowChangeOrders(false)}
+                addToast={addToast}
+            />
+        );
+    }
+
     return (
         <div className="space-y-4">
             {/* 頁首 */}
@@ -720,6 +733,12 @@ const QuotationEditor = ({ quotationId, onBack, addToast }) => {
                     className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 flex items-center gap-1"
                 >
                     <Search size={16} /> 工項庫
+                </button>
+                <button
+                    onClick={() => setShowChangeOrders(true)}
+                    className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 flex items-center gap-1"
+                >
+                    <FilePlus2 size={16} /> 變更單
                 </button>
                 <div className="flex-1" />
                 <button className="px-3 py-1.5 text-gray-500 rounded-lg text-sm hover:bg-gray-100 flex items-center gap-1">

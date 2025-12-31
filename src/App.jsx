@@ -21,6 +21,9 @@ import { InvoiceHelper } from './pages/InvoiceHelper';
 import { CostEstimator } from './pages/CostEstimator';
 import { MaterialCalculator } from './pages/MaterialCalculator';
 import Quotations from './pages/Quotations';
+import Payments from './pages/Payments';
+import Contracts from './pages/Contracts';
+import ProfitAnalysis from './pages/ProfitAnalysis';
 
 // Loading Screen Component
 const LoadingScreen = () => (
@@ -198,6 +201,9 @@ const AppContent = () => {
       case 'cost': return <CostEstimator addToast={addToast} />;
       case 'calc': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
       case 'quotations': return <Quotations addToast={addToast} projects={data.projects} clients={data.clients} />;
+      case 'payments': return <Payments addToast={addToast} />;
+      case 'contracts': return <Contracts addToast={addToast} />;
+      case 'profit': return <ProfitAnalysis addToast={addToast} />;
       case 'user-management':
         return role === 'super_admin'
           ? <UserManagement addToast={addToast} />
