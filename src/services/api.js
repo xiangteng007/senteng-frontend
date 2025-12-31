@@ -155,4 +155,18 @@ export const paymentsApi = {
     reject: (id, reason) => api.post(`/payments/${id}/reject`, { reason }),
 };
 
+// ===== Change Orders API =====
+export const changeOrdersApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/change-orders${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/change-orders/${id}`),
+    create: (data) => api.post('/change-orders', data),
+    update: (id, data) => api.patch(`/change-orders/${id}`, data),
+    submit: (id) => api.post(`/change-orders/${id}/submit`),
+    approve: (id) => api.post(`/change-orders/${id}/approve`),
+    reject: (id, reason) => api.post(`/change-orders/${id}/reject`, { reason }),
+};
+
 export default api;
