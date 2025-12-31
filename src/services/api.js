@@ -139,4 +139,20 @@ export const contractsApi = {
     close: (id) => api.post(`/contracts/${id}/close`),
 };
 
+// ===== Payments API =====
+export const paymentsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/payments${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/payments/${id}`),
+    getReceipts: (id) => api.get(`/payments/${id}/receipts`),
+    create: (data) => api.post('/payments', data),
+    addReceipt: (data) => api.post('/payments/receipts', data),
+    update: (id, data) => api.patch(`/payments/${id}`, data),
+    submit: (id) => api.post(`/payments/${id}/submit`),
+    approve: (id) => api.post(`/payments/${id}/approve`),
+    reject: (id, reason) => api.post(`/payments/${id}/reject`, { reason }),
+};
+
 export default api;
