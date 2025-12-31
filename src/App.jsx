@@ -20,6 +20,7 @@ import { MaterialGallery } from './pages/MaterialGallery';
 import { InvoiceHelper } from './pages/InvoiceHelper';
 import { CostEstimator } from './pages/CostEstimator';
 import { MaterialCalculator } from './pages/MaterialCalculator';
+import Quotations from './pages/Quotations';
 
 // Loading Screen Component
 const LoadingScreen = () => (
@@ -196,6 +197,7 @@ const AppContent = () => {
       case 'unit': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
       case 'cost': return <CostEstimator addToast={addToast} />;
       case 'calc': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
+      case 'quotations': return <Quotations addToast={addToast} projects={data.projects} clients={data.clients} />;
       case 'user-management':
         return role === 'super_admin'
           ? <UserManagement addToast={addToast} />

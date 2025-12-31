@@ -44,7 +44,7 @@ const DEFAULT_ROLES = {
         name: 'super_admin',
         level: 3,
         allowedPages: [
-            'dashboard', 'schedule', 'projects', 'clients', 'finance',
+            'dashboard', 'schedule', 'projects', 'quotations', 'clients', 'finance',
             'vendors', 'inventory', 'materials', 'invoice', 'unit', 'cost', 'calc',
             'user-management'
         ],
@@ -53,14 +53,14 @@ const DEFAULT_ROLES = {
         name: 'admin',
         level: 2,
         allowedPages: [
-            'dashboard', 'schedule', 'projects', 'clients', 'finance',
+            'dashboard', 'schedule', 'projects', 'quotations', 'clients', 'finance',
             'vendors', 'inventory', 'materials'
         ],
     },
     user: {
         name: 'user',
         level: 1,
-        allowedPages: ['dashboard', 'schedule', 'projects'],
+        allowedPages: ['dashboard', 'schedule', 'projects', 'quotations'],
     },
 };
 
@@ -276,16 +276,34 @@ export const deleteUser = async (uid) => {
 
 /**
  * Initialize default roles in Firestore (run once on setup)
+ * Also merges any new permissions from DEFAULT_ROLES into existing roles
  */
 export const initializeDefaultRoles = async () => {
     try {
         for (const [roleName, roleConfig] of Object.entries(DEFAULT_ROLES)) {
             const roleDoc = await getDoc(doc(db, 'roles', roleName));
             if (!roleDoc.exists()) {
+                // Create new role
                 await setDoc(doc(db, 'roles', roleName), roleConfig);
+            } else {
+                // Merge any new permissions from DEFAULT_ROLES
+                const existingData = roleDoc.data();
+                const existingPages = existingData.allowedPages || [];
+                const defaultPages = roleConfig.allowedPages || [];
+
+                // Find new pages that don't exist in Firestore yet
+                const newPages = defaultPages.filter(p => !existingPages.includes(p));
+
+                if (newPages.length > 0) {
+                    const mergedPages = [...existingPages, ...newPages];
+                    await updateDoc(doc(db, 'roles', roleName), {
+                        allowedPages: mergedPages,
+                    });
+                    console.log(`Updated ${roleName} with new pages:`, newPages);
+                }
             }
         }
-        console.log('Default roles initialized');
+        console.log('Default roles initialized/updated');
     } catch (error) {
         console.error('Error initializing default roles:', error);
     }

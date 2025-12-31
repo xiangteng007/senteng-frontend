@@ -31,6 +31,7 @@ const ALL_PAGES = [
     { id: 'dashboard', label: '儀表板', icon: '📊' },
     { id: 'schedule', label: '行程管理', icon: '📅' },
     { id: 'projects', label: '專案管理', icon: '💼' },
+    { id: 'quotations', label: '估價單', icon: '📝' },
     { id: 'clients', label: '客戶管理', icon: '👥' },
     { id: 'finance', label: '財務管理', icon: '💰' },
     { id: 'vendors', label: '廠商管理', icon: '🏗️' },

@@ -28,6 +28,7 @@ const DEFAULT_MENU_ITEMS = [
     { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
     { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
     { id: 'projects', icon: Briefcase, label: '專案管理' },
+    { id: 'quotations', icon: FileText, label: '估價單' },
     { id: 'clients', icon: Users, label: '客戶管理' },
     { id: 'finance', icon: Wallet, label: '財務管理' },
     { id: 'vendors', icon: HardHat, label: '廠商管理' },
