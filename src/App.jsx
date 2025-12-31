@@ -24,6 +24,7 @@ import Quotations from './pages/Quotations';
 import Payments from './pages/Payments';
 import Contracts from './pages/Contracts';
 import ProfitAnalysis from './pages/ProfitAnalysis';
+import CostEntries from './pages/CostEntries';
 
 // Loading Screen Component
 const LoadingScreen = () => (
@@ -153,6 +154,7 @@ const AppContent = () => {
       case 'payments': return <Payments addToast={addToast} />;
       case 'contracts': return <Contracts addToast={addToast} />;
       case 'profit': return <ProfitAnalysis addToast={addToast} />;
+      case 'cost-entries': return <CostEntries addToast={addToast} />;
       case 'user-management':
         return role === 'super_admin'
           ? <UserManagement addToast={addToast} />
