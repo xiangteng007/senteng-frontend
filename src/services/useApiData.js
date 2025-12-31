@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { clientsApi, projectsApi, quotationsApi, contractsApi, paymentsApi } from './api';
+import { clientsApi, projectsApi, vendorsApi, quotationsApi, contractsApi, paymentsApi } from './api';
 import { GoogleService } from './GoogleService';
 import { MOCK_DB } from './MockData';
 
@@ -19,15 +19,15 @@ export const useApiData = () => {
 
         try {
             // Load from API in parallel
-            const [clientsResult, projectsResult] = await Promise.allSettled([
+            const [clientsResult, projectsResult, vendorsResult] = await Promise.allSettled([
                 clientsApi.getAll(),
                 projectsApi.getAll(),
+                vendorsApi.getAll(),
             ]);
 
-            // Load from Google Sheets as fallback for other data
-            const [vendorsResult, inventoryResult, accountsResult, loansResult, transactionsResult] =
+            // Load from Google Sheets as fallback for other data (no backend yet)
+            const [inventoryResult, accountsResult, loansResult, transactionsResult] =
                 await Promise.all([
-                    GoogleService.loadFromSheet('vendors'),
                     GoogleService.loadFromSheet('inventory'),
                     GoogleService.loadFromSheet('accounts'),
                     GoogleService.loadFromSheet('loans'),
@@ -50,9 +50,13 @@ export const useApiData = () => {
                     console.log('✅ Projects loaded from API:', newData.projects.length);
                 }
 
-                // Vendors from Google Sheets
-                if (vendorsResult.success && vendorsResult.data?.length > 0) {
-                    newData.vendors = vendorsResult.data;
+                // Vendors from API
+                if (vendorsResult.status === 'fulfilled' && vendorsResult.value) {
+                    const vendors = Array.isArray(vendorsResult.value)
+                        ? vendorsResult.value
+                        : (vendorsResult.value.items || []);
+                    newData.vendors = vendors.map(mapVendorFromApi);
+                    console.log('✅ Vendors loaded from API:', newData.vendors.length);
                 }
 
                 // Inventory from Google Sheets
@@ -237,4 +241,44 @@ function mapProjectStatus(apiStatus) {
     return statusMap[apiStatus] || '規劃中';
 }
 
+function mapVendorFromApi(apiVendor) {
+    return {
+        id: apiVendor.id,
+        name: apiVendor.name,
+        type: mapVendorType(apiVendor.type),
+        taxId: apiVendor.taxId || '',
+        contactPerson: apiVendor.contactPerson || '',
+        phone: apiVendor.phone || '',
+        email: apiVendor.email || '',
+        address: apiVendor.address || '',
+        bankName: apiVendor.bankName || '',
+        bankAccount: apiVendor.bankAccount || '',
+        paymentTerms: apiVendor.paymentTerms || 30,
+        status: mapVendorStatus(apiVendor.status),
+        rating: apiVendor.rating || 0,
+        notes: apiVendor.notes || '',
+        createdAt: apiVendor.createdAt,
+    };
+}
+
+function mapVendorType(apiType) {
+    const typeMap = {
+        'SUPPLIER': '材料商',
+        'SUBCONTRACTOR': '承包商',
+        'SERVICE': '服務商',
+        'OTHER': '其他',
+    };
+    return typeMap[apiType] || '其他';
+}
+
+function mapVendorStatus(apiStatus) {
+    const statusMap = {
+        'ACTIVE': '合作中',
+        'INACTIVE': '暫停',
+        'BLACKLISTED': '黑名單',
+    };
+    return statusMap[apiStatus] || '合作中';
+}
+
 export default useApiData;
+
