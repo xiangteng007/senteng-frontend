@@ -34,7 +34,7 @@ export const WidgetDailySchedule = ({ events, size }) => {
 };
 
 export const WidgetMemo = ({ size }) => {
-    const [memos, setMemos] = useState(["記得回覆林先生郵件", "訂購油漆色卡"]);
+    const [memos, setMemos] = useState([]);
     const [newMemo, setNewMemo] = useState("");
 
     const addMemo = (e) => {
@@ -92,7 +92,7 @@ export const WidgetOverviewStats = ({ finance, projects, clients, size }) => {
             </div>
             <div>
                 <div className="text-2xl font-bold text-gray-800">${(monthlyIncome / 10000).toFixed(1)}萬</div>
-                <div className="text-xs text-green-600 flex items-center gap-1"><ArrowUpRight size={10} /> 較上月 +5%</div>
+                <div className="text-xs text-gray-400">本月統計</div>
             </div>
         </div>
     );
@@ -128,13 +128,8 @@ export const WidgetOverviewStats = ({ finance, projects, clients, size }) => {
 };
 
 export const WidgetRecentActivity = ({ logs, size }) => {
-    // Mock Logs if not provided
-    const activities = logs || [
-        { id: 1, type: "project", text: "新增專案：信義區豪宅翻修", time: "10:30" },
-        { id: 2, type: "finance", text: "已入帳：第一期工程款", time: "09:15" },
-        { id: 3, type: "client", text: "林小姐 預約丈量", time: "昨天" },
-        { id: 4, type: "system", text: "系統自動備份完成", time: "昨天" },
-    ];
+    // Use real logs if provided, otherwise show empty state
+    const activities = logs || [];
 
     return (
         <div className="h-full flex flex-col">
@@ -143,7 +138,9 @@ export const WidgetRecentActivity = ({ logs, size }) => {
                 <span className="text-xs font-bold uppercase tracking-wider">最新動態</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
-                {activities.map(log => (
+                {activities.length === 0 ? (
+                    <div className="text-center py-4 text-gray-400 text-sm">暫無動態</div>
+                ) : activities.map(log => (
                     <div key={log.id} className="flex gap-3 text-sm">
                         <div className="w-12 text-[10px] text-gray-400 text-right pt-0.5 shrink-0">{log.time}</div>
                         <div className="relative pl-3 border-l border-gray-100">
