@@ -124,4 +124,19 @@ export const quotationsApi = {
     createNewVersion: (id) => api.post(`/quotations/${id}/new-version`),
 };
 
+// ===== Contracts API =====
+export const contractsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/contracts${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/contracts/${id}`),
+    create: (data) => api.post('/contracts', data),
+    convertFromQuotation: (data) => api.post('/contracts/from-quotation', data),
+    update: (id, data) => api.patch(`/contracts/${id}`, data),
+    sign: (id, signDate) => api.post(`/contracts/${id}/sign`, { signDate }),
+    complete: (id) => api.post(`/contracts/${id}/complete`),
+    close: (id) => api.post(`/contracts/${id}/close`),
+};
+
 export default api;
