@@ -169,4 +169,32 @@ export const changeOrdersApi = {
     reject: (id, reason) => api.post(`/change-orders/${id}/reject`, { reason }),
 };
 
+// ===== Cost Entries API =====
+export const costEntriesApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/cost-entries${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/cost-entries/${id}`),
+    getSummary: (projectId) => api.get(`/cost-entries/summary/${projectId}`),
+    create: (data) => api.post('/cost-entries', data),
+    update: (id, data) => api.patch(`/cost-entries/${id}`, data),
+    markPaid: (id, data = {}) => api.post(`/cost-entries/${id}/mark-paid`, data),
+    delete: (id) => api.delete(`/cost-entries/${id}`),
+};
+
+// ===== Invoices API =====
+export const invoicesApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/invoices${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/invoices/${id}`),
+    create: (data) => api.post('/invoices', data),
+    update: (id, data) => api.patch(`/invoices/${id}`, data),
+    issue: (id) => api.post(`/invoices/${id}/issue`),
+    recordPayment: (id, data) => api.post(`/invoices/${id}/payment`, data),
+    void: (id, reason) => api.post(`/invoices/${id}/void`, { reason }),
+};
+
 export default api;
