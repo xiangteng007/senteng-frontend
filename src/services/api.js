@@ -197,4 +197,19 @@ export const invoicesApi = {
     void: (id, reason) => api.post(`/invoices/${id}/void`, { reason }),
 };
 
+// ===== Vendors API =====
+export const vendorsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/vendors${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/vendors/${id}`),
+    create: (data) => api.post('/vendors', data),
+    update: (id, data) => api.patch(`/vendors/${id}`, data),
+    updateRating: (id, rating) => api.patch(`/vendors/${id}/rating`, { rating }),
+    blacklist: (id, reason) => api.post(`/vendors/${id}/blacklist`, { reason }),
+    activate: (id) => api.post(`/vendors/${id}/activate`),
+    delete: (id) => api.delete(`/vendors/${id}`),
+};
+
 export default api;
