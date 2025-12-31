@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { MainLayout } from './layout/MainLayout';
-import { MOCK_DB } from './services/MockData';
 import { GoogleService } from './services/GoogleService';
 import { ToastContainer } from './components/common/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useApiData } from './services/useApiData';
 import LoginPage from './pages/LoginPage';
 import UserManagement from './pages/UserManagement';
 
@@ -43,9 +43,8 @@ const LoadingScreen = () => (
 // Main App Content (wrapped by AuthProvider)
 const AppContent = () => {
   const { isAuthenticated, loading: authLoading, canAccessPage, role } = useAuth();
+  const { data, loading, handleUpdate, handleFinanceUpdate, updateClients } = useApiData();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(MOCK_DB);
   const [toasts, setToasts] = useState([]);
 
   // Specific Page State used across components (lifted up for persistence)
@@ -58,60 +57,10 @@ const AppContent = () => {
   };
   const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
-
-  useEffect(() => {
-    // Load data from Google Sheets
-    const loadData = async () => {
-      setLoading(true);
-      console.log('📥 Loading data from Google Sheets...');
-
-      try {
-        // Load all data types in parallel
-        const [clientsResult, vendorsResult, inventoryResult, accountsResult, loansResult, transactionsResult] = await Promise.all([
-          GoogleService.loadFromSheet('clients'),
-          GoogleService.loadFromSheet('vendors'),
-          GoogleService.loadFromSheet('inventory'),
-          GoogleService.loadFromSheet('accounts'),
-          GoogleService.loadFromSheet('loans'),
-          GoogleService.loadFromSheet('transactions')
-        ]);
-
-        setData(prev => ({
-          ...prev,
-          clients: clientsResult.success && clientsResult.data.length > 0 ? clientsResult.data : prev.clients,
-          vendors: vendorsResult.success && vendorsResult.data.length > 0 ? vendorsResult.data : prev.vendors,
-          inventory: inventoryResult.success && inventoryResult.data.length > 0 ? inventoryResult.data : prev.inventory,
-          finance: {
-            ...prev.finance,
-            accounts: accountsResult.success && accountsResult.data.length > 0 ? accountsResult.data : prev.finance.accounts,
-            loans: loansResult.success && loansResult.data.length > 0 ? loansResult.data : prev.finance.loans,
-            transactions: transactionsResult.success && transactionsResult.data.length > 0 ? transactionsResult.data : prev.finance.transactions
-          }
-        }));
-
-        console.log('✅ Data loaded from Sheets');
-      } catch (error) {
-        console.error('❌ Failed to load data:', error);
-        addToast('從雲端載入資料失敗，使用本地資料', 'warning');
-      }
-
-      setLoading(false);
-    };
-
-    loadData();
-  }, []);
-
-  const handleUpdate = (key, newData) => {
-    setData(prev => ({ ...prev, [key]: newData }));
-  };
-
   const handleAddGlobalTx = async (newTx) => {
     const tx = { ...newTx, id: `t-${Date.now()}` };
     const updatedTx = [tx, ...data.finance.transactions];
-    setData(prev => ({
-      ...prev,
-      finance: { ...prev.finance, transactions: updatedTx }
-    }));
+    handleFinanceUpdate('transactions', updatedTx);
 
     // 同步交易記錄到 Google Sheets
     const syncResult = await GoogleService.syncToSheet('transactions', updatedTx);
