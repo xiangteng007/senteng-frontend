@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     DollarSign, Plus, Search, Filter, Calendar, Building2,
     User, FileText, Check, Clock, AlertCircle, TrendingUp,
-    Edit, Trash2, X, Save, CreditCard
+    Edit, Trash2, X, Save, CreditCard, Download, RotateCcw
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
@@ -135,6 +135,8 @@ export default function CostEntries({ addToast }) {
     const [filterProject, setFilterProject] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
+    const [filterDateFrom, setFilterDateFrom] = useState('');
+    const [filterDateTo, setFilterDateTo] = useState('');
 
     // Modal 狀態
     const [showAddModal, setShowAddModal] = useState(false);
@@ -202,9 +204,16 @@ export default function CostEntries({ addToast }) {
             if (filterStatus && entry.paymentStatus !== filterStatus) {
                 return false;
             }
+            // Date range filter
+            if (filterDateFrom && entry.date < filterDateFrom) {
+                return false;
+            }
+            if (filterDateTo && entry.date > filterDateTo) {
+                return false;
+            }
             return true;
         });
-    }, [entries, searchTerm, filterProject, filterCategory, filterStatus]);
+    }, [entries, searchTerm, filterProject, filterCategory, filterStatus, filterDateFrom, filterDateTo]);
 
     // 統計資料
     const stats = useMemo(() => {
@@ -315,6 +324,51 @@ export default function CostEntries({ addToast }) {
         setShowDeleteModal(true);
     };
 
+    // 清除所有篩選
+    const clearFilters = () => {
+        setSearchTerm('');
+        setFilterProject('');
+        setFilterCategory('');
+        setFilterStatus('');
+        setFilterDateFrom('');
+        setFilterDateTo('');
+    };
+
+    // 匯出 CSV
+    const exportToCSV = () => {
+        const headers = ['日期', '專案', '類別', '說明', '廠商', '金額', '發票號碼', '付款狀態', '備註'];
+        const rows = filteredEntries.map(entry => {
+            const project = projects.find(p => p.id === entry.projectId);
+            const category = CATEGORY_CONFIG[entry.category]?.label || entry.category;
+            const status = PAYMENT_STATUS[entry.paymentStatus]?.label || entry.paymentStatus;
+            return [
+                entry.date,
+                project?.name || '-',
+                category,
+                entry.description,
+                entry.vendorName || '-',
+                entry.amount,
+                entry.invoiceNo || '-',
+                status,
+                entry.notes || '-'
+            ];
+        });
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `成本紀錄_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        addToast?.('CSV 匯出成功', 'success');
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -325,16 +379,25 @@ export default function CostEntries({ addToast }) {
 
     return (
         <div className="space-y-6">
-            {/* 標題與操作 */}
             <div className="flex items-center justify-between">
                 <SectionTitle icon={DollarSign} title="成本追蹤" />
-                <button
-                    onClick={handleOpenAdd}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    新增成本
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={exportToCSV}
+                        disabled={filteredEntries.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Download className="w-4 h-4" />
+                        匯出
+                    </button>
+                    <button
+                        onClick={handleOpenAdd}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        新增成本
+                    </button>
+                </div>
             </div>
 
             {/* 統計卡片 */}
@@ -410,6 +473,31 @@ export default function CostEntries({ addToast }) {
                         <option key={key} value={key}>{config.label}</option>
                     ))}
                 </select>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">期間:</span>
+                    <input
+                        type="date"
+                        value={filterDateFrom}
+                        onChange={(e) => setFilterDateFrom(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                    <span className="text-gray-400">~</span>
+                    <input
+                        type="date"
+                        value={filterDateTo}
+                        onChange={(e) => setFilterDateTo(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                </div>
+                {(searchTerm || filterProject || filterCategory || filterStatus || filterDateFrom || filterDateTo) && (
+                    <button
+                        onClick={clearFilters}
+                        className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                        清除篩選
+                    </button>
+                )}
             </div>
 
             {/* 成本列表 */}
