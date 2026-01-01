@@ -44,8 +44,8 @@ const DEFAULT_ROLES = {
         name: 'super_admin',
         level: 3,
         allowedPages: [
-            'dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'clients', 'finance',
-            'vendors', 'inventory', 'materials', 'invoice', 'unit', 'cost', 'calc',
+            'dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'cost-entries',
+            'clients', 'finance', 'vendors', 'inventory', 'materials', 'invoice', 'unit', 'cost', 'calc',
             'user-management'
         ],
     },
@@ -53,14 +53,14 @@ const DEFAULT_ROLES = {
         name: 'admin',
         level: 2,
         allowedPages: [
-            'dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'clients', 'finance',
-            'vendors', 'inventory', 'materials'
+            'dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'cost-entries',
+            'clients', 'finance', 'vendors', 'inventory', 'materials'
         ],
     },
     user: {
         name: 'user',
         level: 1,
-        allowedPages: ['dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit'],
+        allowedPages: ['dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'cost-entries'],
     },
 };
 
