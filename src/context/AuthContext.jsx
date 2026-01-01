@@ -6,6 +6,7 @@ import {
     signOut,
     initializeDefaultRoles,
 } from '../services/firebase';
+import { api, authApi } from '../services/api';
 
 // Create Auth Context
 const AuthContext = createContext(null);
@@ -15,13 +16,61 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [backendAuthenticated, setBackendAuthenticated] = useState(false);
+
+    // Exchange Firebase user for backend JWT
+    const exchangeForBackendToken = async (firebaseUser) => {
+        if (!firebaseUser) {
+            api.clearToken();
+            setBackendAuthenticated(false);
+            return null;
+        }
+
+        try {
+            // Call backend auth endpoint with Firebase user data
+            const response = await authApi.login({
+                email: firebaseUser.email,
+                name: firebaseUser.displayName || firebaseUser.email,
+                provider: 'google',
+                uid: firebaseUser.uid,
+                role: firebaseUser.role || 'user',  // Pass Firebase role to backend
+            });
+
+            if (response.access_token) {
+                // Store JWT token for subsequent API calls
+                api.setToken(response.access_token);
+                setBackendAuthenticated(true);
+                console.log('✅ Backend JWT obtained successfully');
+                return response;
+            }
+        } catch (err) {
+            console.error('❌ Failed to get backend JWT:', err);
+            // Don't block the user if backend auth fails - they can still use Firebase features
+            setBackendAuthenticated(false);
+        }
+        return null;
+    };
 
     useEffect(() => {
         // Initialize default roles on first load
         initializeDefaultRoles().catch(console.error);
 
+        // Check for existing token on mount
+        const existingToken = localStorage.getItem('auth_token');
+        if (existingToken) {
+            api.setToken(existingToken);
+            setBackendAuthenticated(true);
+        }
+
         // Subscribe to auth state changes
-        const unsubscribe = subscribeToAuthState((userData) => {
+        const unsubscribe = subscribeToAuthState(async (userData) => {
+            if (userData) {
+                // Exchange Firebase token for backend JWT
+                await exchangeForBackendToken(userData);
+            } else {
+                api.clearToken();
+                setBackendAuthenticated(false);
+            }
             setUser(userData);
             setLoading(false);
         });
@@ -35,6 +84,10 @@ export const AuthProvider = ({ children }) => {
             setError(null);
             setLoading(true);
             const userData = await signInWithGoogle();
+
+            // Exchange for backend JWT
+            await exchangeForBackendToken(userData);
+
             setUser(userData);
         } catch (err) {
             console.error('Sign in error:', err);
@@ -49,6 +102,8 @@ export const AuthProvider = ({ children }) => {
         try {
             setLoading(true);
             await signOut();
+            api.clearToken();
+            setBackendAuthenticated(false);
             setUser(null);
         } catch (err) {
             console.error('Sign out error:', err);
@@ -70,6 +125,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         isAuthenticated: !!user,
+        backendAuthenticated,
         role: user?.role || null,
         allowedPages: user?.allowedPages || [],
         roleLevel: user?.roleLevel || 0,
@@ -77,6 +133,8 @@ export const AuthProvider = ({ children }) => {
         signOut: handleSignOut,
         canAccessPage,
         clearError: () => setError(null),
+        // Expose method to manually refresh backend token if needed
+        refreshBackendToken: () => user ? exchangeForBackendToken(user) : null,
     };
 
     return (
@@ -96,3 +154,4 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
+
