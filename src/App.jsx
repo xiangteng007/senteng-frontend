@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from './layout/MainLayout';
 import { GoogleService } from './services/GoogleService';
 import { ToastContainer } from './components/common/Toast';
@@ -41,12 +42,54 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Main App Content (wrapped by AuthProvider)
+// Protected Route Component
+const ProtectedRoute = ({ children, pageId }) => {
+  const { isAuthenticated, loading, canAccessPage, role } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Special case for user-management (only super_admin)
+  if (pageId === 'user-management' && role !== 'super_admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  // Check page permission
+  if (pageId !== 'user-management' && !canAccessPage(pageId)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+// No Permission Component
+const NoPermission = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+      <p className="text-lg font-medium">您沒有權限訪問此頁面</p>
+      <button
+        onClick={() => navigate('/')}
+        className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+      >
+        返回儀表板
+      </button>
+    </div>
+  );
+};
+
+// Main App Content (wrapped by AuthProvider and Router)
 const AppContent = () => {
-  const { isAuthenticated, loading: authLoading, canAccessPage, role } = useAuth();
-  const { data, loading, handleUpdate, handleFinanceUpdate, updateClients } = useApiData();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const { isAuthenticated, loading: authLoading, role } = useAuth();
+  const { data, loading, handleUpdate, handleFinanceUpdate } = useApiData();
   const [toasts, setToasts] = useState([]);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Specific Page State used across components (lifted up for persistence)
   const [activeProject, setActiveProject] = useState(null);
@@ -72,95 +115,15 @@ const AppContent = () => {
     addToast("記帳成功！(已同步至財務中心)", 'success');
   };
 
-  // Handle tab change with permission check
-  const handleTabChange = (tab) => {
-    if (tab === 'user-management' && role === 'super_admin') {
-      setActiveTab(tab);
-      setActiveProject(null);
-      return;
-    }
-
-    if (canAccessPage(tab)) {
-      setActiveTab(tab);
-      setActiveProject(null);
-    } else {
-      addToast('您沒有權限訪問此頁面', 'warning');
-    }
+  // Get active tab from current path
+  const getActiveTab = () => {
+    const path = location.pathname.replace('/', '') || 'dashboard';
+    return path;
   };
 
-  const renderContent = () => {
-    // Check permission before rendering
-    if (activeTab !== 'user-management' && !canAccessPage(activeTab)) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-          <p className="text-lg font-medium">您沒有權限訪問此頁面</p>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            返回儀表板
-          </button>
-        </div>
-      );
-    }
-
-    switch (activeTab) {
-      case 'dashboard': return <Dashboard events={data.calendar} finance={data.finance} projects={data.projects} clients={data.clients} />;
-      case 'schedule': return <Schedule data={data.calendar} loans={data.finance.loans || []} addToast={addToast} onUpdateCalendar={(d) => handleUpdate('calendar', d)} />;
-      case 'projects':
-        return <Projects
-          data={data.projects}
-          loading={loading}
-          addToast={addToast}
-          activeProject={activeProject}
-          setActiveProject={setActiveProject}
-          onSelectProject={setActiveProject}
-          onUpdateProject={(p) => {
-            const exists = data.projects.find(proj => proj.id === p.id);
-            if (exists) {
-              // Update existing project
-              handleUpdate('projects', data.projects.map(proj => proj.id === p.id ? p : proj));
-            } else {
-              // Add new project
-              handleUpdate('projects', [...data.projects, p]);
-            }
-          }}
-          onDeleteProject={(projectId) => {
-            // Remove project from data array
-            handleUpdate('projects', data.projects.filter(proj => proj.id !== projectId));
-          }}
-          allTransactions={data.finance.transactions}
-          onAddGlobalTx={handleAddGlobalTx}
-          accounts={data.finance.accounts}
-        />;
-      case 'finance': return <Finance
-        data={data.finance}
-        loading={loading}
-        addToast={addToast}
-        onAddTx={handleAddGlobalTx}
-        onUpdateAccounts={(accs) => handleUpdate('finance', { ...data.finance, accounts: accs })}
-        onUpdateLoans={(loans) => handleUpdate('finance', { ...data.finance, loans: loans })}
-        allProjects={data.projects}
-      />;
-      case 'clients': return <Clients data={data.clients} loading={loading} addToast={addToast} onUpdateClients={(d) => handleUpdate('clients', d)} allProjects={data.projects} />;
-      case 'vendors': return <Vendors data={data.vendors} loading={loading} addToast={addToast} onUpdateVendors={(d) => handleUpdate('vendors', d)} allProjects={data.projects} />;
-      case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} onUpdateInventory={(d) => handleUpdate('inventory', d)} />;
-      case 'materials': return <MaterialGallery addToast={addToast} />;
-      case 'invoice': return <InvoiceHelper addToast={addToast} />;
-      case 'unit': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
-      case 'cost': return <CostEstimator addToast={addToast} />;
-      case 'calc': return <MaterialCalculator addToast={addToast} vendors={data.vendors} />;
-      case 'quotations': return <Quotations addToast={addToast} projects={data.projects} clients={data.clients} />;
-      case 'payments': return <Payments addToast={addToast} />;
-      case 'contracts': return <Contracts addToast={addToast} />;
-      case 'profit': return <ProfitAnalysis addToast={addToast} />;
-      case 'cost-entries': return <CostEntries addToast={addToast} />;
-      case 'user-management':
-        return role === 'super_admin'
-          ? <UserManagement addToast={addToast} />
-          : <Dashboard events={data.calendar} />;
-      default: return <Dashboard events={data.calendar} />;
-    }
+  // Handle navigation
+  const handleNavigation = (tab) => {
+    navigate(`/${tab === 'dashboard' ? '' : tab}`);
   };
 
   // Show loading screen while checking auth
@@ -174,19 +137,143 @@ const AppContent = () => {
   }
 
   return (
-    <MainLayout activeTab={activeTab} setActiveTab={handleTabChange} addToast={addToast}>
-      {renderContent()}
+    <MainLayout activeTab={getActiveTab()} setActiveTab={handleNavigation} addToast={addToast}>
+      <Routes>
+        <Route path="/" element={
+          <ProtectedRoute pageId="dashboard">
+            <Dashboard events={data.calendar} finance={data.finance} projects={data.projects} clients={data.clients} />
+          </ProtectedRoute>
+        } />
+        <Route path="/schedule" element={
+          <ProtectedRoute pageId="schedule">
+            <Schedule data={data.calendar} loans={data.finance.loans || []} addToast={addToast} onUpdateCalendar={(d) => handleUpdate('calendar', d)} />
+          </ProtectedRoute>
+        } />
+        <Route path="/projects" element={
+          <ProtectedRoute pageId="projects">
+            <Projects
+              data={data.projects}
+              loading={loading}
+              addToast={addToast}
+              activeProject={activeProject}
+              setActiveProject={setActiveProject}
+              onSelectProject={setActiveProject}
+              onUpdateProject={(p) => {
+                const exists = data.projects.find(proj => proj.id === p.id);
+                if (exists) {
+                  handleUpdate('projects', data.projects.map(proj => proj.id === p.id ? p : proj));
+                } else {
+                  handleUpdate('projects', [...data.projects, p]);
+                }
+              }}
+              onDeleteProject={(projectId) => {
+                handleUpdate('projects', data.projects.filter(proj => proj.id !== projectId));
+              }}
+              allTransactions={data.finance.transactions}
+              onAddGlobalTx={handleAddGlobalTx}
+              accounts={data.finance.accounts}
+            />
+          </ProtectedRoute>
+        } />
+        <Route path="/quotations" element={
+          <ProtectedRoute pageId="quotations">
+            <Quotations addToast={addToast} projects={data.projects} clients={data.clients} />
+          </ProtectedRoute>
+        } />
+        <Route path="/payments" element={
+          <ProtectedRoute pageId="payments">
+            <Payments addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/contracts" element={
+          <ProtectedRoute pageId="contracts">
+            <Contracts addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/profit" element={
+          <ProtectedRoute pageId="profit">
+            <ProfitAnalysis addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/cost-entries" element={
+          <ProtectedRoute pageId="cost-entries">
+            <CostEntries addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/clients" element={
+          <ProtectedRoute pageId="clients">
+            <Clients data={data.clients} loading={loading} addToast={addToast} onUpdateClients={(d) => handleUpdate('clients', d)} allProjects={data.projects} />
+          </ProtectedRoute>
+        } />
+        <Route path="/finance" element={
+          <ProtectedRoute pageId="finance">
+            <Finance
+              data={data.finance}
+              loading={loading}
+              addToast={addToast}
+              onAddTx={handleAddGlobalTx}
+              onUpdateAccounts={(accs) => handleUpdate('finance', { ...data.finance, accounts: accs })}
+              onUpdateLoans={(loans) => handleUpdate('finance', { ...data.finance, loans: loans })}
+              allProjects={data.projects}
+            />
+          </ProtectedRoute>
+        } />
+        <Route path="/vendors" element={
+          <ProtectedRoute pageId="vendors">
+            <Vendors data={data.vendors} loading={loading} addToast={addToast} onUpdateVendors={(d) => handleUpdate('vendors', d)} allProjects={data.projects} />
+          </ProtectedRoute>
+        } />
+        <Route path="/inventory" element={
+          <ProtectedRoute pageId="inventory">
+            <Inventory data={data.inventory} loading={loading} addToast={addToast} onUpdateInventory={(d) => handleUpdate('inventory', d)} />
+          </ProtectedRoute>
+        } />
+        <Route path="/materials" element={
+          <ProtectedRoute pageId="materials">
+            <MaterialGallery addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/invoice" element={
+          <ProtectedRoute pageId="invoice">
+            <InvoiceHelper addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/unit" element={
+          <ProtectedRoute pageId="unit">
+            <MaterialCalculator addToast={addToast} vendors={data.vendors} />
+          </ProtectedRoute>
+        } />
+        <Route path="/cost" element={
+          <ProtectedRoute pageId="cost">
+            <CostEstimator addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/calc" element={
+          <ProtectedRoute pageId="calc">
+            <MaterialCalculator addToast={addToast} vendors={data.vendors} />
+          </ProtectedRoute>
+        } />
+        <Route path="/user-management" element={
+          <ProtectedRoute pageId="user-management">
+            <UserManagement addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </MainLayout>
   );
 };
 
-// Root App Component with AuthProvider
+// Root App Component with AuthProvider and Router
 const App = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 
