@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2, Receipt, FileSignature, BarChart3, DollarSign } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2, Receipt, FileSignature, BarChart3, DollarSign, Wrench, ChevronRight } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 import { useAuth } from '../context/AuthContext';
@@ -23,86 +23,165 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// 預設選單順序
-const DEFAULT_MENU_ITEMS = [
-    { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
-    { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
-    { id: 'projects', icon: Briefcase, label: '專案管理' },
-    { id: 'quotations', icon: FileText, label: '估價單' },
-    { id: 'payments', icon: Receipt, label: '請款管理' },
-    { id: 'contracts', icon: FileSignature, label: '合約管理' },
-    { id: 'profit', icon: BarChart3, label: '利潤分析' },
-    { id: 'cost-entries', icon: DollarSign, label: '成本追蹤' },
-    { id: 'clients', icon: Users, label: '客戶管理' },
-    { id: 'finance', icon: Wallet, label: '財務管理' },
-    { id: 'vendors', icon: HardHat, label: '廠商管理' },
-    { id: 'inventory', icon: Package, label: '庫存管理' },
-    { id: 'materials', icon: ImageIcon, label: '建材資料' },
-    { id: 'invoice', icon: FileText, label: '發票小幫手' },
-    { id: 'unit', icon: Ruler, label: '單位換算' },
-    { id: 'cost', icon: Calculator, label: '成本估算' },
-    { id: 'calc', icon: Building2, label: '物料換算' },
+// 所有選單項目定義
+const ALL_MENU_ITEMS = {
+    'dashboard': { id: 'dashboard', icon: LayoutDashboard, label: '儀表板' },
+    'schedule': { id: 'schedule', icon: CalendarIcon, label: '行程管理' },
+    'projects': { id: 'projects', icon: Briefcase, label: '專案管理' },
+    'quotations': { id: 'quotations', icon: FileText, label: '估價單' },
+    'payments': { id: 'payments', icon: Receipt, label: '請款管理' },
+    'contracts': { id: 'contracts', icon: FileSignature, label: '合約管理' },
+    'profit': { id: 'profit', icon: BarChart3, label: '利潤分析' },
+    'cost-entries': { id: 'cost-entries', icon: DollarSign, label: '成本追蹤' },
+    'clients': { id: 'clients', icon: Users, label: '客戶管理' },
+    'finance': { id: 'finance', icon: Wallet, label: '財務管理' },
+    'vendors': { id: 'vendors', icon: HardHat, label: '廠商管理' },
+    'inventory': { id: 'inventory', icon: Package, label: '庫存管理' },
+    'materials': { id: 'materials', icon: ImageIcon, label: '建材資料' },
+    'invoice': { id: 'invoice', icon: FileText, label: '發票小幫手' },
+    'unit': { id: 'unit', icon: Ruler, label: '單位換算' },
+    'cost': { id: 'cost', icon: Calculator, label: '成本估算' },
+    'calc': { id: 'calc', icon: Building2, label: '物料換算' },
+    'user-management': { id: 'user-management', icon: Settings, label: '使用者管理' },
+};
+
+// 群組定義（新的分組結構）
+const MENU_GROUPS = [
+    {
+        id: 'overview',
+        label: '總覽',
+        icon: LayoutDashboard,
+        items: ['dashboard'],
+        defaultExpanded: true,
+    },
+    {
+        id: 'project',
+        label: '專案執行',
+        icon: Briefcase,
+        items: ['projects', 'schedule', 'contracts'],
+        defaultExpanded: true,
+    },
+    {
+        id: 'finance',
+        label: '財務中心',
+        icon: Wallet,
+        items: ['finance', 'quotations', 'payments', 'cost-entries', 'profit'],
+        defaultExpanded: true,
+    },
+    {
+        id: 'resources',
+        label: '人員與資源',
+        icon: Users,
+        items: ['clients', 'vendors', 'inventory'],
+        defaultExpanded: false,
+    },
+    {
+        id: 'tools',
+        label: '工具箱',
+        icon: Wrench,
+        items: ['materials', 'invoice', 'unit', 'cost', 'calc'],
+        defaultExpanded: false,
+    },
+    {
+        id: 'admin',
+        label: '系統設定',
+        icon: Settings,
+        items: ['user-management'],
+        defaultExpanded: false,
+        adminOnly: true,
+    },
 ];
 
 // localStorage key
-const MENU_ORDER_KEY = 'senteng_menu_order';
+const EXPANDED_GROUPS_KEY = 'senteng_expanded_groups';
 
-// 可排序的側邊欄項目 - 優化樣式
-const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 50 : undefined,
-        opacity: isDragging ? 0.9 : 1,
-    };
-
+// 單一選單項目組件
+const SidebarItem = ({ id, icon: Icon, label, active, onClick, compact = false }) => {
     return (
-        <div
-            ref={setNodeRef}
-            style={style}
+        <button
+            onClick={() => onClick(id)}
             className={`
-                flex items-center gap-0.5 rounded-xl transition-all duration-200 relative
-                ${isDragging ? 'shadow-elevated bg-white scale-[1.02]' : ''}
-                ${active ? '' : 'hover:bg-gray-50/80'}
+                w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 relative
+                ${active
+                    ? 'bg-gradient-to-r from-gray-800 to-gray-700 text-white shadow-soft'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80'
+                }
+                ${compact ? 'py-2' : 'py-2.5'}
             `}
         >
-            {/* 拖曳把手 */}
-            <button
-                {...attributes}
-                {...listeners}
-                className="p-2 text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none transition-colors"
-                title="拖曳排序"
-            >
-                <GripVertical size={14} />
-            </button>
+            {/* Active indicator bar */}
+            {active && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white/30 rounded-full" />
+            )}
+            <Icon size={compact ? 16 : 18} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
+            <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+        </button>
+    );
+};
 
-            {/* 選單項目 */}
+// 可折疊的群組組件
+const SidebarGroup = ({ group, items, activeTab, onItemClick, isExpanded, onToggleExpand }) => {
+    const GroupIcon = group.icon;
+    const hasActiveItem = items.some(item => item.id === activeTab);
+
+    // 如果群組內有活躍項目，自動展開
+    useEffect(() => {
+        if (hasActiveItem && !isExpanded) {
+            onToggleExpand(group.id, true);
+        }
+    }, [hasActiveItem, isExpanded, group.id, onToggleExpand]);
+
+    // 如果群組只有一個項目（如儀表板），直接顯示為可點擊項目
+    if (items.length === 1) {
+        const item = items[0];
+        return (
+            <SidebarItem
+                key={item.id}
+                {...item}
+                active={activeTab === item.id}
+                onClick={onItemClick}
+            />
+        );
+    }
+
+    return (
+        <div className="mb-1">
+            {/* 群組標題 */}
             <button
-                onClick={() => onClick(id)}
+                onClick={() => onToggleExpand(group.id, !isExpanded)}
                 className={`
-                    flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative
-                    ${active
-                        ? 'bg-gradient-to-r from-gray-800 to-gray-700 text-white shadow-soft'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }
+                    w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200
+                    ${hasActiveItem ? 'text-gray-800' : 'text-gray-500'}
+                    hover:bg-gray-50/80 hover:text-gray-700
                 `}
             >
-                {/* Active indicator bar */}
-                {active && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white/30 rounded-full" />
-                )}
-                <Icon size={18} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-                <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+                <GroupIcon size={18} strokeWidth={1.8} className="shrink-0 text-gray-400" />
+                <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
+                <ChevronRight
+                    size={16}
+                    className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                />
             </button>
+
+            {/* 群組內項目 */}
+            <div
+                className={`
+                    overflow-hidden transition-all duration-300 ease-out
+                    ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
+                `}
+            >
+                <div className="pl-4 pt-1 space-y-0.5">
+                    {items.map(item => (
+                        <SidebarItem
+                            key={item.id}
+                            {...item}
+                            active={activeTab === item.id}
+                            onClick={onItemClick}
+                            compact
+                        />
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };
@@ -112,152 +191,65 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [hasUpcomingEvents, setHasUpcomingEvents] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [menuItems, setMenuItems] = useState(DEFAULT_MENU_ITEMS);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [hasPendingChanges, setHasPendingChanges] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [savedOrder, setSavedOrder] = useState(null); // 已儲存的順序
+    const [expandedGroups, setExpandedGroups] = useState({});
 
-    // Filter menu items based on user permissions
-    const visibleMenuItems = useMemo(() => {
-        let items = menuItems.filter(item => allowedPages?.includes(item.id));
-
-        // Add user management for super_admin
-        if (role === 'super_admin') {
-            const hasUserMgmt = items.find(i => i.id === 'user-management');
-            if (!hasUserMgmt) {
-                items = [...items, { id: 'user-management', icon: Settings, label: '使用者管理' }];
-            }
-        }
-
-        return items;
-    }, [menuItems, allowedPages, role]);
-
-    // 從 Firestore 或 localStorage 讀取選單順序
+    // 初始化展開狀態
     useEffect(() => {
-        const loadMenuOrder = async () => {
-            // 先嘗試從 Firestore 讀取
-            if (user?.uid) {
-                const firestoreOrder = await getUserMenuOrder(user.uid);
-                if (firestoreOrder && firestoreOrder.length > 0) {
-                    const reorderedItems = firestoreOrder
-                        .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
-                        .filter(Boolean);
-
-                    // 補上任何新增的選單項目
-                    DEFAULT_MENU_ITEMS.forEach(item => {
-                        if (!reorderedItems.find(i => i.id === item.id)) {
-                            reorderedItems.push(item);
-                        }
-                    });
-
-                    setMenuItems(reorderedItems);
-                    setSavedOrder(firestoreOrder);
-                    localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(firestoreOrder));
-                    return;
-                }
+        const saved = localStorage.getItem(EXPANDED_GROUPS_KEY);
+        if (saved) {
+            try {
+                setExpandedGroups(JSON.parse(saved));
+            } catch (e) {
+                // 使用預設值
+                const defaultExpanded = {};
+                MENU_GROUPS.forEach(g => {
+                    defaultExpanded[g.id] = g.defaultExpanded;
+                });
+                setExpandedGroups(defaultExpanded);
             }
-
-            // 如果 Firestore 沒有，讀取 localStorage
-            const savedOrder = localStorage.getItem(MENU_ORDER_KEY);
-            if (savedOrder) {
-                try {
-                    const orderIds = JSON.parse(savedOrder);
-                    const reorderedItems = orderIds
-                        .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
-                        .filter(Boolean);
-
-                    DEFAULT_MENU_ITEMS.forEach(item => {
-                        if (!reorderedItems.find(i => i.id === item.id)) {
-                            reorderedItems.push(item);
-                        }
-                    });
-
-                    setMenuItems(reorderedItems);
-                    setSavedOrder(orderIds);
-                } catch (e) {
-                    console.error('Failed to parse menu order:', e);
-                }
-            } else {
-                setSavedOrder(DEFAULT_MENU_ITEMS.map(i => i.id));
-            }
-        };
-
-        loadMenuOrder();
-    }, [user?.uid]);
-
-    // DnD sensors
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 5, // 需要移動 5px 才開始拖曳
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    // 處理拖曳結束
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-
-        if (active.id !== over?.id) {
-            setMenuItems((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                const newItems = arrayMove(items, oldIndex, newIndex);
-
-                // 儲存新順序到 localStorage (暫存)
-                const orderIds = newItems.map(item => item.id);
-                localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(orderIds));
-
-                // 檢查是否有未儲存的變更
-                if (savedOrder && JSON.stringify(orderIds) !== JSON.stringify(savedOrder)) {
-                    setHasPendingChanges(true);
-                } else {
-                    setHasPendingChanges(false);
-                }
-
-                return newItems;
+        } else {
+            const defaultExpanded = {};
+            MENU_GROUPS.forEach(g => {
+                defaultExpanded[g.id] = g.defaultExpanded;
             });
+            setExpandedGroups(defaultExpanded);
         }
+    }, []);
+
+    // 切換群組展開狀態
+    const handleToggleExpand = (groupId, expanded) => {
+        setExpandedGroups(prev => {
+            const newState = { ...prev, [groupId]: expanded };
+            localStorage.setItem(EXPANDED_GROUPS_KEY, JSON.stringify(newState));
+            return newState;
+        });
     };
 
-    // 確認並儲存選單順序到後台
-    const confirmMenuOrder = async () => {
-        if (!user?.uid) {
-            addToast?.('請先登入', 'error');
-            return;
-        }
+    // 根據權限過濾群組和項目
+    const visibleGroups = useMemo(() => {
+        return MENU_GROUPS
+            .filter(group => {
+                // 管理員專用群組
+                if (group.adminOnly && role !== 'super_admin') {
+                    return false;
+                }
+                return true;
+            })
+            .map(group => {
+                // 過濾群組內的項目
+                const visibleItems = group.items
+                    .filter(itemId => allowedPages?.includes(itemId) || (itemId === 'user-management' && role === 'super_admin'))
+                    .map(itemId => ALL_MENU_ITEMS[itemId])
+                    .filter(Boolean);
 
-        setIsSaving(true);
-        const orderIds = menuItems.map(item => item.id);
-        const result = await saveUserMenuOrder(user.uid, orderIds);
-
-        if (result.success) {
-            setSavedOrder(orderIds);
-            setHasPendingChanges(false);
-            addToast?.('選單順序已儲存！', 'success');
-        } else {
-            addToast?.(`儲存失敗: ${result.error}`, 'error');
-        }
-        setIsSaving(false);
-    };
-
-    // 重設為預設順序
-    const resetMenuOrder = async () => {
-        const defaultOrder = DEFAULT_MENU_ITEMS.map(i => i.id);
-        setMenuItems(DEFAULT_MENU_ITEMS);
-        localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(defaultOrder));
-
-        // 如果已儲存的順序和預設不同，顯示待確認
-        if (savedOrder && JSON.stringify(defaultOrder) !== JSON.stringify(savedOrder)) {
-            setHasPendingChanges(true);
-        } else {
-            setHasPendingChanges(false);
-        }
-    };
+                return {
+                    ...group,
+                    visibleItems,
+                };
+            })
+            .filter(group => group.visibleItems.length > 0);
+    }, [allowedPages, role]);
 
     // 檢查是否有即將到來的行程
     useEffect(() => {
@@ -279,19 +271,14 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
         };
 
         checkUpcomingEvents();
-        // 每5分鐘檢查一次
         const interval = setInterval(checkUpcomingEvents, 5 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
 
-    // Close mobile menu when clicking outside or changing tab
+    // Close mobile menu when changing tab
     useEffect(() => {
         setIsMobileMenuOpen(false);
     }, [activeTab]);
-
-    // 檢查順序是否被修改過（相對於預設）
-    const isOrderCustomized = JSON.stringify(menuItems.map(i => i.id)) !==
-        JSON.stringify(DEFAULT_MENU_ITEMS.map(i => i.id));
 
     return (
         <div className="flex h-screen bg-morandi-base font-sans text-gray-900 overflow-hidden">
@@ -303,7 +290,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                 />
             )}
 
-            {/* Sidebar - Premium Glass Design */}
+            {/* Sidebar - Premium Glass Design with Grouped Navigation */}
             <aside className={`
                 w-72 glass-card-elevated border-r border-gray-100/50 flex flex-col z-50
                 fixed lg:relative h-full
@@ -318,7 +305,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                     <X size={22} />
                 </button>
 
-                {/* Logo Section - Enhanced */}
+                {/* Logo Section */}
                 <div className="p-6 pb-4">
                     <div className="flex items-center gap-3">
                         <div className="relative group">
@@ -329,7 +316,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                         </div>
                         <div>
                             <h1 className="text-lg font-bold text-gray-800 tracking-tight">SENTENG</h1>
-                            <p className="text-[10px] text-gray-400 font-medium tracking-widest">DESIGN SYSTEM</p>
+                            <p className="text-[10px] text-gray-400 font-medium tracking-widest">ERP SYSTEM</p>
                         </div>
                     </div>
                 </div>
@@ -337,69 +324,32 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                 {/* Divider */}
                 <div className="mx-4 mb-3 divider-gradient" />
 
-                {/* 可排序選單 */}
-                <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto custom-scrollbar">
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <SortableContext
-                            items={visibleMenuItems.map(item => item.id)}
-                            strategy={verticalListSortingStrategy}
-                        >
-                            {visibleMenuItems.map(item => (
-                                <SortableSidebarItem
-                                    key={item.id}
-                                    {...item}
-                                    active={activeTab === item.id}
-                                    onClick={setActiveTab}
-                                />
-                            ))}
-                        </SortableContext>
-                    </DndContext>
+                {/* Grouped Navigation */}
+                <nav className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+                    {visibleGroups.map(group => (
+                        <SidebarGroup
+                            key={group.id}
+                            group={group}
+                            items={group.visibleItems}
+                            activeTab={activeTab}
+                            onItemClick={setActiveTab}
+                            isExpanded={expandedGroups[group.id] ?? group.defaultExpanded}
+                            onToggleExpand={handleToggleExpand}
+                        />
+                    ))}
                 </nav>
 
-                {/* 選單順序控制按鈕 + 版本號 */}
+                {/* Version Info */}
                 <div className="p-4 pt-2 border-t border-gray-100/50 mt-auto">
-                    {/* 確認順序按鈕 - 當有未儲存變更時顯示 */}
-                    {hasPendingChanges && (
-                        <button
-                            onClick={confirmMenuOrder}
-                            disabled={isSaving}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 mb-2 disabled:opacity-50"
-                        >
-                            {isSaving ? (
-                                <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                                <Check size={14} />
-                            )}
-                            {isSaving ? '儲存中...' : '確認順序'}
-                        </button>
-                    )}
-
-                    {/* 重設按鈕 - 當順序和預設不同時顯示 */}
-                    {isOrderCustomized && (
-                        <button
-                            onClick={resetMenuOrder}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200 mb-3"
-                        >
-                            <RotateCcw size={12} />
-                            重設選單順序
-                        </button>
-                    )}
-
                     <div className="flex items-center justify-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${hasPendingChanges ? 'bg-orange-400' : 'bg-green-400'} animate-pulse`} />
-                        <span className="text-[11px] text-gray-400 font-medium">
-                            {hasPendingChanges ? '順序未儲存' : 'v3.2.0 Premium'}
-                        </span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        <span className="text-[11px] text-gray-400 font-medium">v4.0.0 Grouped</span>
                     </div>
                 </div>
             </aside>
 
             <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                {/* Header - Enhanced with subtle background */}
+                {/* Header */}
                 <header className="h-16 lg:h-18 flex items-center justify-between px-4 lg:px-8 bg-gradient-to-r from-transparent via-white/30 to-transparent">
                     {/* Mobile Menu Button */}
                     <button
@@ -409,12 +359,10 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                         <Menu size={22} />
                     </button>
 
-                    <div className="flex-1 lg:flex-none">
-                        {/* Breadcrumb or Title handled by page usually */}
-                    </div>
+                    <div className="flex-1 lg:flex-none" />
 
                     <div className="flex items-center gap-3">
-                        {/* Notification Button - Enhanced */}
+                        {/* Notification Button */}
                         <button
                             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                             className="relative p-2.5 text-gray-500 hover:text-gray-700 bg-white/80 hover:bg-white rounded-xl shadow-soft hover:shadow-card transition-all duration-200"
@@ -487,7 +435,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                     onClose={() => setIsNotificationOpen(false)}
                 />
 
-                {/* Content Area - Enhanced padding and scrolling */}
+                {/* Content Area */}
                 <div className="flex-1 overflow-auto p-4 lg:p-8 pt-2 scroll-smooth">
                     <div className="max-w-7xl mx-auto h-full">
                         {children}
