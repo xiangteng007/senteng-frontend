@@ -29,6 +29,7 @@ class ApiService {
             const response = await fetch(url, {
                 ...options,
                 headers,
+                credentials: 'include',  // Required for HttpOnly cookie auth
             });
 
             if (!response.ok) {
