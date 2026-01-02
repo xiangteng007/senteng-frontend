@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { clientsApi, projectsApi, vendorsApi, quotationsApi, contractsApi, paymentsApi } from './api';
+import { clientsApi, projectsApi, vendorsApi, inventoryApi, financeApi } from './api';
 import { GoogleService } from './GoogleService';
 import { MOCK_DB } from './MockData';
 
@@ -35,13 +35,13 @@ export const useApiData = (isAuthenticated = false) => {
                 return;
             }
 
-            // Load from Google Sheets as fallback for other data (no backend yet)
+            // Load inventory and finance from backend API
             const [inventoryResult, accountsResult, loansResult, transactionsResult] =
-                await Promise.all([
-                    GoogleService.loadFromSheet('inventory'),
-                    GoogleService.loadFromSheet('accounts'),
-                    GoogleService.loadFromSheet('loans'),
-                    GoogleService.loadFromSheet('transactions'),
+                await Promise.allSettled([
+                    inventoryApi.getAll(),
+                    financeApi.getAccounts(),
+                    financeApi.getLoans(),
+                    financeApi.getTransactions(),
                 ]);
 
             setData(prev => {
@@ -69,21 +69,29 @@ export const useApiData = (isAuthenticated = false) => {
                     console.log('✅ Vendors loaded from API:', newData.vendors.length);
                 }
 
-                // Inventory from Google Sheets
-                if (inventoryResult.success && inventoryResult.data?.length > 0) {
-                    newData.inventory = inventoryResult.data;
+                // Inventory from API
+                if (inventoryResult.status === 'fulfilled' && inventoryResult.value) {
+                    const inventory = Array.isArray(inventoryResult.value)
+                        ? inventoryResult.value
+                        : (inventoryResult.value.items || []);
+                    newData.inventory = inventory;
+                    console.log('✅ Inventory loaded from API:', newData.inventory.length);
                 }
 
-                // Finance from Google Sheets
+                // Finance from API
                 newData.finance = {
                     ...prev.finance,
-                    accounts: accountsResult.success && accountsResult.data?.length > 0
-                        ? accountsResult.data : prev.finance.accounts,
-                    loans: loansResult.success && loansResult.data?.length > 0
-                        ? loansResult.data : prev.finance.loans,
-                    transactions: transactionsResult.success && transactionsResult.data?.length > 0
-                        ? transactionsResult.data : prev.finance.transactions,
+                    accounts: accountsResult.status === 'fulfilled' && accountsResult.value
+                        ? (Array.isArray(accountsResult.value) ? accountsResult.value : (accountsResult.value.items || []))
+                        : prev.finance.accounts,
+                    loans: loansResult.status === 'fulfilled' && loansResult.value
+                        ? (Array.isArray(loansResult.value) ? loansResult.value : (loansResult.value.items || []))
+                        : prev.finance.loans,
+                    transactions: transactionsResult.status === 'fulfilled' && transactionsResult.value
+                        ? (Array.isArray(transactionsResult.value) ? transactionsResult.value : (transactionsResult.value.items || []))
+                        : prev.finance.transactions,
                 };
+                console.log('✅ Finance loaded from API');
 
                 return newData;
             });

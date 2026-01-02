@@ -198,6 +198,45 @@ export const invoicesApi = {
     void: (id, reason) => api.post(`/invoices/${id}/void`, { reason }),
 };
 
+// ===== Inventory API =====
+export const inventoryApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/inventory${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/inventory/${id}`),
+    create: (data) => api.post('/inventory', data),
+    update: (id, data) => api.patch(`/inventory/${id}`, data),
+    // Inventory movements
+    addStock: (id, data) => api.post(`/inventory/${id}/add-stock`, data),
+    removeStock: (id, data) => api.post(`/inventory/${id}/remove-stock`, data),
+    transferStock: (id, data) => api.post(`/inventory/${id}/transfer`, data),
+    delete: (id) => api.delete(`/inventory/${id}`),
+};
+
+// ===== Finance API =====
+export const financeApi = {
+    // Accounts
+    getAccounts: () => api.get('/finance/accounts'),
+    createAccount: (data) => api.post('/finance/accounts', data),
+    updateAccount: (id, data) => api.patch(`/finance/accounts/${id}`, data),
+    deleteAccount: (id) => api.delete(`/finance/accounts/${id}`),
+    // Transactions
+    getTransactions: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/finance/transactions${query ? `?${query}` : ''}`);
+    },
+    createTransaction: (data) => api.post('/finance/transactions', data),
+    updateTransaction: (id, data) => api.patch(`/finance/transactions/${id}`, data),
+    deleteTransaction: (id) => api.delete(`/finance/transactions/${id}`),
+    // Loans
+    getLoans: () => api.get('/finance/loans'),
+    createLoan: (data) => api.post('/finance/loans', data),
+    updateLoan: (id, data) => api.patch(`/finance/loans/${id}`, data),
+    deleteLoan: (id) => api.delete(`/finance/loans/${id}`),
+    addLoanPayment: (id, data) => api.post(`/finance/loans/${id}/payment`, data),
+};
+
 // ===== Vendors API =====
 export const vendorsApi = {
     getAll: (params = {}) => {
