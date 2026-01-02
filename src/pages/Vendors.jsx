@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
@@ -9,8 +9,9 @@ import { SectionTitle, LoadingSkeleton } from '../components/common/Indicators';
 import {
     Phone, Folder, Edit2, Trash2, Cloud, ChevronLeft, Save, Plus,
     Search, HardHat, Star, Building, MapPin, User, Tag, X, ChevronRight,
-    ThumbsUp, ThumbsDown, MessageSquare, Clock, Wrench, Briefcase
+    ThumbsUp, ThumbsDown, MessageSquare, Clock, Wrench, Briefcase, Database
 } from 'lucide-react';
+import { vendorsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 
 // 狀態配置
@@ -196,42 +197,63 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
         if (!currentVendor.name) return addToast("請輸入廠商名稱", 'error');
 
         setIsSaving(true);
-        const tagsArray = typeof currentVendor.tags === 'string'
-            ? currentVendor.tags.split(',').map(t => t.trim()).filter(t => t !== "")
-            : currentVendor.tags || [];
-        const vendorToSave = { ...currentVendor, tags: tagsArray, id: currentVendor.id || `v-${Date.now()}` };
+        try {
+            const tagsArray = typeof currentVendor.tags === 'string'
+                ? currentVendor.tags.split(',').map(t => t.trim()).filter(t => t !== "")
+                : currentVendor.tags || [];
 
-        let driveResult = null;
-        if (!currentVendor.id) {
-            driveResult = await GoogleService.createVendorFolder(currentVendor.name);
-            if (!driveResult.success) {
-                setIsSaving(false);
-                return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, 'error');
+            const vendorData = {
+                name: currentVendor.name,
+                category: currentVendor.category,
+                tradeType: currentVendor.tradeType,
+                contactPerson: currentVendor.contactPerson,
+                phone: currentVendor.phone,
+                email: currentVendor.email,
+                lineId: currentVendor.lineId,
+                address: currentVendor.address,
+                taxId: currentVendor.taxId,
+                bankAccount: currentVendor.bankAccount,
+                rating: parseFloat(currentVendor.rating) || 5,
+                status: currentVendor.status,
+                tags: tagsArray,
+                driveFolder: currentVendor.driveFolder,
+                reviews: currentVendor.reviews || [],
+            };
+
+            let savedVendor;
+            let driveResult = null;
+
+            if (currentVendor.id) {
+                // Update existing vendor
+                savedVendor = await vendorsApi.update(currentVendor.id, vendorData);
+                addToast("廠商資料已更新！", 'success');
+            } else {
+                // Create Drive folder first (optional)
+                driveResult = await GoogleService.createVendorFolder(currentVendor.name);
+                if (driveResult.success) {
+                    vendorData.driveFolder = driveResult.url;
+                }
+                // Create new vendor via API
+                savedVendor = await vendorsApi.create(vendorData);
+                addToast("新廠商已建立！", 'success', {
+                    action: driveResult?.url ? { label: '開啟 Drive', onClick: () => window.open(driveResult.url, '_blank') } : null
+                });
             }
-            vendorToSave.driveFolder = driveResult.url;
-            vendorToSave.createdAt = new Date().toISOString();
+
+            // Update local state
+            const newVendorsList = currentVendor.id
+                ? vendorsList.map(v => v.id === savedVendor.id ? savedVendor : v)
+                : [...vendorsList, savedVendor];
+            setVendorsList(newVendorsList);
+            if (onUpdateVendors) onUpdateVendors(newVendorsList);
+
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Save vendor failed:', error);
+            addToast(`儲存失敗: ${error.message}`, 'error');
+        } finally {
+            setIsSaving(false);
         }
-
-        const newVendorsList = currentVendor.id
-            ? vendorsList.map(v => v.id === vendorToSave.id ? vendorToSave : v)
-            : [...vendorsList, vendorToSave];
-        setVendorsList(newVendorsList);
-        if (onUpdateVendors) onUpdateVendors(newVendorsList);
-
-        const syncResult = await GoogleService.syncToSheet('vendors', newVendorsList);
-        setIsSaving(false);
-
-        if (!syncResult.success) {
-            addToast(`Sheets 同步失敗: ${syncResult.error}`, 'error');
-        } else if (currentVendor.id) {
-            addToast("廠商資料已更新！", 'success');
-        } else {
-            addToast("新廠商已建立！", 'success', {
-                action: driveResult?.url ? { label: '開啟 Drive', onClick: () => window.open(driveResult.url, '_blank') } : null
-            });
-        }
-
-        setIsModalOpen(false);
     };
 
     // 開啟刪除確認 Modal
@@ -244,15 +266,21 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
     const confirmDeleteVendor = async () => {
         if (!deletingVendor) return;
 
-        const updatedList = vendorsList.filter(v => v.id !== deletingVendor.id);
-        setVendorsList(updatedList);
-        if (onUpdateVendors) onUpdateVendors(updatedList);
-        await GoogleService.syncToSheet('vendors', updatedList);
-        addToast(`廠商「${deletingVendor.name}」已刪除！`, 'success');
+        try {
+            await vendorsApi.delete(deletingVendor.id);
+            const updatedList = vendorsList.filter(v => v.id !== deletingVendor.id);
+            setVendorsList(updatedList);
+            if (onUpdateVendors) onUpdateVendors(updatedList);
+            addToast(`廠商「${deletingVendor.name}」已刪除！`, 'success');
 
-        if (activeVendor?.id === deletingVendor.id) setActiveVendor(null);
-        setIsDeleteModalOpen(false);
-        setDeletingVendor(null);
+            if (activeVendor?.id === deletingVendor.id) setActiveVendor(null);
+        } catch (error) {
+            console.error('Delete vendor failed:', error);
+            addToast(`刪除失敗: ${error.message}`, 'error');
+        } finally {
+            setIsDeleteModalOpen(false);
+            setDeletingVendor(null);
+        }
     };
 
     const startEdit = () => {
@@ -262,24 +290,41 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
 
     const handleSaveEdit = async () => {
         setIsSaving(true);
-        const tagsArray = typeof currentVendor.tags === 'string'
-            ? currentVendor.tags.split(',').map(t => t.trim()).filter(t => t !== "")
-            : currentVendor.tags || [];
-        const updatedVendor = { ...currentVendor, tags: tagsArray };
+        try {
+            const tagsArray = typeof currentVendor.tags === 'string'
+                ? currentVendor.tags.split(',').map(t => t.trim()).filter(t => t !== "")
+                : currentVendor.tags || [];
 
-        const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
-        setVendorsList(newList);
-        if (onUpdateVendors) onUpdateVendors(newList);
+            const vendorData = {
+                name: currentVendor.name,
+                category: currentVendor.category,
+                tradeType: currentVendor.tradeType,
+                contactPerson: currentVendor.contactPerson,
+                phone: currentVendor.phone,
+                email: currentVendor.email,
+                lineId: currentVendor.lineId,
+                address: currentVendor.address,
+                taxId: currentVendor.taxId,
+                bankAccount: currentVendor.bankAccount,
+                rating: parseFloat(currentVendor.rating) || 5,
+                status: currentVendor.status,
+                tags: tagsArray,
+            };
 
-        const syncResult = await GoogleService.syncToSheet('vendors', newList);
-        setIsSaving(false);
+            const updatedVendor = await vendorsApi.update(currentVendor.id, vendorData);
 
-        if (!syncResult.success) {
-            addToast(`同步失敗: ${syncResult.error}`, 'error');
-        } else {
+            const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+            setVendorsList(newList);
+            if (onUpdateVendors) onUpdateVendors(newList);
+
             setActiveVendor(updatedVendor);
             setIsEditing(false);
             addToast("資料已更新", 'success');
+        } catch (error) {
+            console.error('Update vendor failed:', error);
+            addToast(`更新失敗: ${error.message}`, 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -287,20 +332,25 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
     const handleAddReview = async () => {
         if (!newReview.note) return addToast("請輸入評價內容", "error");
 
-        const updatedVendor = {
-            ...activeVendor,
-            reviews: [...(activeVendor.reviews || []), { ...newReview, id: Date.now() }]
-        };
+        try {
+            const updatedReviews = [...(activeVendor.reviews || []), { ...newReview, id: Date.now() }];
 
-        const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
-        setVendorsList(newList);
-        setActiveVendor(updatedVendor);
-        if (onUpdateVendors) onUpdateVendors(newList);
+            const updatedVendor = await vendorsApi.update(activeVendor.id, {
+                reviews: updatedReviews
+            });
 
-        await GoogleService.syncToSheet('vendors', newList);
-        setIsReviewModalOpen(false);
-        setNewReview({ project: '', date: new Date().toISOString().split('T')[0], note: '', sentiment: 'neutral' });
-        addToast("評價已新增", "success");
+            const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+            setVendorsList(newList);
+            setActiveVendor(updatedVendor);
+            if (onUpdateVendors) onUpdateVendors(newList);
+
+            setIsReviewModalOpen(false);
+            setNewReview({ project: '', date: new Date().toISOString().split('T')[0], note: '', sentiment: 'neutral' });
+            addToast("評價已新增", "success");
+        } catch (error) {
+            console.error('Add review failed:', error);
+            addToast(`新增評價失敗: ${error.message}`, 'error');
+        }
     };
 
     // 廠商詳情頁
