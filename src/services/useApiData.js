@@ -5,25 +5,35 @@ import { MOCK_DB } from './MockData';
 
 /**
  * Custom hook for loading and managing data from API with Google Sheets fallback
+ * @param {boolean} isAuthenticated - Whether the user is authenticated
  */
-export const useApiData = () => {
+export const useApiData = (isAuthenticated = false) => {
     const [data, setData] = useState(MOCK_DB);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Load all data from API
+    // Load all data from API (only when authenticated)
     const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
-        console.log('📥 Loading data from API...');
+        console.log('📥 Loading data from API...', { isAuthenticated });
 
         try {
-            // Load from API in parallel
-            const [clientsResult, projectsResult, vendorsResult] = await Promise.allSettled([
-                clientsApi.getAll(),
-                projectsApi.getAll(),
-                vendorsApi.getAll(),
-            ]);
+            let clientsResult, projectsResult, vendorsResult;
+
+            // Only load from API if authenticated
+            if (isAuthenticated) {
+                [clientsResult, projectsResult, vendorsResult] = await Promise.allSettled([
+                    clientsApi.getAll(),
+                    projectsApi.getAll(),
+                    vendorsApi.getAll(),
+                ]);
+            } else {
+                // Not authenticated - use mock data
+                console.log('⚠️ Not authenticated, using mock data');
+                setLoading(false);
+                return;
+            }
 
             // Load from Google Sheets as fallback for other data (no backend yet)
             const [inventoryResult, accountsResult, loansResult, transactionsResult] =
@@ -85,12 +95,16 @@ export const useApiData = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isAuthenticated]);
 
-    // Initial load
+    // Initial load - only when auth state changes
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        if (isAuthenticated) {
+            loadData();
+        } else {
+            setLoading(false);
+        }
+    }, [isAuthenticated, loadData]);
 
     // === CLIENTS ===
     const updateClients = async (newClients) => {
