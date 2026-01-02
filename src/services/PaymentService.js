@@ -1,25 +1,38 @@
 /**
  * 請款管理服務層 (PaymentService)
  * 處理請款申請、審核、收款追蹤
+ * 
+ * ⚠️ 已整合 Backend API - 資料儲存於 PostgreSQL
  */
+
+import { paymentsApi } from './api';
 
 // ============================================
 // 常數定義
 // ============================================
 
-// 請款單狀態
+// 請款單狀態 (對應後端 PAY_*)
 export const PAYMENT_STATUS = {
-    DRAFT: 'DRAFT',           // 草稿
-    PENDING: 'PENDING',       // 待審核
-    APPROVED: 'APPROVED',     // 已核准
-    INVOICED: 'INVOICED',     // 已開立發票
-    PARTIAL: 'PARTIAL',       // 部分收款
-    PAID: 'PAID',             // 已收款
-    OVERDUE: 'OVERDUE',       // 逾期
-    CANCELLED: 'CANCELLED',   // 已取消
+    DRAFT: 'PAY_DRAFT',           // 草稿
+    PENDING: 'PAY_PENDING',       // 待審核
+    APPROVED: 'PAY_APPROVED',     // 已核准
+    INVOICED: 'PAY_INVOICED',     // 已開立發票
+    PARTIAL: 'PAY_PARTIAL',       // 部分收款
+    PAID: 'PAY_PAID',             // 已收款
+    OVERDUE: 'PAY_OVERDUE',       // 逾期
+    CANCELLED: 'PAY_CANCELLED',   // 已取消
 };
 
 export const PAYMENT_STATUS_LABELS = {
+    PAY_DRAFT: '草稿',
+    PAY_PENDING: '待審核',
+    PAY_APPROVED: '已核准',
+    PAY_INVOICED: '已開票',
+    PAY_PARTIAL: '部分收款',
+    PAY_PAID: '已收款',
+    PAY_OVERDUE: '逾期',
+    PAY_CANCELLED: '已取消',
+    // Legacy mapping
     DRAFT: '草稿',
     PENDING: '待審核',
     APPROVED: '已核准',
@@ -31,6 +44,15 @@ export const PAYMENT_STATUS_LABELS = {
 };
 
 export const PAYMENT_STATUS_COLORS = {
+    PAY_DRAFT: 'bg-gray-100 text-gray-700',
+    PAY_PENDING: 'bg-yellow-100 text-yellow-700',
+    PAY_APPROVED: 'bg-blue-100 text-blue-700',
+    PAY_INVOICED: 'bg-purple-100 text-purple-700',
+    PAY_PARTIAL: 'bg-orange-100 text-orange-700',
+    PAY_PAID: 'bg-green-100 text-green-700',
+    PAY_OVERDUE: 'bg-red-100 text-red-700',
+    PAY_CANCELLED: 'bg-gray-200 text-gray-500',
+    // Legacy mapping
     DRAFT: 'bg-gray-100 text-gray-700',
     PENDING: 'bg-yellow-100 text-yellow-700',
     APPROVED: 'bg-blue-100 text-blue-700',
@@ -102,30 +124,23 @@ export const calculatePayableAmount = (amount, retentionRate = RETENTION_SETTING
 };
 
 // ============================================
-// 請款服務類
+// 請款服務類 - 使用 Backend API
 // ============================================
 
 class PaymentServiceClass {
     constructor() {
-        this.storageKey = 'senteng_payments';
+        // No localStorage needed - using backend API
     }
 
     // 取得所有請款單
     async getPayments(filters = {}) {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            let payments = data ? JSON.parse(data) : [];
+            const params = {};
+            if (filters.projectId) params.projectId = filters.projectId;
+            if (filters.contractId) params.contractId = filters.contractId;
+            if (filters.status) params.status = filters.status;
 
-            // 篩選
-            if (filters.projectId) {
-                payments = payments.filter(p => p.projectId === filters.projectId);
-            }
-            if (filters.quotationId) {
-                payments = payments.filter(p => p.quotationId === filters.quotationId);
-            }
-            if (filters.status) {
-                payments = payments.filter(p => p.status === filters.status);
-            }
+            const payments = await paymentsApi.getAll(params);
 
             // 排序：最新的在前
             return payments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -137,174 +152,115 @@ class PaymentServiceClass {
 
     // 取得單一請款單
     async getPayment(id) {
-        const payments = await this.getPayments();
-        return payments.find(p => p.id === id);
+        try {
+            return await paymentsApi.getById(id);
+        } catch (error) {
+            console.error('Failed to get payment:', error);
+            return null;
+        }
     }
 
-    // 取得專案的請款單數量（用於編號）
-    async getNextSequence(projectId) {
-        const payments = await this.getPayments({ projectId });
-        return payments.length + 1;
+    // 取得請款單的收款記錄
+    async getReceipts(paymentId) {
+        try {
+            return await paymentsApi.getReceipts(paymentId);
+        } catch (error) {
+            console.error('Failed to get receipts:', error);
+            return [];
+        }
     }
 
     // 新增請款單
     async createPayment(data) {
-        const payments = await this.getPayments();
-        const sequence = await this.getNextSequence(data.projectId);
+        try {
+            // 計算金額
+            const requestAmount = data.requestAmount || 0;
+            const retentionRate = data.retentionRate || RETENTION_SETTINGS.rate;
+            const retentionAmount = calculateRetention(requestAmount, retentionRate);
+            const netAmount = requestAmount - retentionAmount;
 
-        const newPayment = {
-            id: `pay-${Date.now()}`,
-            paymentNo: generatePaymentNo(data.projectCode, sequence),
-            sequence,
-            status: PAYMENT_STATUS.DRAFT,
+            const payload = {
+                contractId: data.contractId,
+                projectId: data.projectId,
+                periodNo: data.periodNo || 1,
+                applicationDate: data.applicationDate || new Date().toISOString().split('T')[0],
+                progressPercent: data.progressPercent || 0,
+                cumulativePercent: data.cumulativePercent || 0,
+                requestAmount,
+                retentionAmount,
+                netAmount,
+                notes: data.notes || data.description || '',
+            };
 
-            // 關聯
-            projectId: data.projectId || null,
-            projectName: data.projectName || '',
-            projectCode: data.projectCode || '',
-            quotationId: data.quotationId || null,
-            quotationNo: data.quotationNo || '',
-            customerId: data.customerId || null,
-            customerName: data.customerName || '',
-
-            // 請款資訊
-            type: data.type || PAYMENT_TYPES.PROGRESS,
-            title: data.title || '',
-            description: data.description || '',
-
-            // 金額
-            contractAmount: data.contractAmount || 0, // 合約總金額
-            previousPaidAmount: data.previousPaidAmount || 0, // 前期已請金額
-            requestAmount: data.requestAmount || 0, // 本期請款金額
-            retentionRate: data.retentionRate || RETENTION_SETTINGS.rate,
-            retentionAmount: 0, // 保留款
-            payableAmount: 0, // 應付金額
-            receivedAmount: 0, // 實收金額
-
-            // 明細
-            items: data.items || [],
-
-            // 發票
-            invoiceNo: '',
-            invoiceDate: null,
-
-            // 收款
-            dueDate: data.dueDate || null,
-            paidDate: null,
-            paidAmount: 0,
-
-            // 審核
-            submittedAt: null,
-            submittedBy: null,
-            approvedAt: null,
-            approvedBy: null,
-
-            // 元資料
-            createdBy: data.createdBy || 'system',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-
-        // 計算金額
-        newPayment.retentionAmount = calculateRetention(newPayment.requestAmount, newPayment.retentionRate);
-        newPayment.payableAmount = newPayment.requestAmount - newPayment.retentionAmount;
-
-        payments.push(newPayment);
-        localStorage.setItem(this.storageKey, JSON.stringify(payments));
-
-        return newPayment;
+            return await paymentsApi.create(payload);
+        } catch (error) {
+            console.error('Failed to create payment:', error);
+            throw error;
+        }
     }
 
     // 更新請款單
     async updatePayment(id, data) {
-        const payments = await this.getPayments();
-        const index = payments.findIndex(p => p.id === id);
+        try {
+            // 重新計算金額 if needed
+            if (data.requestAmount !== undefined || data.retentionRate !== undefined) {
+                const requestAmount = data.requestAmount || 0;
+                const retentionRate = data.retentionRate || RETENTION_SETTINGS.rate;
+                data.retentionAmount = calculateRetention(requestAmount, retentionRate);
+                data.netAmount = requestAmount - data.retentionAmount;
+            }
 
-        if (index === -1) throw new Error('Payment not found');
-
-        const updated = {
-            ...payments[index],
-            ...data,
-            updatedAt: new Date().toISOString(),
-        };
-
-        // 重新計算金額
-        if (data.requestAmount !== undefined || data.retentionRate !== undefined) {
-            updated.retentionAmount = calculateRetention(
-                updated.requestAmount,
-                updated.retentionRate
-            );
-            updated.payableAmount = updated.requestAmount - updated.retentionAmount;
+            return await paymentsApi.update(id, data);
+        } catch (error) {
+            console.error('Failed to update payment:', error);
+            throw error;
         }
-
-        payments[index] = updated;
-        localStorage.setItem(this.storageKey, JSON.stringify(payments));
-
-        return updated;
     }
 
     // 提交審核
-    async submitForReview(id, submittedBy) {
-        return this.updatePayment(id, {
-            status: PAYMENT_STATUS.PENDING,
-            submittedAt: new Date().toISOString(),
-            submittedBy,
-        });
+    async submitForReview(id) {
+        try {
+            return await paymentsApi.submit(id);
+        } catch (error) {
+            console.error('Failed to submit payment:', error);
+            throw error;
+        }
     }
 
     // 核准
-    async approve(id, approvedBy) {
-        return this.updatePayment(id, {
-            status: PAYMENT_STATUS.APPROVED,
-            approvedAt: new Date().toISOString(),
-            approvedBy,
-        });
+    async approve(id) {
+        try {
+            return await paymentsApi.approve(id);
+        } catch (error) {
+            console.error('Failed to approve payment:', error);
+            throw error;
+        }
     }
 
-    // 開立發票
-    async createInvoice(id, invoiceNo, invoiceDate) {
-        return this.updatePayment(id, {
-            status: PAYMENT_STATUS.INVOICED,
-            invoiceNo,
-            invoiceDate: invoiceDate || new Date().toISOString(),
-        });
+    // 駁回
+    async reject(id, reason) {
+        try {
+            return await paymentsApi.reject(id, reason);
+        } catch (error) {
+            console.error('Failed to reject payment:', error);
+            throw error;
+        }
     }
 
     // 記錄收款
-    async recordReceipt(id, amount, paidDate) {
-        const payment = await this.getPayment(id);
-        if (!payment) throw new Error('Payment not found');
-
-        const totalReceived = (payment.receivedAmount || 0) + amount;
-        const isPaid = totalReceived >= payment.payableAmount;
-
-        return this.updatePayment(id, {
-            status: isPaid ? PAYMENT_STATUS.PAID : PAYMENT_STATUS.PARTIAL,
-            receivedAmount: totalReceived,
-            paidDate: isPaid ? (paidDate || new Date().toISOString()) : null,
-        });
-    }
-
-    // 取消
-    async cancel(id) {
-        return this.updatePayment(id, {
-            status: PAYMENT_STATUS.CANCELLED,
-        });
-    }
-
-    // 刪除（僅限草稿）
-    async deletePayment(id) {
-        const payments = await this.getPayments();
-        const payment = payments.find(p => p.id === id);
-
-        if (!payment) throw new Error('Payment not found');
-        if (payment.status !== PAYMENT_STATUS.DRAFT) {
-            throw new Error('Only draft payments can be deleted');
+    async recordReceipt(id, amount, receiptDate, paymentMethod = 'BANK_TRANSFER', referenceNo = '') {
+        try {
+            return await paymentsApi.addReceipt({
+                applicationId: id,
+                amount,
+                receiptDate: receiptDate || new Date().toISOString().split('T')[0],
+                paymentMethod,
+                referenceNo,
+            });
+        } catch (error) {
+            console.error('Failed to record receipt:', error);
+            throw error;
         }
-
-        const filtered = payments.filter(p => p.id !== id);
-        localStorage.setItem(this.storageKey, JSON.stringify(filtered));
-        return true;
     }
 
     // 取得專案請款統計
@@ -313,9 +269,9 @@ class PaymentServiceClass {
 
         return {
             totalPayments: payments.length,
-            totalRequested: payments.reduce((sum, p) => sum + (p.requestAmount || 0), 0),
-            totalReceived: payments.reduce((sum, p) => sum + (p.receivedAmount || 0), 0),
-            totalRetention: payments.reduce((sum, p) => sum + (p.retentionAmount || 0), 0),
+            totalRequested: payments.reduce((sum, p) => sum + (Number(p.requestAmount) || 0), 0),
+            totalReceived: payments.reduce((sum, p) => sum + (Number(p.receivedAmount) || 0), 0),
+            totalRetention: payments.reduce((sum, p) => sum + (Number(p.retentionAmount) || 0), 0),
             pendingCount: payments.filter(p => p.status === PAYMENT_STATUS.PENDING).length,
             overdueCount: payments.filter(p => p.status === PAYMENT_STATUS.OVERDUE).length,
         };
@@ -333,36 +289,6 @@ class PaymentServiceClass {
             if (!p.dueDate) return false;
             return new Date(p.dueDate) < today;
         });
-    }
-
-    // 從估價單建立請款計畫
-    async createPaymentPlanFromQuotation(quotation, paymentTerms = DEFAULT_PAYMENT_TERMS) {
-        const payments = [];
-        const signDate = new Date();
-
-        for (const term of paymentTerms) {
-            const dueDate = new Date(signDate);
-            dueDate.setDate(dueDate.getDate() + (term.daysAfterSign || 0));
-
-            const requestAmount = Math.round(quotation.totalAmount * (term.percentage / 100));
-
-            const payment = await this.createPayment({
-                projectId: quotation.projectId,
-                projectName: quotation.projectName,
-                quotationId: quotation.id,
-                quotationNo: quotation.quotationNo,
-                customerName: quotation.customerName,
-                type: term.type,
-                title: term.name,
-                contractAmount: quotation.totalAmount,
-                requestAmount,
-                dueDate: dueDate.toISOString(),
-            });
-
-            payments.push(payment);
-        }
-
-        return payments;
     }
 }
 

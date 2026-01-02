@@ -1,8 +1,11 @@
 /**
  * 利潤分析服務層 (ProfitAnalysisService)
  * 整合專案成本、合約收入、請款進度，提供利潤分析
+ * 
+ * ⚠️ 已整合 Backend API - 資料儲存於 PostgreSQL
  */
 
+import { costEntriesApi, contractsApi } from './api';
 import ContractService, { CONTRACT_STATUS } from './ContractService';
 import PaymentService, { PAYMENT_STATUS } from './PaymentService';
 import ChangeOrderService from './ChangeOrderService';
@@ -84,7 +87,7 @@ export const formatTrend = (current, previous) => {
 
 class ProfitAnalysisServiceClass {
     constructor() {
-        this.costsStorageKey = 'senteng_project_costs';
+        // No localStorage needed - using backend API
     }
 
     // ==================== 成本管理 ====================
@@ -92,11 +95,8 @@ class ProfitAnalysisServiceClass {
     // 取得專案成本
     async getProjectCosts(projectId) {
         try {
-            const data = localStorage.getItem(this.costsStorageKey);
-            const costs = data ? JSON.parse(data) : [];
-            return projectId
-                ? costs.filter(c => c.projectId === projectId)
-                : costs;
+            const params = projectId ? { projectId } : {};
+            return await costEntriesApi.getAll(params);
         } catch (error) {
             console.error('Failed to get costs:', error);
             return [];
@@ -105,24 +105,12 @@ class ProfitAnalysisServiceClass {
 
     // 新增成本
     async addCost(data) {
-        const costs = await this.getProjectCosts();
-        const newCost = {
-            id: `cost-${Date.now()}`,
-            projectId: data.projectId,
-            contractId: data.contractId || null,
-            category: data.category || COST_CATEGORIES.OTHER,
-            description: data.description || '',
-            amount: data.amount || 0,
-            date: data.date || new Date().toISOString(),
-            vendorId: data.vendorId || null,
-            vendorName: data.vendorName || '',
-            invoiceNo: data.invoiceNo || '',
-            createdAt: new Date().toISOString(),
-        };
-
-        costs.push(newCost);
-        localStorage.setItem(this.costsStorageKey, JSON.stringify(costs));
-        return newCost;
+        try {
+            return await costEntriesApi.create(data);
+        } catch (error) {
+            console.error('Failed to add cost:', error);
+            throw error;
+        }
     }
 
     // 取得成本摘要（按類別）

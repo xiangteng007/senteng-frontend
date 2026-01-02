@@ -1,25 +1,35 @@
 /**
  * 工程變更單服務層 (ChangeOrderService)
  * 處理追加減項、變更追蹤、金額計算
+ * 
+ * ⚠️ 已整合 Backend API - 資料儲存於 PostgreSQL
  */
 
+import { changeOrdersApi } from './api';
 import { QuotationService, calculateLineAmount } from './QuotationService';
 
 // ============================================
 // 常數定義
 // ============================================
 
-// 變更單狀態
+// 變更單狀態 (對應後端 CHG_*)
 export const CHANGE_ORDER_STATUS = {
-    DRAFT: 'DRAFT',           // 草稿
-    PENDING: 'PENDING',       // 待審核
-    CLIENT_CONFIRM: 'CLIENT_CONFIRM', // 待客戶確認
-    APPROVED: 'APPROVED',     // 已核准
-    REJECTED: 'REJECTED',     // 已拒絕
-    VOIDED: 'VOIDED',         // 作廢
+    DRAFT: 'CHG_DRAFT',           // 草稿
+    PENDING: 'CHG_PENDING',       // 待審核
+    CLIENT_CONFIRM: 'CHG_CLIENT_CONFIRM', // 待客戶確認
+    APPROVED: 'CHG_APPROVED',     // 已核准
+    REJECTED: 'CHG_REJECTED',     // 已拒絕
+    VOIDED: 'CHG_VOIDED',         // 作廢
 };
 
 export const CHANGE_ORDER_STATUS_LABELS = {
+    CHG_DRAFT: '草稿',
+    CHG_PENDING: '待審核',
+    CHG_CLIENT_CONFIRM: '待客戶確認',
+    CHG_APPROVED: '已核准',
+    CHG_REJECTED: '已拒絕',
+    CHG_VOIDED: '作廢',
+    // Legacy mapping
     DRAFT: '草稿',
     PENDING: '待審核',
     CLIENT_CONFIRM: '待客戶確認',
@@ -29,6 +39,13 @@ export const CHANGE_ORDER_STATUS_LABELS = {
 };
 
 export const CHANGE_ORDER_STATUS_COLORS = {
+    CHG_DRAFT: 'bg-gray-100 text-gray-700',
+    CHG_PENDING: 'bg-yellow-100 text-yellow-700',
+    CHG_CLIENT_CONFIRM: 'bg-blue-100 text-blue-700',
+    CHG_APPROVED: 'bg-green-100 text-green-700',
+    CHG_REJECTED: 'bg-red-100 text-red-700',
+    CHG_VOIDED: 'bg-gray-200 text-gray-500',
+    // Legacy mapping
     DRAFT: 'bg-gray-100 text-gray-700',
     PENDING: 'bg-yellow-100 text-yellow-700',
     CLIENT_CONFIRM: 'bg-blue-100 text-blue-700',
@@ -113,23 +130,23 @@ export const calculateChangeOrderTotals = (items) => {
 };
 
 // ============================================
-// 變更單服務類
+// 變更單服務類 - 使用 Backend API
 // ============================================
 
 class ChangeOrderServiceClass {
     constructor() {
-        this.storageKey = 'senteng_change_orders';
+        // No localStorage needed - using backend API
     }
 
     // 取得所有變更單
-    async getChangeOrders(quotationId = null) {
+    async getChangeOrders(filters = {}) {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            const orders = data ? JSON.parse(data) : [];
-            if (quotationId) {
-                return orders.filter(o => o.quotationId === quotationId);
-            }
-            return orders;
+            const params = {};
+            if (filters.contractId) params.contractId = filters.contractId;
+            if (filters.projectId) params.projectId = filters.projectId;
+            if (filters.status) params.status = filters.status;
+
+            return await changeOrdersApi.getAll(params);
         } catch (error) {
             console.error('Failed to get change orders:', error);
             return [];
@@ -138,171 +155,71 @@ class ChangeOrderServiceClass {
 
     // 取得單一變更單
     async getChangeOrder(id) {
-        const orders = await this.getChangeOrders();
-        return orders.find(o => o.id === id);
-    }
-
-    // 取得估價單的變更單數量 (用於編號)
-    async getNextSequence(quotationId) {
-        const orders = await this.getChangeOrders(quotationId);
-        return orders.length + 1;
+        try {
+            return await changeOrdersApi.getById(id);
+        } catch (error) {
+            console.error('Failed to get change order:', error);
+            return null;
+        }
     }
 
     // 新增變更單
     async createChangeOrder(data) {
-        const orders = await this.getChangeOrders();
-        const quotation = await QuotationService.getQuotation(data.quotationId);
+        try {
+            const payload = {
+                contractId: data.contractId,
+                projectId: data.projectId,
+                title: data.title || '工程變更',
+                reason: data.reason || 'client_request',
+                items: data.items || [],
+                notes: data.description || data.notes || '',
+            };
 
-        if (!quotation) throw new Error('Quotation not found');
-
-        const sequence = await this.getNextSequence(data.quotationId);
-        const changeOrderNo = generateChangeOrderNo(quotation.quotationNo, sequence);
-
-        const newOrder = {
-            id: `co-${Date.now()}`,
-            changeOrderNo,
-            quotationId: data.quotationId,
-            quotationNo: quotation.quotationNo,
-            projectName: quotation.projectName || quotation.title,
-            sequence,
-            status: CHANGE_ORDER_STATUS.DRAFT,
-            title: data.title || `第 ${sequence} 次變更`,
-            description: data.description || '',
-            reason: data.reason || 'client_request',
-            items: data.items || [],
-            // 金額
-            originalContractAmount: quotation.totalAmount || 0,
-            totalAdded: 0,
-            totalDeducted: 0,
-            netChange: 0,
-            newContractAmount: quotation.totalAmount || 0,
-            // 審核
-            submittedAt: null,
-            submittedBy: null,
-            approvedAt: null,
-            approvedBy: null,
-            clientSignedAt: null,
-            rejectedAt: null,
-            rejectedBy: null,
-            rejectionReason: '',
-            // 元資料
-            createdBy: data.createdBy || 'system',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-
-        // 計算金額
-        if (newOrder.items.length > 0) {
-            const totals = calculateChangeOrderTotals(newOrder.items);
-            Object.assign(newOrder, totals);
-            newOrder.newContractAmount = newOrder.originalContractAmount + newOrder.netChange;
+            return await changeOrdersApi.create(payload);
+        } catch (error) {
+            console.error('Failed to create change order:', error);
+            throw error;
         }
-
-        orders.push(newOrder);
-        localStorage.setItem(this.storageKey, JSON.stringify(orders));
-
-        return newOrder;
     }
 
     // 更新變更單
     async updateChangeOrder(id, data) {
-        const orders = await this.getChangeOrders();
-        const index = orders.findIndex(o => o.id === id);
-
-        if (index === -1) throw new Error('Change order not found');
-
-        const updated = {
-            ...orders[index],
-            ...data,
-            updatedAt: new Date().toISOString(),
-        };
-
-        // 重新計算金額
-        if (data.items) {
-            const totals = calculateChangeOrderTotals(updated.items);
-            Object.assign(updated, totals);
-            updated.newContractAmount = updated.originalContractAmount + updated.netChange;
+        try {
+            return await changeOrdersApi.update(id, data);
+        } catch (error) {
+            console.error('Failed to update change order:', error);
+            throw error;
         }
-
-        orders[index] = updated;
-        localStorage.setItem(this.storageKey, JSON.stringify(orders));
-
-        return updated;
     }
 
     // 提交審核
-    async submitForReview(id, submittedBy) {
-        return this.updateChangeOrder(id, {
-            status: CHANGE_ORDER_STATUS.PENDING,
-            submittedAt: new Date().toISOString(),
-            submittedBy,
-        });
-    }
-
-    // 送客戶確認
-    async sendToClient(id) {
-        return this.updateChangeOrder(id, {
-            status: CHANGE_ORDER_STATUS.CLIENT_CONFIRM,
-        });
-    }
-
-    // 客戶簽認
-    async clientSign(id) {
-        return this.updateChangeOrder(id, {
-            status: CHANGE_ORDER_STATUS.APPROVED,
-            clientSignedAt: new Date().toISOString(),
-            approvedAt: new Date().toISOString(),
-        });
+    async submitForReview(id) {
+        try {
+            return await changeOrdersApi.submit(id);
+        } catch (error) {
+            console.error('Failed to submit change order:', error);
+            throw error;
+        }
     }
 
     // 核准
-    async approve(id, approvedBy) {
-        const order = await this.getChangeOrder(id);
-        if (!order) throw new Error('Change order not found');
-
-        // 更新原估價單金額
-        await QuotationService.updateQuotation(order.quotationId, {
-            totalAmount: order.newContractAmount,
-            lastChangeOrderId: id,
-        });
-
-        return this.updateChangeOrder(id, {
-            status: CHANGE_ORDER_STATUS.APPROVED,
-            approvedAt: new Date().toISOString(),
-            approvedBy,
-        });
+    async approve(id) {
+        try {
+            return await changeOrdersApi.approve(id);
+        } catch (error) {
+            console.error('Failed to approve change order:', error);
+            throw error;
+        }
     }
 
     // 拒絕
-    async reject(id, rejectedBy, reason) {
-        return this.updateChangeOrder(id, {
-            status: CHANGE_ORDER_STATUS.REJECTED,
-            rejectedAt: new Date().toISOString(),
-            rejectedBy,
-            rejectionReason: reason,
-        });
-    }
-
-    // 作廢
-    async void(id) {
-        return this.updateChangeOrder(id, {
-            status: CHANGE_ORDER_STATUS.VOIDED,
-        });
-    }
-
-    // 刪除 (僅限草稿)
-    async deleteChangeOrder(id) {
-        const orders = await this.getChangeOrders();
-        const order = orders.find(o => o.id === id);
-
-        if (!order) throw new Error('Change order not found');
-        if (order.status !== CHANGE_ORDER_STATUS.DRAFT) {
-            throw new Error('Only draft change orders can be deleted');
+    async reject(id, reason) {
+        try {
+            return await changeOrdersApi.reject(id, reason);
+        } catch (error) {
+            console.error('Failed to reject change order:', error);
+            throw error;
         }
-
-        const filtered = orders.filter(o => o.id !== id);
-        localStorage.setItem(this.storageKey, JSON.stringify(filtered));
-        return true;
     }
 
     // 從估價單工項建立變更項目
@@ -315,13 +232,10 @@ class ChangeOrderServiceClass {
             name: quotationItem.name,
             specification: quotationItem.specification || '',
             unit: quotationItem.unit,
-            // 原數量/單價 (用於 MODIFY 類型計算差額)
             originalQuantity: quotationItem.quantity,
             originalUnitPrice: quotationItem.unitPrice,
-            // 新數量/單價
             quantity: changeType === CHANGE_TYPES.DEDUCT ? quotationItem.quantity : 0,
             unitPrice: quotationItem.unitPrice,
-            // 說明
             reason: '',
             remark: '',
         };
@@ -346,15 +260,18 @@ class ChangeOrderServiceClass {
         };
     }
 
-    // 取得估價單累計變更金額
-    async getCumulativeChanges(quotationId) {
-        const orders = await this.getChangeOrders(quotationId);
-        const approvedOrders = orders.filter(o => o.status === CHANGE_ORDER_STATUS.APPROVED);
+    // 取得累計變更金額
+    async getCumulativeChanges(contractId) {
+        const orders = await this.getChangeOrders({ contractId });
+        const approvedOrders = orders.filter(o =>
+            o.status === CHANGE_ORDER_STATUS.APPROVED ||
+            o.status === 'CHG_APPROVED'
+        );
 
         return approvedOrders.reduce((acc, order) => ({
-            totalAdded: acc.totalAdded + order.totalAdded,
-            totalDeducted: acc.totalDeducted + order.totalDeducted,
-            netChange: acc.netChange + order.netChange,
+            totalAdded: acc.totalAdded + (Number(order.totalAdded) || 0),
+            totalDeducted: acc.totalDeducted + (Number(order.totalDeducted) || 0),
+            netChange: acc.netChange + (Number(order.netChange) || 0),
             count: acc.count + 1,
         }), { totalAdded: 0, totalDeducted: 0, netChange: 0, count: 0 });
     }

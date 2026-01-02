@@ -1,26 +1,36 @@
 /**
  * 合約管理服務層 (ContractService)
  * 處理合約建立、版本控管、履約追蹤
+ * 
+ * ⚠️ 已整合 Backend API - 資料儲存於 PostgreSQL
  */
 
-import { QuotationService, QUOTATION_STATUS } from './QuotationService';
+import { contractsApi, quotationsApi } from './api';
 
 // ============================================
 // 常數定義
 // ============================================
 
-// 合約狀態
+// 合約狀態 (對應後端 CTR_*)
 export const CONTRACT_STATUS = {
-    DRAFT: 'DRAFT',           // 草稿
-    PENDING_SIGN: 'PENDING_SIGN', // 待簽約
-    ACTIVE: 'ACTIVE',         // 履約中
-    COMPLETED: 'COMPLETED',   // 已完工
-    WARRANTY: 'WARRANTY',     // 保固期
-    CLOSED: 'CLOSED',         // 已結案
-    TERMINATED: 'TERMINATED', // 終止
+    DRAFT: 'CTR_DRAFT',           // 草稿
+    PENDING_SIGN: 'CTR_PENDING',  // 待簽約
+    ACTIVE: 'CTR_ACTIVE',         // 履約中
+    COMPLETED: 'CTR_COMPLETED',   // 已完工
+    WARRANTY: 'CTR_WARRANTY',     // 保固期
+    CLOSED: 'CTR_CLOSED',         // 已結案
+    TERMINATED: 'CTR_TERMINATED', // 終止
 };
 
 export const CONTRACT_STATUS_LABELS = {
+    CTR_DRAFT: '草稿',
+    CTR_PENDING: '待簽約',
+    CTR_ACTIVE: '履約中',
+    CTR_COMPLETED: '已完工',
+    CTR_WARRANTY: '保固期',
+    CTR_CLOSED: '已結案',
+    CTR_TERMINATED: '終止',
+    // Legacy mapping
     DRAFT: '草稿',
     PENDING_SIGN: '待簽約',
     ACTIVE: '履約中',
@@ -31,6 +41,14 @@ export const CONTRACT_STATUS_LABELS = {
 };
 
 export const CONTRACT_STATUS_COLORS = {
+    CTR_DRAFT: 'bg-gray-100 text-gray-700',
+    CTR_PENDING: 'bg-yellow-100 text-yellow-700',
+    CTR_ACTIVE: 'bg-blue-100 text-blue-700',
+    CTR_COMPLETED: 'bg-green-100 text-green-700',
+    CTR_WARRANTY: 'bg-purple-100 text-purple-700',
+    CTR_CLOSED: 'bg-gray-200 text-gray-600',
+    CTR_TERMINATED: 'bg-red-100 text-red-700',
+    // Legacy mapping
     DRAFT: 'bg-gray-100 text-gray-700',
     PENDING_SIGN: 'bg-yellow-100 text-yellow-700',
     ACTIVE: 'bg-blue-100 text-blue-700',
@@ -99,27 +117,22 @@ export const generateContractNo = (year, sequence) => {
 };
 
 // ============================================
-// 合約服務類
+// 合約服務類 - 使用 Backend API
 // ============================================
 
 class ContractServiceClass {
     constructor() {
-        this.storageKey = 'senteng_contracts';
+        // No localStorage needed - using backend API
     }
 
     // 取得所有合約
     async getContracts(filters = {}) {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            let contracts = data ? JSON.parse(data) : [];
+            const params = {};
+            if (filters.status) params.status = filters.status;
+            if (filters.projectId) params.projectId = filters.projectId;
 
-            if (filters.status) {
-                contracts = contracts.filter(c => c.status === filters.status);
-            }
-            if (filters.customerId) {
-                contracts = contracts.filter(c => c.customerId === filters.customerId);
-            }
-
+            const contracts = await contractsApi.getAll(params);
             return contracts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         } catch (error) {
             console.error('Failed to get contracts:', error);
@@ -129,175 +142,92 @@ class ContractServiceClass {
 
     // 取得單一合約
     async getContract(id) {
-        const contracts = await this.getContracts();
-        return contracts.find(c => c.id === id);
-    }
-
-    // 取得年度合約數量（用於編號）
-    async getYearSequence(year) {
-        const contracts = await this.getContracts();
-        const yearContracts = contracts.filter(c =>
-            new Date(c.createdAt).getFullYear() === year
-        );
-        return yearContracts.length + 1;
+        try {
+            return await contractsApi.getById(id);
+        } catch (error) {
+            console.error('Failed to get contract:', error);
+            return null;
+        }
     }
 
     // 從估價單建立合約
     async createFromQuotation(quotationId, additionalData = {}) {
-        const quotation = await QuotationService.getQuotation(quotationId);
-        if (!quotation) throw new Error('Quotation not found');
+        try {
+            const payload = {
+                quotationId,
+                contractNo: additionalData.contractNo,
+                paymentTerms: additionalData.paymentTerms || 'PROGRESS',
+                retentionRate: additionalData.retentionRate || 5,
+                warrantyMonths: additionalData.warrantyMonths || 12,
+            };
 
-        const year = new Date().getFullYear();
-        const sequence = await this.getYearSequence(year);
-        const contractNo = generateContractNo(year, sequence);
+            return await contractsApi.convertFromQuotation(payload);
+        } catch (error) {
+            console.error('Failed to create contract from quotation:', error);
+            throw error;
+        }
+    }
 
-        const newContract = {
-            id: `ctr-${Date.now()}`,
-            contractNo,
-            status: CONTRACT_STATUS.DRAFT,
-            type: additionalData.type || CONTRACT_TYPES.LUMP_SUM,
+    // 建立新合約
+    async createContract(data) {
+        try {
+            const payload = {
+                projectId: data.projectId,
+                contractNo: data.contractNo,
+                title: data.title,
+                contractType: data.contractType || 'FIXED_PRICE',
+                originalAmount: data.originalAmount || data.amount || 0,
+                retentionRate: data.retentionRate || 5,
+                paymentTerms: data.paymentTerms || 'PROGRESS',
+                warrantyMonths: data.warrantyMonths || 12,
+                notes: data.notes,
+            };
 
-            // 來源估價單
-            quotationId: quotation.id,
-            quotationNo: quotation.quotationNo,
-            quotationVersion: quotation.version || 1,
-
-            // 專案/客戶
-            projectId: quotation.projectId,
-            projectName: quotation.projectName || quotation.title,
-            customerId: quotation.customerId,
-            customerName: quotation.customerName,
-
-            // 金額
-            originalAmount: quotation.totalAmount,
-            currentAmount: quotation.totalAmount,
-            changeOrderTotal: 0,
-            paidAmount: 0,
-
-            // 工項明細（複製自估價單）
-            items: quotation.items || [],
-
-            // 付款條件
-            paymentTerms: additionalData.paymentTerms || PAYMENT_TERM_TEMPLATES[0].terms,
-            retentionRate: additionalData.retentionRate || 5,
-
-            // 合約條款
-            warrantyMonths: additionalData.warrantyMonths || 12,
-            penaltyRate: additionalData.penaltyRate || 0.1, // 每日千分之一
-            description: additionalData.description || '',
-
-            // 日期
-            signedDate: null,
-            startDate: additionalData.startDate || null,
-            endDate: additionalData.endDate || null,
-            completedDate: null,
-            warrantyEndDate: null,
-
-            // 變更單/請款單
-            changeOrderIds: [],
-            paymentIds: [],
-
-            // 元資料
-            createdBy: additionalData.createdBy || 'system',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-
-        const contracts = await this.getContracts();
-        contracts.push(newContract);
-        localStorage.setItem(this.storageKey, JSON.stringify(contracts));
-
-        // 更新估價單狀態為已成交
-        await QuotationService.updateQuotation(quotationId, {
-            status: QUOTATION_STATUS.ACCEPTED,
-            contractId: newContract.id,
-        });
-
-        return newContract;
+            return await contractsApi.create(payload);
+        } catch (error) {
+            console.error('Failed to create contract:', error);
+            throw error;
+        }
     }
 
     // 更新合約
     async updateContract(id, data) {
-        const contracts = await this.getContracts();
-        const index = contracts.findIndex(c => c.id === id);
-
-        if (index === -1) throw new Error('Contract not found');
-
-        const updated = {
-            ...contracts[index],
-            ...data,
-            updatedAt: new Date().toISOString(),
-        };
-
-        contracts[index] = updated;
-        localStorage.setItem(this.storageKey, JSON.stringify(contracts));
-
-        return updated;
+        try {
+            return await contractsApi.update(id, data);
+        } catch (error) {
+            console.error('Failed to update contract:', error);
+            throw error;
+        }
     }
 
     // 簽約
     async sign(id, signedDate) {
-        const contract = await this.getContract(id);
-        if (!contract) throw new Error('Contract not found');
-
-        return this.updateContract(id, {
-            status: CONTRACT_STATUS.ACTIVE,
-            signedDate: signedDate || new Date().toISOString(),
-        });
+        try {
+            return await contractsApi.sign(id, signedDate);
+        } catch (error) {
+            console.error('Failed to sign contract:', error);
+            throw error;
+        }
     }
 
     // 完工
-    async complete(id, completedDate) {
-        const contract = await this.getContract(id);
-        if (!contract) throw new Error('Contract not found');
-
-        const warrantyEndDate = new Date(completedDate || new Date());
-        warrantyEndDate.setMonth(warrantyEndDate.getMonth() + contract.warrantyMonths);
-
-        return this.updateContract(id, {
-            status: CONTRACT_STATUS.WARRANTY,
-            completedDate: completedDate || new Date().toISOString(),
-            warrantyEndDate: warrantyEndDate.toISOString(),
-        });
+    async complete(id) {
+        try {
+            return await contractsApi.complete(id);
+        } catch (error) {
+            console.error('Failed to complete contract:', error);
+            throw error;
+        }
     }
 
     // 結案
     async close(id) {
-        return this.updateContract(id, {
-            status: CONTRACT_STATUS.CLOSED,
-        });
-    }
-
-    // 終止
-    async terminate(id, reason) {
-        return this.updateContract(id, {
-            status: CONTRACT_STATUS.TERMINATED,
-            terminationReason: reason,
-            terminatedAt: new Date().toISOString(),
-        });
-    }
-
-    // 新增變更單到合約
-    async addChangeOrder(contractId, changeOrderId, netChange) {
-        const contract = await this.getContract(contractId);
-        if (!contract) throw new Error('Contract not found');
-
-        return this.updateContract(contractId, {
-            changeOrderIds: [...(contract.changeOrderIds || []), changeOrderId],
-            changeOrderTotal: (contract.changeOrderTotal || 0) + netChange,
-            currentAmount: contract.originalAmount + (contract.changeOrderTotal || 0) + netChange,
-        });
-    }
-
-    // 新增請款單到合約
-    async addPayment(contractId, paymentId, amount) {
-        const contract = await this.getContract(contractId);
-        if (!contract) throw new Error('Contract not found');
-
-        return this.updateContract(contractId, {
-            paymentIds: [...(contract.paymentIds || []), paymentId],
-            paidAmount: (contract.paidAmount || 0) + amount,
-        });
+        try {
+            return await contractsApi.close(id);
+        } catch (error) {
+            console.error('Failed to close contract:', error);
+            throw error;
+        }
     }
 
     // 取得合約統計
@@ -309,24 +239,9 @@ class ContractServiceClass {
             active: contracts.filter(c => c.status === CONTRACT_STATUS.ACTIVE).length,
             completed: contracts.filter(c => c.status === CONTRACT_STATUS.COMPLETED).length,
             warranty: contracts.filter(c => c.status === CONTRACT_STATUS.WARRANTY).length,
-            totalAmount: contracts.reduce((sum, c) => sum + (c.currentAmount || 0), 0),
-            totalPaid: contracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0),
+            totalAmount: contracts.reduce((sum, c) => sum + (Number(c.currentAmount) || 0), 0),
+            totalPaid: contracts.reduce((sum, c) => sum + (Number(c.paidAmount) || 0), 0),
         };
-    }
-
-    // 刪除合約（僅草稿）
-    async deleteContract(id) {
-        const contracts = await this.getContracts();
-        const contract = contracts.find(c => c.id === id);
-
-        if (!contract) throw new Error('Contract not found');
-        if (contract.status !== CONTRACT_STATUS.DRAFT) {
-            throw new Error('Only draft contracts can be deleted');
-        }
-
-        const filtered = contracts.filter(c => c.id !== id);
-        localStorage.setItem(this.storageKey, JSON.stringify(filtered));
-        return true;
     }
 }
 

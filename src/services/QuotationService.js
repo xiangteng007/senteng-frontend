@@ -1,8 +1,11 @@
 /**
  * 估價單系統服務層 (QuotationService)
  * 處理估價單的 CRUD、版本管理、審批流程
+ * 
+ * ⚠️ 已整合 Backend API - 資料儲存於 PostgreSQL
  */
 
+import { quotationsApi } from './api';
 import { GoogleService } from './GoogleService';
 
 // ============================================
@@ -768,20 +771,22 @@ export const applyTemplate = (template) => {
 };
 
 // ============================================
-// 估價單服務類
+// 估價單服務類 - 使用 Backend API
 // ============================================
 
 class QuotationServiceClass {
     constructor() {
-        this.storageKey = 'senteng_quotations';
-        this.catalogKey = 'senteng_catalog';
+        this.catalogKey = 'senteng_catalog'; // 工項庫暫存本機
     }
 
     // 取得所有估價單
-    async getQuotations() {
+    async getQuotations(filters = {}) {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            return data ? JSON.parse(data) : [];
+            const params = {};
+            if (filters.projectId) params.projectId = filters.projectId;
+            if (filters.status) params.status = filters.status;
+
+            return await quotationsApi.getAll(params);
         } catch (error) {
             console.error('Failed to get quotations:', error);
             return [];
@@ -790,123 +795,104 @@ class QuotationServiceClass {
 
     // 取得單一估價單
     async getQuotation(id) {
-        const quotations = await this.getQuotations();
-        return quotations.find(q => q.id === id);
+        try {
+            return await quotationsApi.getById(id);
+        } catch (error) {
+            console.error('Failed to get quotation:', error);
+            return null;
+        }
+    }
+
+    // 取得版本歷史
+    async getVersions(id) {
+        try {
+            return await quotationsApi.getVersions(id);
+        } catch (error) {
+            console.error('Failed to get versions:', error);
+            return [];
+        }
     }
 
     // 新增估價單
     async createQuotation(data) {
-        const quotations = await this.getQuotations();
-        const newQuotation = {
-            id: `quo-${Date.now()}`,
-            quotationNo: generateQuotationNo(),
-            projectId: data.projectId || null,
-            projectName: data.projectName || '',
-            customerId: data.customerId || null,
-            customerName: data.customerName || '',
-            title: data.title || '新估價單',
-            description: data.description || '',
-            status: QUOTATION_STATUS.DRAFT,
-            currentVersion: 1,
-            validUntil: new Date(Date.now() + DEFAULT_SETTINGS.validDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            currency: DEFAULT_SETTINGS.currency,
-            taxType: TAX_TYPES.INCLUSIVE,
-            taxRate: DEFAULT_SETTINGS.taxRate,
-            managementFeeRate: DEFAULT_SETTINGS.managementFee,
-            profitRate: DEFAULT_SETTINGS.profitRate,
-            items: data.items || [],
-            versions: [{
-                version: 1,
-                createdAt: new Date().toISOString(),
-                note: '初始版本',
-            }],
-            createdBy: data.createdBy || 'system',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
+        try {
+            const payload = {
+                projectId: data.projectId,
+                title: data.title || '新估價單',
+                currency: data.currency || DEFAULT_SETTINGS.currency,
+                isTaxIncluded: data.taxType !== TAX_TYPES.EXCLUSIVE,
+                taxRate: data.taxRate || DEFAULT_SETTINGS.taxRate,
+                validUntil: data.validUntil || new Date(Date.now() + DEFAULT_SETTINGS.validDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                notes: data.description || data.notes || '',
+                items: data.items || [],
+            };
 
-        // 計算金額
-        const totals = calculateQuotationTotals(newQuotation.items, {
-            managementFeeRate: newQuotation.managementFeeRate,
-            profitRate: newQuotation.profitRate,
-            taxRate: newQuotation.taxRate,
-            taxType: newQuotation.taxType,
-        });
-        Object.assign(newQuotation, totals);
-
-        quotations.push(newQuotation);
-        localStorage.setItem(this.storageKey, JSON.stringify(quotations));
-
-        return newQuotation;
+            return await quotationsApi.create(payload);
+        } catch (error) {
+            console.error('Failed to create quotation:', error);
+            throw error;
+        }
     }
 
     // 更新估價單
     async updateQuotation(id, data) {
-        const quotations = await this.getQuotations();
-        const index = quotations.findIndex(q => q.id === id);
-
-        if (index === -1) throw new Error('Quotation not found');
-
-        const updated = {
-            ...quotations[index],
-            ...data,
-            updatedAt: new Date().toISOString(),
-        };
-
-        // 重新計算金額
-        if (data.items) {
-            const totals = calculateQuotationTotals(updated.items, {
-                managementFeeRate: updated.managementFeeRate,
-                profitRate: updated.profitRate,
-                taxRate: updated.taxRate,
-                taxType: updated.taxType,
-            });
-            Object.assign(updated, totals);
+        try {
+            return await quotationsApi.update(id, data);
+        } catch (error) {
+            console.error('Failed to update quotation:', error);
+            throw error;
         }
-
-        quotations[index] = updated;
-        localStorage.setItem(this.storageKey, JSON.stringify(quotations));
-
-        return updated;
     }
 
-    // 刪除估價單 (軟刪除)
-    async deleteQuotation(id) {
-        return this.updateQuotation(id, { status: QUOTATION_STATUS.VOIDED });
+    // 提交審核
+    async submitForReview(id) {
+        try {
+            return await quotationsApi.submit(id);
+        } catch (error) {
+            console.error('Failed to submit quotation:', error);
+            throw error;
+        }
     }
 
-    // 複製估價單
-    async copyQuotation(id, options = {}) {
-        const source = await this.getQuotation(id);
-        if (!source) throw new Error('Source quotation not found');
-
-        const newData = {
-            title: options.title || `${source.title} (複製)`,
-            projectId: options.projectId || source.projectId,
-            projectName: options.projectName || source.projectName,
-            customerId: options.customerId || source.customerId,
-            customerName: options.customerName || source.customerName,
-            items: options.copyItems !== false ? [...source.items] : [],
-        };
-
-        return this.createQuotation(newData);
+    // 核准
+    async approve(id) {
+        try {
+            return await quotationsApi.approve(id);
+        } catch (error) {
+            console.error('Failed to approve quotation:', error);
+            throw error;
+        }
     }
 
-    // 變更狀態
+    // 駁回
+    async reject(id, reason) {
+        try {
+            return await quotationsApi.reject(id, reason);
+        } catch (error) {
+            console.error('Failed to reject quotation:', error);
+            throw error;
+        }
+    }
+
+    // 建立新版本
+    async createNewVersion(id) {
+        try {
+            return await quotationsApi.createNewVersion(id);
+        } catch (error) {
+            console.error('Failed to create new version:', error);
+            throw error;
+        }
+    }
+
+    // 變更狀態 (通用)
     async changeStatus(id, newStatus, note = '') {
-        const quotation = await this.getQuotation(id);
-        if (!quotation) throw new Error('Quotation not found');
-
-        // TODO: 驗證狀態轉換是否合法
-
         return this.updateQuotation(id, {
             status: newStatus,
-            statusNote: note,
-            statusChangedAt: new Date().toISOString(),
+            notes: note,
         });
     }
 
-    // 取得工項庫
+    // 取得工項庫 (仍使用 localStorage 作為快取)
     async getCatalogItems() {
         try {
             const data = localStorage.getItem(this.catalogKey);
