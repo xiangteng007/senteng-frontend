@@ -172,6 +172,7 @@ const AppContent = () => {
               allTransactions={data.finance.transactions}
               onAddGlobalTx={handleAddGlobalTx}
               accounts={data.finance.accounts}
+              allClients={data.clients}
             />
           </ProtectedRoute>
         } />

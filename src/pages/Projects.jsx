@@ -11,6 +11,7 @@ import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
 import { ProgressBar } from '../components/common/Indicators';
+import SearchableSelect from '../components/common/SearchableSelect';
 import { projectsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 
@@ -134,7 +135,7 @@ const WidgetProjectFinanceDetail = ({ transactions, size, onAddTx, onSyncToSheet
     );
 }
 
-const Projects = ({ data, loading, addToast, onSelectProject, activeProject, setActiveProject, onUpdateProject, onDeleteProject, allTransactions, onAddGlobalTx, accounts, allVendors, allInventory }) => {
+const Projects = ({ data, loading, addToast, onSelectProject, activeProject, setActiveProject, onUpdateProject, onDeleteProject, allTransactions, onAddGlobalTx, accounts, allVendors, allInventory, allClients }) => {
 
     // List View State
     const [listWidgets, setListWidgets] = useState([{ id: 'wp-stats', type: 'project-stats', title: '專案概況', size: 'S' }, { id: 'wp-list', type: 'project-list', title: '專案列表', size: 'L' }]);
@@ -587,7 +588,15 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="專案名稱" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} placeholder="例：信義區住宅翻修" />
-                    <InputField label="客戶" value={newProject.client} onChange={e => setNewProject({ ...newProject, client: e.target.value })} placeholder="例：王小明" />
+                    <SearchableSelect
+                        label="客戶"
+                        value={newProject.client}
+                        onChange={(clientId) => setNewProject({ ...newProject, client: clientId })}
+                        options={allClients || []}
+                        placeholder="請選擇客戶..."
+                        searchPlaceholder="搜尋客戶名稱或編號..."
+                        required
+                    />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="專案類型" type="select" value={newProject.type} onChange={e => setNewProject({ ...newProject, type: e.target.value })}>
