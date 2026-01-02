@@ -9,8 +9,9 @@ import { SectionTitle, LoadingSkeleton } from '../components/common/Indicators';
 import {
     Phone, Mail, Folder, Edit2, Trash2, Cloud, ChevronLeft, Save, Plus,
     Search, Filter, User, UserCheck, UserX, Clock, MessageCircle,
-    MapPin, Calendar, FileText, Star, X, ChevronRight, Briefcase
+    MapPin, Calendar, FileText, Star, X, ChevronRight, Briefcase, Database
 } from 'lucide-react';
+import { clientsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 
 // 狀態配置
@@ -149,43 +150,56 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
         if (!newClientData.name) return addToast("請輸入姓名", "error");
 
         setIsSaving(true);
-        const driveResult = await GoogleService.createClientFolder(newClientData.name);
+        try {
+            // Create Drive folder first (optional)
+            let driveFolder = null;
+            const driveResult = await GoogleService.createClientFolder(newClientData.name);
+            if (driveResult.success) {
+                driveFolder = driveResult.url;
+            }
 
-        if (!driveResult.success) {
-            setIsSaving(false);
-            return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, "error");
-        }
+            const clientData = {
+                name: newClientData.name,
+                phone: newClientData.phone,
+                email: newClientData.email,
+                lineId: newClientData.lineId,
+                address: newClientData.address,
+                status: newClientData.status,
+                source: newClientData.source,
+                budget: newClientData.budget,
+                notes: newClientData.notes,
+                customFields: newClientData.customFields,
+                contactLogs: newClientData.contactLogs || [],
+                driveFolder,
+            };
 
-        const client = {
-            ...newClientData,
-            id: `c-${Date.now()}`,
-            driveFolder: driveResult.url,
-            createdAt: new Date().toISOString()
-        };
+            const savedClient = await clientsApi.create(clientData);
+            const updatedList = [...data, savedClient];
+            onUpdateClients(updatedList);
 
-        const updatedList = [...data, client];
-        onUpdateClients(updatedList);
-
-        const syncResult = await GoogleService.syncToSheet('clients', updatedList);
-        setIsSaving(false);
-
-        if (!syncResult.success) {
-            addToast(`Sheets 同步失敗: ${syncResult.error}`, "error");
-        } else {
-            addToast("客戶新增成功！已同步到 Google Drive 和 Sheets", "success", {
-                action: { label: '開啟 Drive 資料夾', onClick: () => window.open(driveResult.url, '_blank') }
+            addToast("客戶新增成功！", "success", {
+                action: driveFolder ? { label: '開啟 Drive 資料夾', onClick: () => window.open(driveFolder, '_blank') } : null
             });
+            setIsAddModalOpen(false);
+        } catch (error) {
+            console.error('Create client failed:', error);
+            addToast(`儲存失敗: ${error.message}`, 'error');
+        } finally {
+            setIsSaving(false);
         }
-
-        setIsAddModalOpen(false);
     };
 
     const handleDeleteClient = async (id) => {
-        const updatedList = data.filter(c => c.id !== id);
-        onUpdateClients(updatedList);
-        await GoogleService.syncToSheet('clients', updatedList);
-        addToast("客戶已刪除", "success");
-        if (activeClient?.id === id) setActiveClient(null);
+        try {
+            await clientsApi.delete(id);
+            const updatedList = data.filter(c => c.id !== id);
+            onUpdateClients(updatedList);
+            addToast("客戶已刪除", "success");
+            if (activeClient?.id === id) setActiveClient(null);
+        } catch (error) {
+            console.error('Delete client failed:', error);
+            addToast(`刪除失敗: ${error.message}`, 'error');
+        }
     };
 
     const startEdit = () => {
@@ -195,18 +209,33 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
     const handleSaveEdit = async () => {
         setIsSaving(true);
-        const updatedList = data.map(c => c.id === editFormData.id ? editFormData : c);
-        onUpdateClients(updatedList);
+        try {
+            const clientData = {
+                name: editFormData.name,
+                phone: editFormData.phone,
+                email: editFormData.email,
+                lineId: editFormData.lineId,
+                address: editFormData.address,
+                status: editFormData.status,
+                source: editFormData.source,
+                budget: editFormData.budget,
+                notes: editFormData.notes,
+                customFields: editFormData.customFields,
+                contactLogs: editFormData.contactLogs,
+            };
 
-        const syncResult = await GoogleService.syncToSheet('clients', updatedList);
-        setIsSaving(false);
+            const updatedClient = await clientsApi.update(editFormData.id, clientData);
+            const updatedList = data.map(c => c.id === updatedClient.id ? updatedClient : c);
+            onUpdateClients(updatedList);
 
-        if (!syncResult.success) {
-            addToast(`Sheets 同步失敗: ${syncResult.error}`, "error");
-        } else {
-            setActiveClient(editFormData);
+            setActiveClient(updatedClient);
             setIsEditing(false);
             addToast("資料已更新", "success");
+        } catch (error) {
+            console.error('Update client failed:', error);
+            addToast(`更新失敗: ${error.message}`, 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -214,19 +243,24 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
     const handleAddContactLog = async () => {
         if (!newContactLog.note) return addToast("請輸入聯絡內容", "error");
 
-        const updatedClient = {
-            ...activeClient,
-            contactLogs: [...(activeClient.contactLogs || []), { ...newContactLog, id: Date.now() }]
-        };
+        try {
+            const updatedLogs = [...(activeClient.contactLogs || []), { ...newContactLog, id: Date.now() }];
 
-        const updatedList = data.map(c => c.id === updatedClient.id ? updatedClient : c);
-        onUpdateClients(updatedList);
-        setActiveClient(updatedClient);
+            const updatedClient = await clientsApi.update(activeClient.id, {
+                contactLogs: updatedLogs
+            });
 
-        await GoogleService.syncToSheet('clients', updatedList);
-        setIsContactLogModalOpen(false);
-        setNewContactLog({ type: '電話聯繫', date: new Date().toISOString().split('T')[0], note: '' });
-        addToast("聯絡記錄已新增", "success");
+            const updatedList = data.map(c => c.id === updatedClient.id ? updatedClient : c);
+            onUpdateClients(updatedList);
+            setActiveClient(updatedClient);
+
+            setIsContactLogModalOpen(false);
+            setNewContactLog({ type: '電話聯繫', date: new Date().toISOString().split('T')[0], note: '' });
+            addToast("聯絡記錄已新增", "success");
+        } catch (error) {
+            console.error('Add contact log failed:', error);
+            addToast(`新增失敗: ${error.message}`, 'error');
+        }
     };
 
     // 客戶詳情頁

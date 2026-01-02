@@ -6,11 +6,12 @@ import { WidgetProjectVendors } from '../components/widgets/ProjectVendorsWidget
 import { WidgetProjectInventory } from '../components/widgets/ProjectInventoryWidget';
 import { AddVendorModal } from '../components/project/AddVendorModal';
 import { AddInventoryModal } from '../components/project/AddInventoryModal';
-import { Plus, ChevronLeft, Calendar as CalendarIcon, Upload, ImageIcon, Edit2, Save, X, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, Calendar as CalendarIcon, Upload, ImageIcon, Edit2, Save, X, Trash2, Database } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
 import { ProgressBar } from '../components/common/Indicators';
+import { projectsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 
 // --- Missing Detail Widgets (Implementing inline for safety) ---
@@ -215,68 +216,62 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         }
 
         setIsSaving(true);
-        let driveUrl = existingFolderUrl;
+        try {
+            let driveUrl = existingFolderUrl;
 
-        if (folderMode === 'auto') {
-            // Step 1: 獲取或建立「專案管理」根資料夾
-            const rootResult = await GoogleService.getOrCreateProjectRoot();
-            if (!rootResult.success) {
-                setIsSaving(false);
-                return addToast(`無法建立專案管理資料夾: ${rootResult.error}`, 'error');
+            if (folderMode === 'auto') {
+                // Step 1: 獲取或建立「專案管理」根資料夾
+                const rootResult = await GoogleService.getOrCreateProjectRoot();
+                if (rootResult.success) {
+                    // Step 2: 在「專案管理」下建立專案資料夾
+                    const folderName = `${newProject.name} - ${newProject.client}`;
+                    const driveResult = await GoogleService.createDriveFolder(folderName, rootResult.folderId);
+                    if (driveResult.success) {
+                        driveUrl = driveResult.url;
+                    }
+                }
             }
 
-            // Step 2: 在「專案管理」下建立專案資料夾
-            const folderName = `${newProject.name} - ${newProject.client}`;
-            const driveResult = await GoogleService.createDriveFolder(folderName, rootResult.folderId);
+            const projectData = {
+                name: newProject.name,
+                clientId: newProject.client, // Will be matched on backend
+                type: newProject.type.toUpperCase().replace('翻修', 'RENOVATION').replace('新建', 'NEW_BUILD').replace('設計', 'DESIGN').replace('裝潢', 'INTERIOR'),
+                budget: parseFloat(newProject.budget) || 0,
+                location: newProject.location,
+                address: newProject.location,
+                startDate: newProject.startDate || null,
+                endDate: newProject.endDate || null,
+                status: newProject.status,
+                driveFolder: driveUrl,
+            };
 
-            if (!driveResult.success) {
-                setIsSaving(false);
-                return addToast(`Drive 資料夾建立失敗: ${driveResult.error}`, 'error');
-            }
-            driveUrl = driveResult.url;
-        }
+            const savedProject = await projectsApi.create(projectData);
+            onUpdateProject(savedProject);
 
-        const project = {
-            ...newProject,
-            id: `p-${Date.now()}`,
-            driveFolder: driveUrl,
-            vendors: [],
-            inventory: [],
-            files: [],
-            records: [],
-            transactions: []
-        };
-
-        onUpdateProject(project);
-
-        // Sync to Google Sheets
-        const allProjects = [...data, project];
-        const syncResult = await GoogleService.syncToSheet('projects', allProjects);
-
-        setIsSaving(false);
-
-        if (!syncResult.success) {
-            addToast(`專案已建立，但 Sheets 同步失敗: ${syncResult.error}`, 'warning');
-        } else {
-            addToast(`專案「${newProject.name}」已建立！已同步到 Google Drive 和 Sheets`, 'success', {
+            addToast(`專案「${newProject.name}」已建立！`, 'success', {
                 link: driveUrl,
                 linkText: '開啟 Drive 資料夾'
             });
-        }
 
-        setIsAddModalOpen(false);
-        setFolderMode('auto');
-        setExistingFolderUrl('');
-        setNewProject({
-            name: "",
-            client: "",
-            type: "翻修",
-            budget: "",
-            location: "",
-            startDate: "",
-            endDate: "",
-            status: "設計中"
-        });
+            setIsAddModalOpen(false);
+            setFolderMode('auto');
+            setExistingFolderUrl('');
+            setNewProject({
+                name: "",
+                client: "",
+                type: "翻修",
+                budget: "",
+                location: "",
+                startDate: "",
+                endDate: "",
+                status: "設計中"
+            });
+        } catch (error) {
+            console.error('Create project failed:', error);
+            addToast(`建立失敗: ${error.message}`, 'error');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // File Upload Handler - Upload to project's Drive folder
@@ -348,7 +343,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         addToast('廠商已移除', 'info');
     };
 
-    // Record Handler - Save records with metadata and sync to Sheets
+    // Record Handler - Save records with metadata via API
     const handleAddRecord = async () => {
         const record = {
             ...newRecord,
@@ -358,19 +353,22 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             author: '使用者A'
         };
 
-        const updatedProject = { ...activeProject, records: [record, ...(activeProject.records || [])] };
-        onUpdateProject(updatedProject);
-        setActiveProject(updatedProject);
+        try {
+            const updatedRecords = [record, ...(activeProject.records || [])];
+            const updatedProject = await projectsApi.update(activeProject.id, {
+                records: updatedRecords
+            });
 
-        // Sync updated project records to Sheets
-        if (activeProject.driveFolder) {
-            const allProjects = data.map(p => p.id === activeProject.id ? updatedProject : p);
-            await GoogleService.syncToSheet('projects', allProjects);
+            onUpdateProject(updatedProject);
+            setActiveProject(updatedProject);
+
+            setNewRecord({ type: '工程', content: '', photos: [] });
+            setIsRecordModalOpen(false);
+            addToast('工程紀錄已新增', 'success');
+        } catch (error) {
+            console.error('Add record failed:', error);
+            addToast(`新增失敗: ${error.message}`, 'error');
         }
-
-        setNewRecord({ type: '工程', content: '', photos: [] });
-        setIsRecordModalOpen(false);
-        addToast('工程紀錄已新增並同步至 Sheets', 'success');
     };
 
     // Inventory Handlers
