@@ -7,9 +7,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     FileText, Plus, Search, Filter, MoreVertical, Eye, Edit2, Copy,
     Trash2, Send, Check, X, Clock, ChevronDown, FileSpreadsheet,
-    Building2, Users, Calendar, DollarSign, Tag, AlertCircle
+    Building2, Users, Calendar, DollarSign, Tag, AlertCircle, Download
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
+import SearchableSelect from '../components/common/SearchableSelect';
+import TemplateItemsEditor from '../components/quotation/TemplateItemsEditor';
 import QuotationEditor from './QuotationEditor';
 import QuotationService, {
     QUOTATION_STATUS,
@@ -156,24 +158,57 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
         description: '',
     });
     const [previewTemplate, setPreviewTemplate] = useState(null);
+    const [editableItems, setEditableItems] = useState([]);
+
+    // 當選擇模板時，載入模板工項
+    const handleTemplateChange = (templateId) => {
+        setFormData(prev => ({ ...prev, templateId }));
+
+        if (templateId) {
+            const template = QUOTATION_TEMPLATES.find(t => t.id === templateId);
+            if (template) {
+                // 展開模板工項為可編輯列表
+                const items = [];
+                template.items?.forEach((chapter, chapterIdx) => {
+                    chapter.children?.forEach((item, itemIdx) => {
+                        items.push({
+                            id: `tpl-${chapterIdx}-${itemIdx}`,
+                            chapter: chapter.name,
+                            chapterIndex: chapterIdx,
+                            name: item.name,
+                            unit: item.unit || '式',
+                            quantity: 1,
+                            unitPrice: item.unitPrice || 0,
+                            type: 'ITEM',
+                        });
+                    });
+                });
+                setEditableItems(items);
+            }
+        } else {
+            setEditableItems([]);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // 套用模板生成工項
-        let items = [];
-        if (formData.templateId) {
-            const template = QUOTATION_TEMPLATES.find(t => t.id === formData.templateId);
-            if (template) {
-                items = applyTemplate(template);
-            }
-        }
-
         onSubmit({
             ...formData,
-            items,
+            items: editableItems,
         });
         onClose();
+        // Reset
+        setFormData({
+            title: '',
+            projectId: '',
+            projectName: '',
+            customerId: '',
+            customerName: '',
+            templateId: '',
+            description: '',
+        });
+        setEditableItems([]);
     };
 
     const handlePreview = () => {
@@ -188,7 +223,7 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
     return (
         <>
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                     <div className="p-6 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-gray-800">新增估價單</h2>
                     </div>
@@ -209,31 +244,31 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
                             />
                         </div>
 
-                        {/* 專案 */}
+                        {/* 專案 - 下拉式選單 */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                關聯專案
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.projectName}
-                                onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
-                                placeholder="輸入專案名稱"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            <SearchableSelect
+                                label="關聯專案"
+                                placeholder="搜尋並選擇專案..."
+                                options={projects.map(p => ({ id: p.id, name: p.name }))}
+                                value={formData.projectId}
+                                onChange={(id) => {
+                                    const proj = projects.find(p => p.id === id);
+                                    setFormData(prev => ({ ...prev, projectId: id, projectName: proj?.name || '' }));
+                                }}
                             />
                         </div>
 
-                        {/* 客戶 */}
+                        {/* 客戶 - 下拉式選單 */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                客戶名稱
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.customerName}
-                                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                                placeholder="輸入客戶名稱"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            <SearchableSelect
+                                label="客戶名稱"
+                                placeholder="搜尋並選擇客戶..."
+                                options={customers.map(c => ({ id: c.id, name: c.name }))}
+                                value={formData.customerId}
+                                onChange={(id) => {
+                                    const client = customers.find(c => c.id === id);
+                                    setFormData(prev => ({ ...prev, customerId: id, customerName: client?.name || '' }));
+                                }}
                             />
                         </div>
 
@@ -244,7 +279,7 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
                             </label>
                             <select
                                 value={formData.templateId}
-                                onChange={(e) => setFormData(prev => ({ ...prev, templateId: e.target.value }))}
+                                onChange={(e) => handleTemplateChange(e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
                             >
                                 <option value="">不套用模板 (空白開始)</option>
@@ -282,6 +317,21 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
                                 ) : null;
                             })()}
                         </div>
+
+                        {/* 工項編輯器 */}
+                        {(editableItems.length > 0 || formData.templateId) && (
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    工項明細 <span className="text-xs text-gray-400">(可新增、編輯、刪除)</span>
+                                </label>
+                                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                                    <TemplateItemsEditor
+                                        items={editableItems}
+                                        onChange={setEditableItems}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {/* 說明 */}
                         <div>
@@ -450,7 +500,7 @@ const QuotationCard = ({ quotation, onView, onEdit, onCopy, onDelete }) => {
 // ============================================
 // 主頁面
 // ============================================
-const Quotations = ({ addToast }) => {
+const Quotations = ({ addToast, projects = [], clients = [] }) => {
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showNewModal, setShowNewModal] = useState(false);
@@ -694,6 +744,8 @@ const Quotations = ({ addToast }) => {
                 isOpen={showNewModal}
                 onClose={() => setShowNewModal(false)}
                 onSubmit={handleCreate}
+                projects={projects}
+                customers={clients}
             />
         </div>
     );

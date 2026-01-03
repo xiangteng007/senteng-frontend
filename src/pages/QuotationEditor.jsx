@@ -12,6 +12,7 @@ import {
     Layers, Package, Percent, FileSpreadsheet, RotateCcw, FilePlus2
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
+import { QuotationPdfButton } from '../components/quotation/QuotationPdfExport';
 import ChangeOrders from './ChangeOrders';
 import QuotationService, {
     QUOTATION_STATUS,
@@ -747,6 +748,17 @@ const QuotationEditor = ({ quotationId, onBack, addToast }) => {
                 <button className="px-3 py-1.5 text-gray-500 rounded-lg text-sm hover:bg-gray-100 flex items-center gap-1">
                     <Download size={16} /> 匯出
                 </button>
+
+                {/* PDF 下載 */}
+                <QuotationPdfButton
+                    quotation={{
+                        ...quotation,
+                        items: items,
+                        taxRate: settings.taxRate,
+                        isTaxIncluded: settings.taxType === TAX_TYPES.INCLUSIVE,
+                    }}
+                    className="text-sm py-1.5"
+                />
             </div>
 
             {/* 費用設定 */}
