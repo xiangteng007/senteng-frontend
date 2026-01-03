@@ -34,6 +34,115 @@ const StatusBadge = ({ status }) => {
 };
 
 // ============================================
+// 模板預覽 Modal
+// ============================================
+const TemplatePreviewModal = ({ isOpen, onClose, template }) => {
+    if (!isOpen || !template) return null;
+
+    // 計算模板總價估算
+    const calculateEstimate = () => {
+        let total = 0;
+        template.items?.forEach(chapter => {
+            chapter.children?.forEach(item => {
+                // 假設每項數量為 1
+                total += item.unitPrice || 0;
+            });
+        });
+        return total;
+    };
+
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('zh-TW', {
+            style: 'currency',
+            currency: 'TWD',
+            minimumFractionDigits: 0,
+        }).format(amount || 0);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col">
+                {/* 標題 */}
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800">{template.name}</h3>
+                        <p className="text-sm text-gray-500">{template.description}</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <X size={20} className="text-gray-500" />
+                    </button>
+                </div>
+
+                {/* 內容 */}
+                <div className="flex-1 overflow-y-auto p-5">
+                    <div className="space-y-4">
+                        {template.items?.map((chapter, chapterIdx) => (
+                            <div key={chapterIdx} className="bg-gray-50 rounded-xl p-4">
+                                {/* 章節標題 */}
+                                <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                        {chapterIdx + 1}
+                                    </span>
+                                    {chapter.name}
+                                </h4>
+                                {/* 工項列表 */}
+                                <div className="space-y-2">
+                                    {chapter.children?.map((item, itemIdx) => (
+                                        <div
+                                            key={itemIdx}
+                                            className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100"
+                                        >
+                                            <div className="flex-1">
+                                                <span className="text-sm text-gray-800">{item.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-sm">
+                                                <span className="text-gray-500">{item.unit}</span>
+                                                <span className="font-medium text-orange-600 min-w-[80px] text-right">
+                                                    {formatCurrency(item.unitPrice)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 底部統計 */}
+                <div className="p-5 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                            <span className="font-medium text-gray-700">
+                                {template.items?.length || 0}
+                            </span> 個章節，
+                            <span className="font-medium text-gray-700">
+                                {template.items?.reduce((sum, ch) => sum + (ch.children?.length || 0), 0)}
+                            </span> 個工項
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-400">參考單價合計</div>
+                            <div className="text-lg font-bold text-orange-600">
+                                {formatCurrency(calculateEstimate())}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-full mt-4 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                        關閉預覽
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================
 // 新增估價單 Modal
 // ============================================
 const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers = [] }) => {
@@ -46,6 +155,7 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
         templateId: '',
         description: '',
     });
+    const [previewTemplate, setPreviewTemplate] = useState(null);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -66,112 +176,145 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
         onClose();
     };
 
+    const handlePreview = () => {
+        if (formData.templateId) {
+            const template = QUOTATION_TEMPLATES.find(t => t.id === formData.templateId);
+            setPreviewTemplate(template);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-800">新增估價單</h2>
+        <>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                    <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-bold text-gray-800">新增估價單</h2>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        {/* 標題 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                估價單標題 <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.title}
+                                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="例：陳先生住宅裝修報價"
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                required
+                            />
+                        </div>
+
+                        {/* 專案 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                關聯專案
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.projectName}
+                                onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
+                                placeholder="輸入專案名稱"
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                        </div>
+
+                        {/* 客戶 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                客戶名稱
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.customerName}
+                                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                                placeholder="輸入客戶名稱"
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                        </div>
+
+                        {/* 模板選擇 - 新增預覽按鈕 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                套用模板
+                            </label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={formData.templateId}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, templateId: e.target.value }))}
+                                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                                >
+                                    <option value="">不套用模板 (空白開始)</option>
+                                    {QUOTATION_TEMPLATES.map(tpl => (
+                                        <option key={tpl.id} value={tpl.id}>
+                                            {tpl.name} - {tpl.description}
+                                        </option>
+                                    ))}
+                                </select>
+                                {formData.templateId && (
+                                    <button
+                                        type="button"
+                                        onClick={handlePreview}
+                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <Eye size={16} />
+                                        預覽
+                                    </button>
+                                )}
+                            </div>
+                            {formData.templateId && (
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                    💡 點擊「預覽」可查看模板包含的工項與參考單價
+                                </p>
+                            )}
+                        </div>
+
+                        {/* 說明 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                備註說明
+                            </label>
+                            <textarea
+                                value={formData.description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="可填入補充說明..."
+                                rows={3}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                            />
+                        </div>
+
+                        {/* 按鈕 */}
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
+                            >
+                                <Plus size={18} />
+                                建立估價單
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {/* 標題 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            估價單標題 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.title}
-                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="例：陳先生住宅裝修報價"
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                            required
-                        />
-                    </div>
-
-                    {/* 專案 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            關聯專案
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.projectName}
-                            onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
-                            placeholder="輸入專案名稱"
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* 客戶 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            客戶名稱
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.customerName}
-                            onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                            placeholder="輸入客戶名稱"
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* 模板選擇 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            套用模板
-                        </label>
-                        <select
-                            value={formData.templateId}
-                            onChange={(e) => setFormData(prev => ({ ...prev, templateId: e.target.value }))}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-                        >
-                            <option value="">不套用模板 (空白開始)</option>
-                            {QUOTATION_TEMPLATES.map(tpl => (
-                                <option key={tpl.id} value={tpl.id}>
-                                    {tpl.name} - {tpl.description}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* 說明 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            備註說明
-                        </label>
-                        <textarea
-                            value={formData.description}
-                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                            placeholder="可填入補充說明..."
-                            rows={3}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                        />
-                    </div>
-
-                    {/* 按鈕 */}
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            取消
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
-                        >
-                            <Plus size={18} />
-                            建立估價單
-                        </button>
-                    </div>
-                </form>
             </div>
-        </div>
+
+            {/* 模板預覽 Modal */}
+            <TemplatePreviewModal
+                isOpen={!!previewTemplate}
+                onClose={() => setPreviewTemplate(null)}
+                template={previewTemplate}
+            />
+        </>
     );
 };
 
