@@ -1,16 +1,48 @@
 /**
  * 模板工項編輯器
  * TemplateItemsEditor.jsx
- * 提供工項的新增、編輯、刪除功能
+ * 提供工項的新增、編輯、刪除、拖曳排序功能
  */
 
 import React, { useState } from 'react';
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 /**
- * 單一工項列
+ * 可拖曳的單一工項列
  */
-const ItemRow = ({ item, index, onUpdate, onRemove }) => {
+const SortableItemRow = ({ item, index, onUpdate, onRemove }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: item.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1000 : 1,
+    };
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('zh-TW', {
             minimumFractionDigits: 0,
@@ -25,10 +57,20 @@ const ItemRow = ({ item, index, onUpdate, onRemove }) => {
     const amount = (item.quantity || 0) * (item.unitPrice || 0);
 
     return (
-        <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors group">
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`flex items-center gap-2 p-3 bg-white rounded-lg border transition-colors group ${isDragging ? 'border-orange-400 shadow-lg' : 'border-gray-100 hover:border-gray-200'
+                }`}
+        >
             {/* 拖曳手柄 */}
-            <div className="text-gray-300 cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
-                <GripVertical size={16} />
+            <div
+                {...attributes}
+                {...listeners}
+                className="text-gray-400 cursor-grab active:cursor-grabbing hover:text-orange-500 transition-colors touch-none"
+                title="拖曳排序"
+            >
+                <GripVertical size={18} />
             </div>
 
             {/* 序號 */}
@@ -84,7 +126,7 @@ const ItemRow = ({ item, index, onUpdate, onRemove }) => {
             <button
                 type="button"
                 onClick={() => onRemove(index)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                 title="刪除此工項"
             >
                 <Trash2 size={16} />
@@ -132,7 +174,7 @@ const ChapterSection = ({ chapter, chapterIndex, items, onUpdateItem, onRemoveIt
             {isExpanded && (
                 <div className="space-y-2">
                     {chapterItems.map((item, idx) => (
-                        <ItemRow
+                        <SortableItemRow
                             key={item.id || idx}
                             item={item}
                             index={items.findIndex(i => i === item)}
@@ -160,6 +202,18 @@ const ChapterSection = ({ chapter, chapterIndex, items, onUpdateItem, onRemoveIt
  * 主編輯器元件
  */
 const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
+    // 設定拖曳感應器
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 需要拖曳 8px 才觸發
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
     // 如果沒有指定章節，從 items 中推斷
     const uniqueChapters = chapters.length > 0
         ? chapters
@@ -176,6 +230,21 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
             currency: 'TWD',
             minimumFractionDigits: 0,
         }).format(amount || 0);
+    };
+
+    // 處理拖曳結束
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            const oldIndex = items.findIndex((item) => item.id === active.id);
+            const newIndex = items.findIndex((item) => item.id === over?.id);
+
+            if (oldIndex !== -1 && newIndex !== -1) {
+                const newItems = arrayMove(items, oldIndex, newIndex);
+                onChange(newItems);
+            }
+        }
     };
 
     // 新增工項
@@ -206,13 +275,19 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
         onChange(newItems);
     };
 
+    // 確保每個 item 都有唯一 ID
+    const itemsWithIds = items.map((item, index) => ({
+        ...item,
+        id: item.id || `item-${index}-${Date.now()}`,
+    }));
+
     // 簡單列表模式（無章節分組）
     if (uniqueChapters.length <= 1 || !items.some(i => i.chapter)) {
         return (
             <div className="space-y-3">
                 {/* 表頭 */}
                 <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 uppercase">
-                    <div className="w-8"></div>
+                    <div className="w-6"></div>
                     <div className="w-8">#</div>
                     <div className="flex-1 min-w-[120px]">名稱</div>
                     <div className="w-16 text-center">單位</div>
@@ -222,18 +297,29 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
                     <div className="w-8"></div>
                 </div>
 
-                {/* 工項列表 */}
-                <div className="space-y-2">
-                    {items.map((item, index) => (
-                        <ItemRow
-                            key={item.id || index}
-                            item={item}
-                            index={index}
-                            onUpdate={handleUpdateItem}
-                            onRemove={handleRemoveItem}
-                        />
-                    ))}
-                </div>
+                {/* 可拖曳工項列表 */}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext
+                        items={itemsWithIds.map(item => item.id)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div className="space-y-2">
+                            {itemsWithIds.map((item, index) => (
+                                <SortableItemRow
+                                    key={item.id}
+                                    item={item}
+                                    index={index}
+                                    onUpdate={handleUpdateItem}
+                                    onRemove={handleRemoveItem}
+                                />
+                            ))}
+                        </div>
+                    </SortableContext>
+                </DndContext>
 
                 {/* 新增按鈕 */}
                 <button
@@ -249,6 +335,7 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100">
                     <div className="text-sm text-gray-600">
                         共 <span className="font-bold text-gray-800">{items.length}</span> 項工項
+                        <span className="text-xs text-gray-400 ml-2">💡 拖曳左側圖示可排序</span>
                     </div>
                     <div className="text-right">
                         <div className="text-xs text-gray-500">預估總金額</div>
@@ -263,32 +350,44 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
 
     // 章節分組模式
     return (
-        <div className="space-y-4">
-            {uniqueChapters.map((chapter, chapterIndex) => (
-                <ChapterSection
-                    key={chapter}
-                    chapter={chapter}
-                    chapterIndex={chapterIndex}
-                    items={items}
-                    onUpdateItem={handleUpdateItem}
-                    onRemoveItem={handleRemoveItem}
-                    onAddItem={handleAddItem}
-                />
-            ))}
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+        >
+            <SortableContext
+                items={itemsWithIds.map(item => item.id)}
+                strategy={verticalListSortingStrategy}
+            >
+                <div className="space-y-4">
+                    {uniqueChapters.map((chapter, chapterIndex) => (
+                        <ChapterSection
+                            key={chapter}
+                            chapter={chapter}
+                            chapterIndex={chapterIndex}
+                            items={itemsWithIds}
+                            onUpdateItem={handleUpdateItem}
+                            onRemoveItem={handleRemoveItem}
+                            onAddItem={handleAddItem}
+                        />
+                    ))}
 
-            {/* 總計 */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100">
-                <div className="text-sm text-gray-600">
-                    共 <span className="font-bold text-gray-800">{items.length}</span> 項工項
-                </div>
-                <div className="text-right">
-                    <div className="text-xs text-gray-500">預估總金額</div>
-                    <div className="text-xl font-bold text-orange-600">
-                        {formatCurrency(totalAmount)}
+                    {/* 總計 */}
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+                        <div className="text-sm text-gray-600">
+                            共 <span className="font-bold text-gray-800">{items.length}</span> 項工項
+                            <span className="text-xs text-gray-400 ml-2">💡 拖曳左側圖示可排序</span>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500">預估總金額</div>
+                            <div className="text-xl font-bold text-orange-600">
+                                {formatCurrency(totalAmount)}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </SortableContext>
+        </DndContext>
     );
 };
 
