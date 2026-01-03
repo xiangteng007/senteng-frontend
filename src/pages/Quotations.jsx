@@ -237,40 +237,50 @@ const NewQuotationModal = ({ isOpen, onClose, onSubmit, projects = [], customers
                             />
                         </div>
 
-                        {/* 模板選擇 - 新增預覽按鈕 */}
+                        {/* 模板選擇 - RWD 友善設計 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 套用模板
                             </label>
-                            <div className="flex gap-2">
-                                <select
-                                    value={formData.templateId}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, templateId: e.target.value }))}
-                                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-                                >
-                                    <option value="">不套用模板 (空白開始)</option>
-                                    {QUOTATION_TEMPLATES.map(tpl => (
-                                        <option key={tpl.id} value={tpl.id}>
-                                            {tpl.name} - {tpl.description}
-                                        </option>
-                                    ))}
-                                </select>
-                                {formData.templateId && (
-                                    <button
-                                        type="button"
-                                        onClick={handlePreview}
-                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5"
-                                    >
-                                        <Eye size={16} />
-                                        預覽
-                                    </button>
-                                )}
-                            </div>
-                            {formData.templateId && (
-                                <p className="mt-1.5 text-xs text-gray-500">
-                                    💡 點擊「預覽」可查看模板包含的工項與參考單價
-                                </p>
-                            )}
+                            <select
+                                value={formData.templateId}
+                                onChange={(e) => setFormData(prev => ({ ...prev, templateId: e.target.value }))}
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                            >
+                                <option value="">不套用模板 (空白開始)</option>
+                                {QUOTATION_TEMPLATES.map(tpl => (
+                                    <option key={tpl.id} value={tpl.id}>
+                                        {tpl.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* 選擇模板後顯示的資訊卡與預覽按鈕 */}
+                            {formData.templateId && (() => {
+                                const selectedTpl = QUOTATION_TEMPLATES.find(t => t.id === formData.templateId);
+                                return selectedTpl ? (
+                                    <div className="mt-3 p-3 bg-orange-50 border border-orange-100 rounded-lg">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-gray-800 text-sm">{selectedTpl.name}</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">{selectedTpl.description}</div>
+                                                <div className="text-xs text-orange-600 mt-1">
+                                                    📦 {selectedTpl.items?.length || 0} 個章節，
+                                                    {selectedTpl.items?.reduce((sum, ch) => sum + (ch.children?.length || 0), 0)} 個工項
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handlePreview}
+                                                className="shrink-0 px-3 py-1.5 bg-white text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors text-sm font-medium flex items-center gap-1.5"
+                                            >
+                                                <Eye size={14} />
+                                                預覽內容
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : null;
+                            })()}
                         </div>
 
                         {/* 說明 */}
