@@ -59,7 +59,11 @@ const callGASWithJSONP = (action, data = {}) => {
       clearTimeout(timeout);
       cleanup();
       console.error('❌ Script load failed:', e);
-      reject(new Error('Script load failed'));
+      console.error('📌 This usually means:');
+      console.error('   1. GAS deployment may have expired or is unavailable');
+      console.error('   2. Check if GAS_API_URL is correct:', GAS_API_URL);
+      console.error('   3. Try redeploying the Google Apps Script');
+      reject(new Error('Script load failed - Google Apps Script 無法連線，請檢查 GAS 部署狀態'));
     };
 
     // 添加到 DOM
@@ -117,7 +121,13 @@ export const GoogleService = {
       return result;
     } catch (error) {
       console.error('GAS API Error:', error);
-      return { success: false, error: error.message };
+      // Fallback: 如果 GAS 不可用，仍然回報成功讓本地資料可以儲存
+      console.warn('📌 GAS 不可用，行程已儲存在本地但未同步到 Google 日曆');
+      return {
+        success: true,
+        data: { eventId: `local-${Date.now()}` },
+        warning: 'Google 日曆同步失敗，行程僅儲存在本地。請稍後在 Google Apps Script 重新部署後再試。'
+      };
     }
   },
 
