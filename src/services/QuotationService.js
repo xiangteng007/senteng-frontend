@@ -816,6 +816,21 @@ class QuotationServiceClass {
     // 新增估價單
     async createQuotation(data) {
         try {
+            // Transform items to backend-compatible format
+            const transformedItems = (data.items || [])
+                .filter(item => item.type === 'ITEM' || !item.type) // Only send actual items, not chapters
+                .map((item, index) => ({
+                    itemOrder: index + 1,
+                    category: item.category || '',
+                    itemName: item.name || item.itemName || '未命名工項',
+                    spec: item.specification || item.spec || '',
+                    unit: item.unit || '式',
+                    quantity: item.quantity || 1,
+                    unitPrice: item.unitPrice || 0,
+                    amount: item.amount || (item.quantity || 1) * (item.unitPrice || 0),
+                    remark: item.remark || '',
+                }));
+
             const payload = {
                 projectId: data.projectId,
                 title: data.title || '新估價單',
@@ -824,7 +839,7 @@ class QuotationServiceClass {
                 taxRate: data.taxRate || DEFAULT_SETTINGS.taxRate,
                 validUntil: data.validUntil || new Date(Date.now() + DEFAULT_SETTINGS.validDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 notes: data.description || data.notes || '',
-                items: data.items || [],
+                items: transformedItems,
             };
 
             return await quotationsApi.create(payload);
