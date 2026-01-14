@@ -26,6 +26,7 @@ import Payments from './pages/Payments';
 import Contracts from './pages/Contracts';
 import ProfitAnalysis from './pages/ProfitAnalysis';
 import CostEntries from './pages/CostEntries';
+import IntegrationsPage from './pages/IntegrationsPage';
 
 // Loading Screen Component
 const LoadingScreen = () => (
@@ -257,6 +258,11 @@ const AppContent = () => {
         <Route path="/user-management" element={
           <ProtectedRoute pageId="user-management">
             <UserManagement addToast={addToast} />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/integrations" element={
+          <ProtectedRoute pageId="integrations">
+            <IntegrationsPage addToast={addToast} />
           </ProtectedRoute>
         } />
         <Route path="/login" element={<LoginPage />} />

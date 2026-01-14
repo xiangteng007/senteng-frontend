@@ -252,4 +252,51 @@ export const vendorsApi = {
     delete: (id) => api.delete(`/vendors/${id}`),
 };
 
+// ===== Events API =====
+export const eventsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/events${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/events/${id}`),
+    getToday: () => api.get('/events/today'),
+    getUpcoming: (days = 7) => api.get(`/events/upcoming?days=${days}`),
+    getByProject: (projectId) => api.get(`/events/project/${projectId}`),
+    create: (data) => api.post('/events', data),
+    update: (id, data) => api.patch(`/events/${id}`, data),
+    complete: (id) => api.post(`/events/${id}/complete`),
+    cancel: (id) => api.post(`/events/${id}/cancel`),
+    delete: (id) => api.delete(`/events/${id}`),
+};
+
+// ===== Storage API =====
+export const storageApi = {
+    getStatus: () => api.get('/storage/status'),
+    upload: async (file, destination = 'uploads') => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const url = `${api.baseUrl}/storage/upload?destination=${encodeURIComponent(destination)}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                ...(api.token && { Authorization: `Bearer ${api.token}` }),
+            },
+            credentials: 'include',
+            body: formData,
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+            throw new Error(error.message || `HTTP ${response.status}`);
+        }
+        return response.json();
+    },
+    getSignedUrl: (fileName, expiresInDays = 7) =>
+        api.post('/storage/signed-url', { fileName, expiresInDays }),
+    delete: (fileName) => {
+        const encodedFileName = btoa(fileName);
+        return api.delete(`/storage/${encodedFileName}`);
+    },
+};
+
 export default api;
+

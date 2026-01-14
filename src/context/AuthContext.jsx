@@ -119,6 +119,14 @@ export const AuthProvider = ({ children }) => {
         return user.allowedPages?.includes(pageId) || false;
     };
 
+    // Check if user has action permission (RBAC)
+    const hasAction = (domainKey, action) => {
+        if (!user || !user.actions) return false;
+        const domainActions = user.actions[domainKey];
+        if (!domainActions || !Array.isArray(domainActions)) return false;
+        return domainActions.includes(action);
+    };
+
     // Context value
     const value = {
         user,
@@ -128,10 +136,13 @@ export const AuthProvider = ({ children }) => {
         backendAuthenticated,
         role: user?.role || null,
         allowedPages: user?.allowedPages || [],
+        actions: user?.actions || {},
         roleLevel: user?.roleLevel || 0,
+        permissions: { pages: user?.allowedPages || [], actions: user?.actions || {} },
         signInWithGoogle: handleSignInWithGoogle,
         signOut: handleSignOut,
         canAccessPage,
+        hasAction,
         clearError: () => setError(null),
         // Expose method to manually refresh backend token if needed
         refreshBackendToken: () => user ? exchangeForBackendToken(user) : null,

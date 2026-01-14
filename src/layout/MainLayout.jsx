@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2, Receipt, FileSignature, BarChart3, DollarSign, Wrench, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown, Check, Loader2, Receipt, FileSignature, BarChart3, DollarSign, Wrench, ChevronRight, Link } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +43,7 @@ const ALL_MENU_ITEMS = {
     'cost': { id: 'cost', icon: Calculator, label: '成本估算' },
     'calc': { id: 'calc', icon: Building2, label: '物料換算' },
     'user-management': { id: 'user-management', icon: Settings, label: '使用者管理' },
+    'integrations': { id: 'integrations', icon: Link, label: '整合設定', path: '/settings/integrations' },
 };
 
 // 群組定義（新的分組結構）
@@ -86,7 +87,7 @@ const MENU_GROUPS = [
         id: 'admin',
         label: '系統設定',
         icon: Settings,
-        items: ['user-management'],
+        items: ['user-management', 'integrations'],
         defaultExpanded: false,
         adminOnly: true,
     },
