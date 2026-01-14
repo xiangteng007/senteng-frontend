@@ -1,11 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Building2, X, RefreshCw, MapPin, Clock, FileText } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
+import { SyncStatusBadge } from '../components/common/SyncStatusBadge';
+import { useAuth } from '../context/AuthContext';
+import { useGoogleIntegrationStatus } from '../hooks/useGoogleIntegrationStatus';
+import { syncEventToGoogle } from '../services/eventsSyncApi';
 
 // 台灣節慶假日 2024-2026
 const TAIWAN_HOLIDAYS = {
@@ -67,6 +71,13 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
     const [showHolidays, setShowHolidays] = useState(true);
     const [showLoanReminders, setShowLoanReminders] = useState(true);
     const [localEvents, setLocalEvents] = useState(data);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    // RBAC and Google integration status
+    const { hasAction } = useAuth();
+    const { data: googleStatus, refetch: refetchGoogleStatus } = useGoogleIntegrationStatus();
+    const canSyncEvent = hasAction?.('integrations.google.calendar', 'sync_event') ?? false;
 
     // 生成貸款還款提醒事件
     const loanPaymentEvents = useMemo(() => {
@@ -160,6 +171,38 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
     // 跳轉到今天
     const goToToday = () => {
         setCurrentDate(new Date());
+    };
+
+    // 同步事件到 Google Calendar
+    const handleSyncEvent = async () => {
+        if (!selectedEvent || selectedEvent.type === 'loan') return;
+
+        setIsSyncing(true);
+        try {
+            await syncEventToGoogle(selectedEvent.id);
+            // Update local event status
+            const updatedEvents = localEvents.map(evt =>
+                evt.id === selectedEvent.id
+                    ? { ...evt, syncStatus: 'SYNCED', lastSyncedAt: new Date().toISOString() }
+                    : evt
+            );
+            setLocalEvents(updatedEvents);
+            if (onUpdateCalendar) onUpdateCalendar(updatedEvents);
+            setSelectedEvent(prev => ({ ...prev, syncStatus: 'SYNCED' }));
+            addToast('✅ 事件已同步至 Google Calendar', 'success');
+        } catch (error) {
+            console.error('Sync event failed:', error);
+            const updatedEvents = localEvents.map(evt =>
+                evt.id === selectedEvent.id
+                    ? { ...evt, syncStatus: 'FAILED', lastSyncError: error.message }
+                    : evt
+            );
+            setLocalEvents(updatedEvents);
+            setSelectedEvent(prev => ({ ...prev, syncStatus: 'FAILED', lastSyncError: error.message }));
+            addToast(`同步失敗: ${error.message}`, 'error');
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     const today = new Date();
@@ -293,6 +336,10 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
                                             {events.map(evt => (
                                                 <div
                                                     key={evt.id}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedEvent(evt);
+                                                    }}
                                                     className={`text-[10px] px-2 py-1 rounded-lg border truncate cursor-pointer ${evt.type === 'loan'
                                                         ? 'bg-indigo-100/50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
                                                         : 'bg-morandi-blue-100/50 text-morandi-blue-600 border-morandi-blue-100 hover:bg-morandi-blue-100'
@@ -352,7 +399,82 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
                     placeholder="備註..."
                 />
             </Modal>
-        </div>
+
+            {/* 事件詳情 Modal */}
+            <Modal
+                isOpen={!!selectedEvent}
+                onClose={() => setSelectedEvent(null)}
+                title={selectedEvent?.type === 'loan' ? '貸款還款提醒' : '行程詳情'}
+            >
+                {selectedEvent && (
+                    <div className="space-y-4">
+                        <div className="text-lg font-bold text-gray-800">{selectedEvent.title}</div>
+
+                        <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-gray-600">
+                                <CalendarDays size={16} />
+                                <span>{selectedEvent.date}</span>
+                                {selectedEvent.time && <span>• {selectedEvent.time}</span>}
+                            </div>
+
+                            {selectedEvent.location && (
+                                <div className="flex items-center gap-2 text-gray-600">
+                                    <MapPin size={16} />
+                                    <span>{selectedEvent.location}</span>
+                                </div>
+                            )}
+
+                            {selectedEvent.description && (
+                                <div className="flex items-start gap-2 text-gray-600">
+                                    <FileText size={16} className="mt-0.5" />
+                                    <span>{selectedEvent.description}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Google Calendar 同步狀態與按鈕 */}
+                        {selectedEvent.type !== 'loan' && (
+                            <div className="border-t border-gray-100 pt-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-500">Google Calendar 同步</span>
+                                    <SyncStatusBadge
+                                        status={selectedEvent.syncStatus || 'PENDING'}
+                                        error={selectedEvent.lastSyncError}
+                                    />
+                                </div>
+
+                                {canSyncEvent && (
+                                    <button
+                                        onClick={handleSyncEvent}
+                                        disabled={
+                                            isSyncing ||
+                                            !googleStatus?.connected ||
+                                            !googleStatus?.calendarId ||
+                                            selectedEvent.syncStatus === 'DISABLED'
+                                        }
+                                        className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                                        title={
+                                            !googleStatus?.connected ? '請先連結 Google 帳號' :
+                                                !googleStatus?.calendarId ? '請先設定目標日曆' :
+                                                    '同步至 Google Calendar'
+                                        }
+                                    >
+                                        <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+                                        {isSyncing ? '同步中...' : 'Sync to Google Calendar'}
+                                    </button>
+                                )}
+
+                                {!googleStatus?.connected && canSyncEvent && (
+                                    <p className="text-xs text-amber-600 text-center">
+                                        請先至「設定 → 整合」連結 Google 帳號
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
+        </div >
     );
 };
 
