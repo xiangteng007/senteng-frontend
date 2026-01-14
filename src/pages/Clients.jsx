@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { clientsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
+import { ContactsSection } from '../components/common/ContactsSection';
 
 // 狀態配置
 const STATUS_CONFIG = {
@@ -415,6 +416,24 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                                 </div>
                             )}
                         </div>
+                    </Card>
+
+                    {/* 聯絡人 (Google Contacts 同步) */}
+                    <Card className="lg:col-span-3">
+                        <ContactsSection
+                            contacts={activeClient.contacts || []}
+                            entityType="client"
+                            entityId={activeClient.id}
+                            onRefresh={() => {
+                                // Refetch client data
+                                clientsApi.getById(activeClient.id).then(updated => {
+                                    const updatedList = data.map(c => c.id === updated.id ? updated : c);
+                                    onUpdateClients(updatedList);
+                                    setActiveClient(updated);
+                                }).catch(console.error);
+                            }}
+                            addToast={addToast}
+                        />
                     </Card>
 
                     {/* 關聯專案 */}
