@@ -27,8 +27,15 @@ import {
   Settings,
   Link2,
   FolderOpen,
-  ChevronDown
+  ChevronDown,
+  Calculator,
+  Ruler
 } from 'lucide-react';
+
+// Import P0 pages from design-system
+import MaterialCalculator from './pages/MaterialCalculator';
+import CostEstimator from './pages/CostEstimator';
+import QuotationEditor from './pages/QuotationEditor';
 
 // --- MOCK DATA (From Prompt) ---
 const MOCK_DATA = {
@@ -526,8 +533,8 @@ const Projects = ({ data }) => {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === f
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                   }`}
               >
                 {f}
@@ -722,8 +729,8 @@ const Vendors = ({ data }) => {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === f
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                   }`}
               >
                 {f}
@@ -888,8 +895,8 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${active
-        ? 'bg-gray-800 text-white shadow-md'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      ? 'bg-gray-800 text-white shadow-md'
+      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       }`}
   >
     <Icon size={18} className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
@@ -919,6 +926,9 @@ const App = () => {
       case 'users': return <UserSettings />;
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;
+      case 'material-calc': return <MaterialCalculator />;
+      case 'cost-est': return <CostEstimator />;
+      case 'quotation-edit': return <QuotationEditor />;
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
@@ -940,7 +950,10 @@ const App = () => {
     vendors: '廠商管理',
     users: '使用者管理',
     integrations: '整合設定',
-    storage: '文件管理'
+    storage: '文件管理',
+    'material-calc': '材料估算',
+    'cost-est': '成本估算',
+    'quotation-edit': '報價編輯'
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -981,6 +994,12 @@ const App = () => {
             <SidebarItem icon={TrendingUp} label="利潤分析" active={activeTab === 'profit-analysis'} onClick={() => setActiveTab('profit-analysis')} />
             <SidebarItem icon={Package} label="庫存管理" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
             <SidebarItem icon={HardHat} label="廠商管理" active={activeTab === 'vendors'} onClick={() => setActiveTab('vendors')} />
+          </SidebarGroup>
+
+          <SidebarGroup label="工程估算">
+            <SidebarItem icon={Ruler} label="材料估算" active={activeTab === 'material-calc'} onClick={() => setActiveTab('material-calc')} />
+            <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => setActiveTab('cost-est')} />
+            <SidebarItem icon={FileText} label="報價編輯" active={activeTab === 'quotation-edit'} onClick={() => setActiveTab('quotation-edit')} />
           </SidebarGroup>
 
           <SidebarGroup label="設定">
