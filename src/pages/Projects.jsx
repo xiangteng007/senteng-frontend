@@ -574,7 +574,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
             <div className="space-y-4 sm:space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl sm:text-3xl font-bold text-morandi-text-primary">專案管理</h2>
-                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-morandi-text-accent text-white rounded-xl hover:bg-gray-800 transition-colors shadow-lg">
+                    <button onClick={() => { console.log("Projects: Open Add Modal Clicked"); setIsAddModalOpen(true); }} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-morandi-text-accent text-white rounded-xl hover:bg-gray-800 transition-colors shadow-lg">
                         <Plus size={16} /> <span className="hidden sm:inline">新增專案</span><span className="sm:hidden">新增</span>
                     </button>
                 </div>

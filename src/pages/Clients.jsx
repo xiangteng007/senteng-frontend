@@ -139,6 +139,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
     // 操作函數
     const handleOpenAdd = () => {
+        console.log("Clients: Open Add Modal Clicked");
         setNewClientData({
             name: "", phone: "", email: "", address: "", status: "洽談中",
             customFields: [{ label: "備註", value: "" }], contactLogs: [],
