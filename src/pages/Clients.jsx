@@ -568,8 +568,14 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                             </button>
                         )}
                         <button
-                            onClick={handleOpenAdd}
-                            className="btn-primary ml-auto flex items-center gap-2"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                alert("DEBUG: Client Add Clicked");
+                                console.log("Clients: Open Add Modal Clicked");
+                                handleOpenAdd();
+                            }}
+                            className="btn-primary ml-auto flex items-center gap-2 cursor-pointer pointer-events-auto relative z-[9999]"
+                            style={{ pointerEvents: 'auto', position: 'relative', zIndex: 9999 }}
                         >
                             <Plus size={18} /> 新增客戶
                         </button>
