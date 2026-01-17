@@ -23,7 +23,16 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Unused vars are warnings, not errors (common in migrated codebase)
+      'no-unused-vars': ['warn', {
+        varsIgnorePattern: '^[A-Z_]|^_',
+        argsIgnorePattern: '^_|^e$|^err$|^event$'
+      }],
+      // Allow exports of non-component functions in files with components
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowExportNames: ['hasPageAccess', 'hasAction', 'calculateEqualPayment', 'calculateEqualPrincipal'] }
+      ],
     },
   },
 ])

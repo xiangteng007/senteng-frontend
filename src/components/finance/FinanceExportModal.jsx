@@ -22,19 +22,21 @@ const getDateRange = (rangeType, customStart, customEnd) => {
                 startDate: today.toISOString().slice(0, 10),
                 endDate: today.toISOString().slice(0, 10)
             };
-        case 'week':
+        case 'week': {
             const weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
             return {
                 startDate: weekStart.toISOString().slice(0, 10),
                 endDate: today.toISOString().slice(0, 10)
             };
-        case 'month':
+        }
+        case 'month': {
             const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
             return {
                 startDate: monthStart.toISOString().slice(0, 10),
                 endDate: today.toISOString().slice(0, 10)
             };
+        }
         case 'custom':
             return { startDate: customStart, endDate: customEnd };
         default:
@@ -132,8 +134,8 @@ export const FinanceExportModal = ({
                                 key={option.id}
                                 onClick={() => setRangeType(option.id)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${rangeType === option.id
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 {option.label}

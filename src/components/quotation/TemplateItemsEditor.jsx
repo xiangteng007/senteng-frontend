@@ -250,7 +250,7 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
     // 新增工項
     const handleAddItem = (chapterIndex = 0) => {
         const newItem = {
-            id: `new-${Date.now()}`,
+            id: `new-${crypto.randomUUID()}`,
             chapterIndex,
             chapter: uniqueChapters[chapterIndex] || '其他',
             name: '',
@@ -278,7 +278,7 @@ const TemplateItemsEditor = ({ items = [], onChange, chapters = [] }) => {
     // 確保每個 item 都有唯一 ID
     const itemsWithIds = items.map((item, index) => ({
         ...item,
-        id: item.id || `item-${index}-${Date.now()}`,
+        id: item.id || `item-${index}`,
     }));
 
     // 簡單列表模式（無章節分組）
