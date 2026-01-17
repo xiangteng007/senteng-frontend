@@ -40,6 +40,13 @@ import BimManagement from './pages/BimManagement';
 import ContractsPage from './pages/Contracts';
 import ConstructionPage from './pages/Construction';
 
+// Import refactored core pages with working Add functionality
+import ProjectsPage from './pages/Projects';
+import ClientsPage from './pages/Clients';
+import VendorsPage from './pages/Vendors';
+import InventoryPage from './pages/Inventory';
+import FinancePage from './pages/Finance';
+
 // Import shared components
 import { Badge } from './components/common/Badge';
 import { Card } from './components/common/Card';
@@ -895,8 +902,8 @@ const App = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
-      case 'clients': return <Clients data={MOCK_DATA} />;
-      case 'projects': return <Projects data={MOCK_DATA} />;
+      case 'clients': return <ClientsPage data={MOCK_DATA} />;
+      case 'projects': return <ProjectsPage data={MOCK_DATA} />;
       case 'construction': return <Construction />;
       case 'events': return <Events />;
       case 'quotations': return <Quotations />;
@@ -904,10 +911,10 @@ const App = () => {
       case 'change-orders': return <ChangeOrders />;
       case 'invoices': return <Invoices />;
       case 'payments': return <Payments />;
-      case 'finance': return <Finance data={MOCK_DATA} />;
+      case 'finance': return <FinancePage data={MOCK_DATA} />;
       case 'profit-analysis': return <ProfitAnalysis />;
-      case 'inventory': return <Inventory data={MOCK_DATA} />;
-      case 'vendors': return <Vendors data={MOCK_DATA} />;
+      case 'inventory': return <InventoryPage data={MOCK_DATA.inventory} addToast={console.log} />;
+      case 'vendors': return <VendorsPage data={MOCK_DATA} />;
       case 'users': return <UserSettings />;
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;
