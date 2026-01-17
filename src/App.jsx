@@ -46,6 +46,7 @@ import ClientsPage from './pages/Clients';
 import VendorsPage from './pages/Vendors';
 import InventoryPage from './pages/Inventory';
 import FinancePage from './pages/Finance';
+import CalendarPage from './pages/Calendar';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -905,7 +906,7 @@ const App = () => {
       case 'clients': return <ClientsPage data={MOCK_DATA} />;
       case 'projects': return <ProjectsPage data={MOCK_DATA} />;
       case 'construction': return <Construction />;
-      case 'events': return <Events />;
+      case 'events': return <CalendarPage />;
       case 'quotations': return <Quotations />;
       case 'contracts': return <Contracts />;
       case 'change-orders': return <ChangeOrders />;
