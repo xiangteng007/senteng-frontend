@@ -38,6 +38,7 @@ import CostEstimator from './pages/CostEstimator';
 import QuotationEditor from './pages/QuotationEditor';
 import BimManagement from './pages/BimManagement';
 import ContractsPage from './pages/Contracts';
+import ConstructionPage from './pages/Construction';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -859,7 +860,7 @@ const Contracts = (props) => <ContractsPage {...props} />;
 const ChangeOrders = () => <PlaceholderPage title="變更單管理" icon={RefreshCw} />;
 const Invoices = () => <PlaceholderPage title="發票管理" icon={Receipt} />;
 const Payments = () => <PlaceholderPage title="付款管理" icon={CreditCard} />;
-const Construction = () => <PlaceholderPage title="工程管理" icon={Building2} />;
+const Construction = (props) => <ConstructionPage {...props} />;
 const Events = () => <PlaceholderPage title="行事曆" icon={Calendar} />;
 const ProfitAnalysis = () => <PlaceholderPage title="利潤分析" icon={TrendingUp} />;
 const UserSettings = () => <PlaceholderPage title="使用者管理" icon={Users} />;
