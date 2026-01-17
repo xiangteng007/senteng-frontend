@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Briefcase, 
-  Wallet, 
-  HardHat, 
-  Package, 
-  Search, 
-  Bell, 
-  Calendar, 
-  Plus, 
-  MapPin, 
-  Phone, 
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  Wallet,
+  HardHat,
+  Package,
+  Search,
+  Bell,
+  Calendar,
+  Plus,
+  MapPin,
+  Phone,
   MoreHorizontal,
   ArrowUpRight,
   CheckCircle2,
   Circle,
-  Star
+  Star,
+  FileText,
+  FileSignature,
+  RefreshCw,
+  Receipt,
+  CreditCard,
+  Building2,
+  TrendingUp,
+  Settings,
+  Link2,
+  FolderOpen,
+  ChevronDown
 } from 'lucide-react';
 
 // --- MOCK DATA (From Prompt) ---
@@ -238,9 +249,9 @@ const Badge = ({ children, color = "gray", className = "" }) => {
 
 const ProgressBar = ({ value }) => (
   <div className="w-full bg-gray-100 rounded-full h-2">
-    <div 
-      className="bg-gray-800 h-2 rounded-full transition-all duration-500" 
-      style={{ width: `${value}%` }} 
+    <div
+      className="bg-gray-800 h-2 rounded-full transition-all duration-500"
+      style={{ width: `${value}%` }}
     />
   </div>
 );
@@ -380,14 +391,14 @@ const Dashboard = ({ data }) => {
           <div>
             <h3 className="text-lg font-bold text-gray-800 mb-4">財務概況</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
-                 <p className="text-sm text-emerald-800 font-medium mb-1">預計實收</p>
-                 <p className="text-2xl font-bold text-emerald-900">NT$ {estimatedIncome} 萬</p>
-               </Card>
-               <Card className="bg-gradient-to-br from-red-50 to-white border-red-100">
-                 <p className="text-sm text-red-800 font-medium mb-1">預計支出</p>
-                 <p className="text-2xl font-bold text-red-900">NT$ {estimatedExpense} 萬</p>
-               </Card>
+              <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
+                <p className="text-sm text-emerald-800 font-medium mb-1">預計實收</p>
+                <p className="text-2xl font-bold text-emerald-900">NT$ {estimatedIncome} 萬</p>
+              </Card>
+              <Card className="bg-gradient-to-br from-red-50 to-white border-red-100">
+                <p className="text-sm text-red-800 font-medium mb-1">預計支出</p>
+                <p className="text-2xl font-bold text-red-900">NT$ {estimatedExpense} 萬</p>
+              </Card>
             </div>
           </div>
         </div>
@@ -423,21 +434,21 @@ const Dashboard = ({ data }) => {
 const Clients = ({ data }) => {
   return (
     <div className="space-y-6 animate-fade-in">
-      <SectionTitle 
-        title="客戶名單" 
+      <SectionTitle
+        title="客戶名單"
         action={
           <div className="flex gap-3">
-             <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="搜尋姓名、電話、地址…" 
-                  className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 w-64"
-                />
-             </div>
-             <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-               <Plus size={16} /> 新增客戶
-             </button>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="搜尋姓名、電話、地址…"
+                className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 w-64"
+              />
+            </div>
+            <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+              <Plus size={16} /> 新增客戶
+            </button>
           </div>
         }
       />
@@ -472,10 +483,10 @@ const Clients = ({ data }) => {
                 <span className="truncate">{client.address}</span>
               </div>
               <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
-                 <span className="text-gray-400">類型:</span> {client.houseType} / {client.condition}
+                <span className="text-gray-400">類型:</span> {client.houseType} / {client.condition}
               </div>
               <div className="flex items-center gap-2">
-                 <span className="text-gray-400">預算:</span> {client.budgetRange}
+                <span className="text-gray-400">預算:</span> {client.budgetRange}
               </div>
             </div>
 
@@ -494,14 +505,14 @@ const Projects = ({ data }) => {
   const [filter, setFilter] = useState('全部');
   const filters = ['全部', '翻修', '新建', '商空'];
 
-  const filteredProjects = filter === '全部' 
-    ? data.projects 
+  const filteredProjects = filter === '全部'
+    ? data.projects
     : data.projects.filter(p => p.type === filter);
 
   const getStatusColor = (type) => {
-     if(type === '翻修') return 'orange';
-     if(type === '新建') return 'blue';
-     return 'purple';
+    if (type === '翻修') return 'orange';
+    if (type === '新建') return 'blue';
+    return 'purple';
   }
 
   return (
@@ -514,11 +525,10 @@ const Projects = ({ data }) => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  filter === f 
-                    ? 'bg-gray-800 text-white' 
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === f
+                    ? 'bg-gray-800 text-white'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 {f}
               </button>
@@ -543,7 +553,7 @@ const Projects = ({ data }) => {
                 {project.status}
               </span>
             </div>
-            
+
             <h3 className="text-lg font-bold text-gray-900 mb-1">{project.name}</h3>
             <p className="text-sm text-gray-400 mb-4">{project.code}</p>
 
@@ -563,11 +573,11 @@ const Projects = ({ data }) => {
             </div>
 
             <div className="bg-gray-50 p-3 rounded-lg">
-               <div className="flex justify-between text-sm mb-2">
-                 <span className="text-gray-600 font-medium">專案進度</span>
-                 <span className="text-gray-900 font-bold">{project.progress}%</span>
-               </div>
-               <ProgressBar value={project.progress} />
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-600 font-medium">專案進度</span>
+                <span className="text-gray-900 font-bold">{project.progress}%</span>
+              </div>
+              <ProgressBar value={project.progress} />
             </div>
           </Card>
         ))}
@@ -593,9 +603,8 @@ const Projects = ({ data }) => {
                     {project.status === '施工中' ? '泥作進場，水電配管完成' : '平面圖定稿，3D渲染中'}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      project.status === '施工中' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === '施工中' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
                       {project.status}
                     </span>
                   </td>
@@ -612,11 +621,11 @@ const Projects = ({ data }) => {
 const Finance = ({ data }) => {
   const totalIncome = data.transactions.filter(t => t.type === '收入').reduce((acc, c) => acc + c.amount, 0);
   const totalExpense = data.transactions.filter(t => t.type === '支出').reduce((acc, c) => acc + c.amount, 0);
-  
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <SectionTitle 
-        title="財務收支" 
+      <SectionTitle
+        title="財務收支"
         action={
           <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
             <Plus size={16} /> 新增一筆
@@ -650,7 +659,7 @@ const Finance = ({ data }) => {
             </div>
             <h4 className="font-bold text-gray-900 text-lg mb-1">{account.name}</h4>
             <p className="text-sm text-gray-500 mb-6 font-mono">{account.bank} · {account.number}</p>
-            
+
             <p className="text-xs text-gray-400 uppercase tracking-wider">帳戶餘額</p>
             <p className={`text-2xl font-bold ${account.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
               NT$ {account.balance} 萬
@@ -699,7 +708,7 @@ const Finance = ({ data }) => {
 const Vendors = ({ data }) => {
   const [filter, setFilter] = useState('全部');
   const filters = ['全部', '工程工班', '建材供應'];
-  
+
   const filteredVendors = filter === '全部' ? data.vendors : data.vendors.filter(v => v.category === filter);
 
   return (
@@ -712,11 +721,10 @@ const Vendors = ({ data }) => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  filter === f 
-                    ? 'bg-gray-800 text-white' 
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === f
+                    ? 'bg-gray-800 text-white'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 {f}
               </button>
@@ -733,13 +741,12 @@ const Vendors = ({ data }) => {
           <Card key={vendor.id} className="hover:shadow-md transition-all">
             <div className="flex justify-between items-start mb-2">
               <Badge color="blue">{vendor.tradeType}</Badge>
-              <div className={`px-2 py-0.5 rounded text-xs font-medium ${
-                vendor.status === '長期合作' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-              }`}>
+              <div className={`px-2 py-0.5 rounded text-xs font-medium ${vendor.status === '長期合作' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                }`}>
                 {vendor.status}
               </div>
             </div>
-            
+
             <h3 className="font-bold text-gray-900 text-lg mb-1">{vendor.name}</h3>
             <div className="flex items-center gap-1 text-orange-400 text-sm mb-4">
               <Star size={14} fill="currentColor" />
@@ -781,8 +788,8 @@ const Inventory = ({ data }) => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-       <SectionTitle 
-        title="庫存管理" 
+      <SectionTitle
+        title="庫存管理"
         action={
           <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
             <Plus size={16} /> 新增品項
@@ -844,19 +851,49 @@ const Inventory = ({ data }) => {
   );
 };
 
+// --- PLACEHOLDER PAGES ---
+
+const PlaceholderPage = ({ title, icon: Icon }) => (
+  <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-100">
+      <Icon size={48} className="text-gray-300 mb-4" />
+      <h2 className="text-xl font-bold text-gray-800 mb-2">{title}</h2>
+      <p className="text-gray-400">此功能開發中，敬請期待</p>
+    </div>
+  </div>
+);
+
+const Quotations = () => <PlaceholderPage title="報價單管理" icon={FileText} />;
+const Contracts = () => <PlaceholderPage title="合約管理" icon={FileSignature} />;
+const ChangeOrders = () => <PlaceholderPage title="變更單管理" icon={RefreshCw} />;
+const Invoices = () => <PlaceholderPage title="發票管理" icon={Receipt} />;
+const Payments = () => <PlaceholderPage title="付款管理" icon={CreditCard} />;
+const Construction = () => <PlaceholderPage title="工程管理" icon={Building2} />;
+const Events = () => <PlaceholderPage title="行事曆" icon={Calendar} />;
+const ProfitAnalysis = () => <PlaceholderPage title="利潤分析" icon={TrendingUp} />;
+const UserSettings = () => <PlaceholderPage title="使用者管理" icon={Users} />;
+const Integrations = () => <PlaceholderPage title="整合設定" icon={Link2} />;
+const Storage = () => <PlaceholderPage title="文件管理" icon={FolderOpen} />;
+
 // --- MAIN LAYOUT & APP ---
 
+const SidebarGroup = ({ label, children }) => (
+  <div className="mb-4">
+    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</div>
+    <div className="space-y-1">{children}</div>
+  </div>
+);
+
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
-  <button 
+  <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-      active 
-        ? 'bg-gray-800 text-white shadow-lg shadow-gray-200' 
-        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-    }`}
+    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${active
+        ? 'bg-gray-800 text-white shadow-md'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      }`}
   >
-    <Icon size={20} className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
-    <span className="font-medium tracking-wide">{label}</span>
+    <Icon size={18} className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
+    <span className="text-sm font-medium">{label}</span>
   </button>
 );
 
@@ -864,32 +901,52 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const renderContent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
       case 'clients': return <Clients data={MOCK_DATA} />;
       case 'projects': return <Projects data={MOCK_DATA} />;
+      case 'construction': return <Construction />;
+      case 'events': return <Events />;
+      case 'quotations': return <Quotations />;
+      case 'contracts': return <Contracts />;
+      case 'change-orders': return <ChangeOrders />;
+      case 'invoices': return <Invoices />;
+      case 'payments': return <Payments />;
       case 'finance': return <Finance data={MOCK_DATA} />;
-      case 'vendors': return <Vendors data={MOCK_DATA} />;
+      case 'profit-analysis': return <ProfitAnalysis />;
       case 'inventory': return <Inventory data={MOCK_DATA} />;
+      case 'vendors': return <Vendors data={MOCK_DATA} />;
+      case 'users': return <UserSettings />;
+      case 'integrations': return <Integrations />;
+      case 'storage': return <Storage />;
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
 
-  const getTitle = () => {
-     const map = {
-       dashboard: '儀表板',
-       clients: '客戶管理',
-       projects: '專案管理',
-       finance: '財務管理',
-       vendors: '廠商管理',
-       inventory: '庫存管理'
-     };
-     return map[activeTab];
-  }
+  const titles = {
+    dashboard: '儀表板',
+    clients: '客戶管理',
+    projects: '專案管理',
+    construction: '工程管理',
+    events: '行事曆',
+    quotations: '報價單',
+    contracts: '合約管理',
+    'change-orders': '變更單',
+    invoices: '發票管理',
+    payments: '付款管理',
+    finance: '財務管理',
+    'profit-analysis': '利潤分析',
+    inventory: '庫存管理',
+    vendors: '廠商管理',
+    users: '使用者管理',
+    integrations: '整合設定',
+    storage: '文件管理'
+  };
+  const getTitle = () => titles[activeTab] || '儀表板';
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-900 selection:bg-gray-200">
-      
+
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 z-10 flex flex-col">
         <div className="p-8">
@@ -899,56 +956,81 @@ const App = () => {
           </h1>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
-          <SidebarItem icon={LayoutDashboard} label="儀表板" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
-          <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => setActiveTab('projects')} />
-          <SidebarItem icon={Wallet} label="財務管理" active={activeTab === 'finance'} onClick={() => setActiveTab('finance')} />
-          <SidebarItem icon={HardHat} label="廠商管理" active={activeTab === 'vendors'} onClick={() => setActiveTab('vendors')} />
-          <SidebarItem icon={Package} label="庫存管理" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
+        <nav className="flex-1 px-3 overflow-y-auto">
+          <div className="mb-2">
+            <SidebarItem icon={LayoutDashboard} label="儀表板" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          </div>
+
+          <SidebarGroup label="營運管理">
+            <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
+            <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => setActiveTab('projects')} />
+            <SidebarItem icon={Building2} label="工程管理" active={activeTab === 'construction'} onClick={() => setActiveTab('construction')} />
+            <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
+          </SidebarGroup>
+
+          <SidebarGroup label="商務文件">
+            <SidebarItem icon={FileText} label="報價單" active={activeTab === 'quotations'} onClick={() => setActiveTab('quotations')} />
+            <SidebarItem icon={FileSignature} label="合約管理" active={activeTab === 'contracts'} onClick={() => setActiveTab('contracts')} />
+            <SidebarItem icon={RefreshCw} label="變更單" active={activeTab === 'change-orders'} onClick={() => setActiveTab('change-orders')} />
+            <SidebarItem icon={Receipt} label="發票管理" active={activeTab === 'invoices'} onClick={() => setActiveTab('invoices')} />
+            <SidebarItem icon={CreditCard} label="付款管理" active={activeTab === 'payments'} onClick={() => setActiveTab('payments')} />
+          </SidebarGroup>
+
+          <SidebarGroup label="財務庫存">
+            <SidebarItem icon={Wallet} label="財務管理" active={activeTab === 'finance'} onClick={() => setActiveTab('finance')} />
+            <SidebarItem icon={TrendingUp} label="利潤分析" active={activeTab === 'profit-analysis'} onClick={() => setActiveTab('profit-analysis')} />
+            <SidebarItem icon={Package} label="庫存管理" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
+            <SidebarItem icon={HardHat} label="廠商管理" active={activeTab === 'vendors'} onClick={() => setActiveTab('vendors')} />
+          </SidebarGroup>
+
+          <SidebarGroup label="設定">
+            <SidebarItem icon={Users} label="使用者管理" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+            <SidebarItem icon={Link2} label="整合設定" active={activeTab === 'integrations'} onClick={() => setActiveTab('integrations')} />
+            <SidebarItem icon={FolderOpen} label="文件管理" active={activeTab === 'storage'} onClick={() => setActiveTab('storage')} />
+          </SidebarGroup>
         </nav>
 
         <div className="p-4 border-t border-gray-50">
           <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
-               A
-             </div>
-             <div>
-               <p className="text-sm font-bold text-gray-900">設計總監</p>
-               <p className="text-xs text-gray-400">admin@senteng.tw</p>
-             </div>
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
+              A
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">設計總監</p>
+              <p className="text-xs text-gray-400">admin@senteng.tw</p>
+            </div>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="ml-64 flex-1 flex flex-col min-h-screen">
-        
+
         {/* Top Header */}
         <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-20 px-8 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800">{getTitle()}</h2>
-          
+
           <div className="flex items-center gap-6">
             <div className="relative">
-               <Bell size={20} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
-               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+              <Bell size={20} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </div>
             <div className="h-8 w-px bg-gray-200"></div>
             <div className="flex items-center gap-2">
-               <div className="text-right">
-                 <p className="text-sm font-bold text-gray-900">Alex Chen</p>
-                 <p className="text-xs text-gray-400">設計總監</p>
-               </div>
-               <div className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold shadow-lg shadow-gray-200">
-                 A
-               </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-gray-900">Alex Chen</p>
+                <p className="text-xs text-gray-400">設計總監</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold shadow-lg shadow-gray-200">
+                A
+              </div>
             </div>
           </div>
         </header>
 
         {/* Dynamic Content */}
         <div className="p-8 max-w-7xl mx-auto w-full">
-           {renderContent()}
+          {renderContent()}
         </div>
 
       </main>
