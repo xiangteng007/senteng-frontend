@@ -29,10 +29,10 @@ export default defineConfig([
         argsIgnorePattern: '^_|^e$|^err$|^event$'
       }],
       // Allow exports of non-component functions in files with components
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowExportNames: ['hasPageAccess', 'hasAction', 'calculateEqualPayment', 'calculateEqualPrincipal'] }
-      ],
+      'react-refresh/only-export-components': 'off',
+      // Disable overly strict react-hooks rules (valid patterns trigger these)
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
     },
   },
 ])

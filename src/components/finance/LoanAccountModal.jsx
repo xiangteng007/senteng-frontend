@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { InputField } from '../common/InputField';
-import { LoanCalculator, calculateEqualPayment, calculateEqualPrincipal } from './LoanCalculator';
-import { Building2, Percent, Calendar, Calculator } from 'lucide-react';
+import { LoanCalculator } from './LoanCalculator';
+import { calculateEqualPayment, calculateEqualPrincipal } from '../../utils/loanCalculator';
+import { Building2, Percent } from 'lucide-react';
 
 /**
  * 貸款帳戶新增/編輯 Modal
@@ -25,16 +26,10 @@ export const LoanAccountModal = ({ isOpen, onClose, onConfirm, editingLoan = nul
         status: 'active'
     });
 
-    // 初始化編輯資料
-    useEffect(() => {
-        if (editingLoan) {
-            setFormData({
-                ...editingLoan,
-                principalAmount: editingLoan.principalAmount?.toString() || '',
-                interestRate: editingLoan.interestRate?.toString() || ''
-            });
-        } else {
-            setFormData({
+    // 計算初始表單值 (穩定依賴)
+    const initialForm = useMemo(() => {
+        if (!editingLoan) {
+            return {
                 bankName: '',
                 principalAmount: '',
                 interestRate: '',
@@ -44,9 +39,21 @@ export const LoanAccountModal = ({ isOpen, onClose, onConfirm, editingLoan = nul
                 paymentDay: 15,
                 paymentType: 'equalPayment',
                 status: 'active'
-            });
+            };
         }
-    }, [editingLoan, isOpen]);
+        return {
+            ...editingLoan,
+            principalAmount: editingLoan.principalAmount?.toString() || '',
+            interestRate: editingLoan.interestRate?.toString() || ''
+        };
+    }, [editingLoan]);
+
+    // 初始化編輯資料 - 使用穩定的 initialForm
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(initialForm);
+        }
+    }, [initialForm, isOpen]);
 
     // 即時試算
     const calculation = useMemo(() => {
@@ -196,8 +203,8 @@ export const LoanAccountModal = ({ isOpen, onClose, onConfirm, editingLoan = nul
                             type="button"
                             onClick={() => updateField('paymentType', 'equalPayment')}
                             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${formData.paymentType === 'equalPayment'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             等額本息
@@ -207,8 +214,8 @@ export const LoanAccountModal = ({ isOpen, onClose, onConfirm, editingLoan = nul
                             type="button"
                             onClick={() => updateField('paymentType', 'equalPrincipal')}
                             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${formData.paymentType === 'equalPrincipal'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             等額本金
