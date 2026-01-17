@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { WidgetWrapper } from '../components/common/WidgetWrapper';
-import { WidgetProjectStats, WidgetProjectList, WidgetProjectInfo, WidgetProjectFiles } from '../components/widgets/ProjectWidgets';
+import { WidgetProjectStats, WidgetProjectList, WidgetProjectInfo, WidgetProjectFiles, WidgetProjectProgress, WidgetProjectMilestones, WidgetProjectTimeline, WidgetProjectLinks } from '../components/widgets/ProjectWidgets';
 import { WidgetProjectVendors } from '../components/widgets/ProjectVendorsWidget';
 import { WidgetProjectInventory } from '../components/widgets/ProjectInventoryWidget';
 import { AddVendorModal } from '../components/project/AddVendorModal';
@@ -143,10 +143,14 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     // Detail View State
     const [detailWidgets, setDetailWidgets] = useState([
         { id: 'wp-info', type: 'info', title: '基本資訊', size: 'S' },
+        { id: 'wp-progress', type: 'progress', title: '工程階段', size: 'M' },
+        { id: 'wp-milestones', type: 'milestones', title: '里程碑', size: 'M' },
+        { id: 'wp-timeline', type: 'timeline', title: '專案時程', size: 'L' },
         { id: 'wp-vendors', type: 'vendors', title: '參與廠商', size: 'M' },
         { id: 'wp-records', type: 'records', title: '工程紀錄', size: 'L' },
         { id: 'wp-finance', type: 'finance', title: '專案收支', size: 'M' },
         { id: 'wp-inventory', type: 'inventory', title: '庫存追蹤', size: 'M' },
+        { id: 'wp-links', type: 'links', title: '關聯文件', size: 'S' },
         { id: 'wp-files', type: 'files', title: '檔案中心', size: 'M' },
     ]);
 
@@ -492,10 +496,15 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-auto">
-                    {detailWidgets.map((w, i) => (
+                    {detailWidgets.map((w) => (
                         <WidgetWrapper key={w.id} widget={w} onResize={handleResize(detailWidgets, setDetailWidgets)}>
                             {w.type === 'info' && <WidgetProjectInfo project={activeProject} size={w.size} />}
-                            {/* Reuse Widgets */}
+                            {/* P0 New Widgets */}
+                            {w.type === 'progress' && <WidgetProjectProgress phases={activeProject.phases || []} size={w.size} />}
+                            {w.type === 'milestones' && <WidgetProjectMilestones milestones={activeProject.milestones || []} size={w.size} />}
+                            {w.type === 'timeline' && <WidgetProjectTimeline tasks={activeProject.tasks || []} startDate={activeProject.startDate} endDate={activeProject.endDate} size={w.size} />}
+                            {w.type === 'links' && <WidgetProjectLinks project={activeProject} quotation={activeProject.quotation} contract={activeProject.contract} payments={activeProject.payments || []} changeOrders={activeProject.changeOrders || []} size={w.size} />}
+                            {/* Existing Widgets */}
                             {w.type === 'files' && <WidgetProjectFiles files={activeProject.files} size={w.size} onUpload={() => { }} />}
                             {w.type === 'records' && <WidgetProjectRecords records={activeProject.records} size={w.size} onAddRecord={() => setIsRecordModalOpen(true)} />}
                             {w.type === 'finance' && <WidgetProjectFinanceDetail
