@@ -9,13 +9,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { integrationsApi } from '../services/integrationsApi';
 import { SyncStatusBadge } from '../components/common/SyncStatusBadge';
+import { Card } from '../components/common/Card';
 
-// Card 元件
-const Card = ({ title, children }) => (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+// Card with title helper
+const TitledCard = ({ title, children }) => (
+    <Card>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
         {children}
-    </div>
+    </Card>
 );
 
 // 狀態列
@@ -136,7 +137,7 @@ export default function IntegrationsPage({ addToast }) {
 
             <div className="space-y-6">
                 {/* Google Connection Card */}
-                <Card title="Google 連結狀態">
+                <TitledCard title="Google 連結狀態">
                     <div className="space-y-1">
                         <StatusRow label="連結狀態" value={
                             <span className={`font-medium ${status?.connected ? 'text-green-600' : 'text-gray-400'}`}>
@@ -177,10 +178,10 @@ export default function IntegrationsPage({ addToast }) {
                             重新整理
                         </button>
                     </div>
-                </Card>
+                </TitledCard>
 
                 {/* Calendar Sync Card */}
-                <Card title="行事曆同步設定">
+                <TitledCard title="行事曆同步設定">
                     {canSetCalendar && (
                         <div className="mb-4">
                             <label className="block text-sm text-gray-600 mb-2">
@@ -209,10 +210,10 @@ export default function IntegrationsPage({ addToast }) {
                         />
                         <span className="text-sm text-gray-700">自動同步事件</span>
                     </label>
-                </Card>
+                </TitledCard>
 
                 {/* Contacts Sync Card */}
-                <Card title="聯絡人同步設定">
+                <TitledCard title="聯絡人同步設定">
                     {canSetLabel && (
                         <div className="mb-4">
                             <label className="block text-sm text-gray-600 mb-2">
@@ -241,7 +242,7 @@ export default function IntegrationsPage({ addToast }) {
                         />
                         <span className="text-sm text-gray-700">自動同步聯絡人</span>
                     </label>
-                </Card>
+                </TitledCard>
 
                 {/* Save Button */}
                 {canConfigure && (

@@ -19,6 +19,8 @@ import {
     Ruler,
     Boxes
 } from 'lucide-react';
+import { Badge } from '../components/common/Badge';
+import { Card } from '../components/common/Card';
 
 // Mock data for BIM models
 const MOCK_BIM_MODELS = [
@@ -120,30 +122,6 @@ const PRIORITY_COLORS = {
     MEDIUM: 'yellow',
     LOW: 'gray'
 };
-
-const Badge = ({ children, color = 'gray' }) => {
-    const colors = {
-        gray: 'bg-gray-100 text-gray-700',
-        blue: 'bg-blue-50 text-blue-700',
-        green: 'bg-emerald-50 text-emerald-700',
-        orange: 'bg-orange-50 text-orange-700',
-        red: 'bg-red-50 text-red-700',
-        purple: 'bg-purple-50 text-purple-700',
-        yellow: 'bg-yellow-50 text-yellow-700',
-        emerald: 'bg-emerald-50 text-emerald-700'
-    };
-    return (
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${colors[color] || colors.gray}`}>
-            {children}
-        </span>
-    );
-};
-
-const Card = ({ children, className = '' }) => (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 ${className}`}>
-        {children}
-    </div>
-);
 
 const BimManagement = () => {
     const [activeTab, setActiveTab] = useState('models');
