@@ -36,6 +36,7 @@ import {
 import MaterialCalculator from './pages/MaterialCalculator';
 import CostEstimator from './pages/CostEstimator';
 import QuotationEditor from './pages/QuotationEditor';
+import BimManagement from './pages/BimManagement';
 
 // --- MOCK DATA (From Prompt) ---
 const MOCK_DATA = {
@@ -929,6 +930,7 @@ const App = () => {
       case 'material-calc': return <MaterialCalculator />;
       case 'cost-est': return <CostEstimator />;
       case 'quotation-edit': return <QuotationEditor />;
+      case 'bim': return <BimManagement />;
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
@@ -953,7 +955,8 @@ const App = () => {
     storage: '文件管理',
     'material-calc': '材料估算',
     'cost-est': '成本估算',
-    'quotation-edit': '報價編輯'
+    'quotation-edit': '報價編輯',
+    'bim': 'BIM 管理'
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -1000,6 +1003,7 @@ const App = () => {
             <SidebarItem icon={Ruler} label="材料估算" active={activeTab === 'material-calc'} onClick={() => setActiveTab('material-calc')} />
             <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => setActiveTab('cost-est')} />
             <SidebarItem icon={FileText} label="報價編輯" active={activeTab === 'quotation-edit'} onClick={() => setActiveTab('quotation-edit')} />
+            <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => setActiveTab('bim')} />
           </SidebarGroup>
 
           <SidebarGroup label="設定">
