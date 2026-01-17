@@ -3,5 +3,14 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/",   // 確保所有資源從 / 開始
+  base: "/",
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name].[hash]-${Date.now()}.js`,
+        chunkFileNames: `assets/[name].[hash]-${Date.now()}.js`,
+        assetFileNames: `assets/[name].[hash]-${Date.now()}.[ext]`
+      }
+    }
+  }
 });
