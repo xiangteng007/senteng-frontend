@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Calculator, TrendingDown, Calendar } from 'lucide-react';
-import { calculateEqualPayment, calculateEqualPrincipal } from '../utils/loanCalculator';
+import { calculateEqualPayment, calculateEqualPrincipal } from '../../utils/loanCalculator';
 
 /**
  * 貸款還款試算器
