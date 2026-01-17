@@ -11,6 +11,8 @@ import {
     Play, Pause, Check, AlertCircle, Wrench, HardHat, ClipboardList
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
+import { Modal } from '../components/common/Modal';
+import { InputField } from '../components/common/InputField';
 import ConstructionService, {
     CONSTRUCTION_STATUS,
     CONSTRUCTION_STATUS_LABELS,
@@ -627,6 +629,12 @@ const ConstructionList = ({ onView, addToast }) => {
     const [stats, setStats] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newConstruction, setNewConstruction] = useState({
+        projectName: '', clientName: '', manager: '', location: '',
+        startDate: '', endDate: '', budget: ''
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
 
     useEffect(() => {
@@ -672,7 +680,10 @@ const ConstructionList = ({ onView, addToast }) => {
                     title="工程管理"
                     subtitle="追蹤施工進度與里程碑"
                 />
-                <button className="px-4 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 flex items-center gap-2">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 flex items-center gap-2"
+                >
                     <Plus size={18} />
                     新增工程
                 </button>
@@ -801,6 +812,55 @@ const ConstructionList = ({ onView, addToast }) => {
                     ))
                 )}
             </div>
+
+            {/* 新增工程 Modal */}
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title="新增工程"
+                onConfirm={async () => {
+                    if (!newConstruction.projectName) {
+                        addToast?.('請輸入工程名稱', 'error');
+                        return;
+                    }
+                    setIsSaving(true);
+                    try {
+                        const created = await ConstructionService.createConstruction({
+                            ...newConstruction,
+                            budget: parseFloat(newConstruction.budget) || 0,
+                            status: CONSTRUCTION_STATUS.PLANNING,
+                            progress: 0,
+                            milestones: [],
+                            tasks: [],
+                            dailyReports: []
+                        });
+                        setConstructions(prev => [...prev, created]);
+                        setIsAddModalOpen(false);
+                        setNewConstruction({ projectName: '', clientName: '', manager: '', location: '', startDate: '', endDate: '', budget: '' });
+                        addToast?.('工程已建立', 'success');
+                    } catch (err) {
+                        addToast?.('建立失敗: ' + err.message, 'error');
+                    } finally {
+                        setIsSaving(false);
+                    }
+                }}
+                confirmDisabled={isSaving}
+                confirmText={isSaving ? '處理中...' : '確認'}
+            >
+                <div className="space-y-4">
+                    <InputField label="工程名稱" value={newConstruction.projectName} onChange={e => setNewConstruction({ ...newConstruction, projectName: e.target.value })} placeholder="例：信義區住宅翻修工程" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <InputField label="客戶名稱" value={newConstruction.clientName} onChange={e => setNewConstruction({ ...newConstruction, clientName: e.target.value })} />
+                        <InputField label="負責人" value={newConstruction.manager} onChange={e => setNewConstruction({ ...newConstruction, manager: e.target.value })} />
+                    </div>
+                    <InputField label="工程地點" value={newConstruction.location} onChange={e => setNewConstruction({ ...newConstruction, location: e.target.value })} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <InputField label="開工日期" type="date" value={newConstruction.startDate} onChange={e => setNewConstruction({ ...newConstruction, startDate: e.target.value })} />
+                        <InputField label="預計完工" type="date" value={newConstruction.endDate} onChange={e => setNewConstruction({ ...newConstruction, endDate: e.target.value })} />
+                    </div>
+                    <InputField label="預算" type="number" value={newConstruction.budget} onChange={e => setNewConstruction({ ...newConstruction, budget: e.target.value })} placeholder="例：5000000" />
+                </div>
+            </Modal>
         </div>
     );
 };
