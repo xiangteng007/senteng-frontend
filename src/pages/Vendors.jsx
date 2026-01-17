@@ -57,29 +57,29 @@ const StarRating = ({ rating, onChange, readonly = false }) => {
     );
 };
 
-// 統計卡片
+// 統計卡片 (Premium Design)
 const StatCard = ({ icon: Icon, label, value, color = 'gray', onClick }) => (
     <button
         onClick={onClick}
-        className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all text-left w-full ${onClick ? 'cursor-pointer' : ''}`}
+        className={`stat-card flex items-center gap-4 text-left w-full group ${onClick ? 'cursor-pointer' : ''}`}
     >
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${color === 'blue' ? 'bg-blue-100 text-blue-600' :
-            color === 'green' ? 'bg-green-100 text-green-600' :
-                color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                    color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                        color === 'red' ? 'bg-red-100 text-red-600' :
-                            'bg-gray-100 text-gray-600'
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg shadow-blue-200' :
+            color === 'green' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-200' :
+                color === 'yellow' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg shadow-amber-200' :
+                    color === 'orange' ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-200' :
+                        color === 'red' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg shadow-red-200' :
+                            'bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-lg shadow-gray-200'
             }`}>
-            <Icon size={20} />
+            <Icon size={22} />
         </div>
         <div>
-            <div className="text-2xl font-bold text-gray-800">{value}</div>
-            <div className="text-xs text-gray-500">{label}</div>
+            <div className="text-3xl font-bold text-gray-800">{value}</div>
+            <div className="text-sm text-gray-500 font-medium">{label}</div>
         </div>
     </button>
 );
 
-// 廠商列表項目
+// 廠商列表項目 (Premium Design)
 const VendorRow = ({ vendor, onSelect, onDelete }) => {
     const statusConfig = STATUS_CONFIG[vendor.status] || STATUS_CONFIG['合作中'];
     const categoryConfig = CATEGORY_CONFIG[vendor.category] || CATEGORY_CONFIG['其他'];
@@ -87,27 +87,27 @@ const VendorRow = ({ vendor, onSelect, onDelete }) => {
 
     return (
         <div
-            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group gap-2 sm:gap-0"
+            className="card-interactive flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-3 sm:gap-0 group"
             onClick={() => onSelect(vendor)}
         >
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${categoryConfig.color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                    categoryConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                        categoryConfig.color === 'purple' ? 'bg-purple-100 text-purple-600' :
-                            'bg-gray-100 text-gray-600'
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${categoryConfig.color === 'orange' ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-200' :
+                    categoryConfig.color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg shadow-blue-200' :
+                        categoryConfig.color === 'purple' ? 'bg-gradient-to-br from-purple-400 to-purple-600 text-white shadow-lg shadow-purple-200' :
+                            'bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-lg shadow-gray-200'
                     }`}>
-                    <CategoryIcon size={20} className="sm:w-6 sm:h-6" />
+                    <CategoryIcon size={22} />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <div className="font-bold text-gray-800 flex items-center gap-2 flex-wrap">
+                    <div className="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
                         <span className="truncate">{vendor.name}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${statusConfig.bg}`}>
+                        <span className={`badge ${statusConfig.bg}`}>
                             {vendor.status}
                         </span>
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
-                        {vendor.tradeType && <span className="flex items-center gap-1"><Wrench size={12} /> {vendor.tradeType}</span>}
-                        {vendor.contactPerson && <span className="hidden sm:flex items-center gap-1"><User size={12} /> {vendor.contactPerson}</span>}
+                    <div className="text-sm text-gray-500 flex items-center gap-3 mt-1.5 flex-wrap">
+                        {vendor.tradeType && <span className="flex items-center gap-1.5"><Wrench size={14} /> {vendor.tradeType}</span>}
+                        {vendor.contactPerson && <span className="hidden sm:flex items-center gap-1.5"><User size={14} /> {vendor.contactPerson}</span>}
                         <StarRating rating={vendor.rating} readonly />
                     </div>
                 </div>
@@ -115,11 +115,11 @@ const VendorRow = ({ vendor, onSelect, onDelete }) => {
             <div className="flex items-center gap-2 self-end sm:self-auto">
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(vendor.id); }}
-                    className="sm:opacity-0 sm:group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    className="sm:opacity-0 sm:group-hover:opacity-100 p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                 >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                 </button>
-                <ChevronRight size={20} className="text-gray-300" />
+                <ChevronRight size={22} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
         </div>
     );
@@ -716,9 +716,9 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                         )}
                         <button
                             onClick={handleOpenAdd}
-                            className="ml-auto bg-morandi-text-accent text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:shadow-lg transition-all flex items-center gap-2"
+                            className="btn-primary ml-auto flex items-center gap-2"
                         >
-                            <Plus size={16} /> 新增廠商
+                            <Plus size={18} /> 新增廠商
                         </button>
                     </div>
 
