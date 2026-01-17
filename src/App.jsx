@@ -1004,7 +1004,7 @@ const App = () => {
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">設計總監</p>
-              <p className="text-xs text-gray-400">admin@senteng.tw</p>
+              <p className="text-xs text-gray-400">v3.2.1-debug (admin)</p>
             </div>
           </div>
         </div>
