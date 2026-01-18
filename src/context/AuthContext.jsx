@@ -178,7 +178,25 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
+        // Return safe defaults when not within AuthProvider (prevents crash on initial render)
+        return {
+            user: null,
+            loading: false,
+            error: null,
+            isAuthenticated: false,
+            backendAuthenticated: false,
+            role: null,
+            allowedPages: [],
+            actions: {},
+            roleLevel: 0,
+            permissions: { pages: [], actions: {} },
+            signInWithGoogle: () => Promise.resolve(null),
+            signOut: () => Promise.resolve(),
+            canAccessPage: () => false,
+            hasAction: () => false,
+            clearError: () => { },
+            refreshBackendToken: () => null,
+        };
     }
     return context;
 };

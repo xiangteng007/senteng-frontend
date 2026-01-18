@@ -1017,8 +1017,8 @@ const App = () => {
       <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 z-10 flex flex-col">
         <div className="p-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-serif shadow-lg shadow-gray-200">森</div>
-            <span className="mt-0.5">森騰室內設計</span>
+            <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-gray-200">S</div>
+            <span className="mt-0.5">SENTENG ERP</span>
           </h1>
         </div>
 
