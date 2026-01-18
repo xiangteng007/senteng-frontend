@@ -14,6 +14,7 @@ import { ProgressBar } from '../components/common/Indicators';
 import SearchableSelect from '../components/common/SearchableSelect';
 import { projectsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
+import WidgetProjectProgress from '../components/common/WidgetProjectProgress';
 
 // --- Missing Detail Widgets (Implementing inline for safety) ---
 const WidgetProjectRecords = ({ records, size, onAddRecord }) => (
@@ -147,6 +148,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         { id: 'wp-records', type: 'records', title: '工程紀錄', size: 'L' },
         { id: 'wp-finance', type: 'finance', title: '專案收支', size: 'M' },
         { id: 'wp-inventory', type: 'inventory', title: '庫存追蹤', size: 'M' },
+        { id: 'wp-progress', type: 'progress', title: '進度追蹤', size: 'L' },
         { id: 'wp-files', type: 'files', title: '檔案中心', size: 'M' },
     ]);
 
@@ -507,6 +509,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                             />}
                             {w.type === 'vendors' && <WidgetProjectVendors vendors={activeProject.vendors || []} size={w.size} onAddVendor={() => setIsVendorModalOpen(true)} onRemoveVendor={handleRemoveVendor} />}
                             {w.type === 'inventory' && <WidgetProjectInventory inventory={activeProject.inventory || []} size={w.size} onAddRecord={() => setIsInventoryModalOpen(true)} />}
+                            {w.type === 'progress' && <WidgetProjectProgress project={activeProject} onUpdateProject={onUpdateProject} size={w.size} addToast={addToast} />}
                         </WidgetWrapper>
                     ))}
 
@@ -572,8 +575,8 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 auto-rows-auto">
                     {listWidgets.map((w, i) => (
                         <WidgetWrapper key={w.id} widget={w} onResize={handleResize(listWidgets, setListWidgets)}>
-                            {w.type === 'project-stats' && <WidgetProjectStats data={data} size={w.size} />}
-                            {w.type === 'project-list' && <WidgetProjectList data={data} size={w.size} onSelectProject={setActiveProject} onAdd={() => setIsAddModalOpen(true)} />}
+                            {w.type === 'project-stats' && <WidgetProjectStats data={data?.projects || data || []} size={w.size} />}
+                            {w.type === 'project-list' && <WidgetProjectList data={data?.projects || data || []} size={w.size} onSelectProject={setActiveProject} onAdd={() => setIsAddModalOpen(true)} />}
                         </WidgetWrapper>
                     ))}
                 </div>

@@ -909,7 +909,6 @@ const App = () => {
     '/dashboard': 'dashboard',
     '/clients': 'clients',
     '/projects': 'projects',
-    '/construction': 'construction',
     '/events': 'events',
     '/quotations': 'quotations',
     '/contracts': 'contracts',
@@ -963,7 +962,6 @@ const App = () => {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
       case 'clients': return <ClientsPage data={MOCK_DATA.clients || []} allProjects={MOCK_DATA.projects || []} addToast={console.log} />;
       case 'projects': return <ProjectsPage data={MOCK_DATA} />;
-      case 'construction': return <Construction />;
       case 'events': return <CalendarPage />;
       case 'quotations': return <Quotations />;
       case 'contracts': return <Contracts />;
@@ -1030,7 +1028,6 @@ const App = () => {
           <SidebarGroup label="營運管理">
             <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => navigate('clients')} />
             <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => navigate('projects')} />
-            <SidebarItem icon={Building2} label="工程管理" active={activeTab === 'construction'} onClick={() => navigate('construction')} />
             <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => navigate('events')} />
           </SidebarGroup>
 
