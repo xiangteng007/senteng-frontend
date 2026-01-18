@@ -190,34 +190,7 @@ const MOCK_DATA = {
       desc: "辦公室文具"
     }
   ],
-  vendors: [
-    {
-      id: "v-1",
-      name: "大師兄精緻木工坊",
-      category: "工程工班",
-      tradeType: "木工",
-      contactPerson: "王大哥",
-      phone: "0912-345-678",
-      address: "新北市板橋區文化路一段...",
-      status: "長期合作",
-      rating: 4.9,
-      lastProject: "信義區林公館",
-      tags: ["配合度高", "手工細緻"]
-    },
-    {
-      id: "v-2",
-      name: "永亮專業水電",
-      category: "工程工班",
-      tradeType: "水電",
-      contactPerson: "張師傅",
-      phone: "0922-333-444",
-      address: "新店區中興路三段...",
-      status: "合作中",
-      rating: 4.5,
-      lastProject: "南港軟體園區辦公室",
-      tags: ["配線整齊", "配合度高"]
-    }
-  ],
+  vendors: [],
   inventory: [
     {
       id: "i-1",
