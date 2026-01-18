@@ -908,7 +908,7 @@ const App = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
-      case 'clients': return <ClientsPage data={MOCK_DATA} />;
+      case 'clients': return <ClientsPage data={MOCK_DATA.clients || []} allProjects={MOCK_DATA.projects || []} addToast={console.log} />;
       case 'projects': return <ProjectsPage data={MOCK_DATA} />;
       case 'construction': return <Construction />;
       case 'events': return <CalendarPage />;
@@ -920,7 +920,7 @@ const App = () => {
       case 'finance': return <FinancePage data={MOCK_DATA} />;
       case 'profit-analysis': return <ProfitAnalysis />;
       case 'inventory': return <InventoryPage data={MOCK_DATA.inventory} addToast={console.log} />;
-      case 'vendors': return <VendorsPage data={MOCK_DATA} />;
+      case 'vendors': return <VendorsPage data={MOCK_DATA.vendors || []} addToast={console.log} />;
       case 'users': return <UserSettings />;
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;

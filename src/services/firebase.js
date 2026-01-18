@@ -30,13 +30,28 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Check if Firebase config is valid (has API key)
+const isFirebaseConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'undefined';
 
-// Auth providers
-const googleProvider = new GoogleAuthProvider();
+// Initialize Firebase only if properly configured
+let app = null;
+let auth = null;
+let db = null;
+let googleProvider = null;
+
+if (isFirebaseConfigured) {
+    try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        googleProvider = new GoogleAuthProvider();
+        console.log('Firebase initialized successfully');
+    } catch (error) {
+        console.warn('Firebase initialization failed:', error.message);
+    }
+} else {
+    console.warn('Firebase not configured - running in offline mode. Set VITE_FIREBASE_* environment variables to enable.');
+}
 
 // Default role configuration
 const DEFAULT_ROLES = {
@@ -71,6 +86,10 @@ const DEFAULT_ROLES = {
  * @returns {Promise<Object>} User object with role info
  */
 export const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+        console.warn('Firebase Auth not initialized');
+        throw new Error('Firebase 未設定，請聯繫系統管理員');
+    }
     try {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
@@ -125,6 +144,11 @@ export const signOut = async () => {
  * @returns {Function} Unsubscribe function
  */
 export const subscribeToAuthState = (callback) => {
+    if (!auth) {
+        // Firebase not configured - call callback with null immediately
+        callback(null);
+        return () => { }; // Return no-op unsubscribe
+    }
     return onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             const userWithRole = await getUserWithRole(firebaseUser.uid);
