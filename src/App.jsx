@@ -47,6 +47,10 @@ import VendorsPage from './pages/Vendors';
 import InventoryPage from './pages/Inventory';
 import FinancePage from './pages/Finance';
 import CalendarPage from './pages/Calendar';
+import QuotationsPage from './pages/Quotations';
+import ChangeOrdersPage from './pages/ChangeOrders';
+import PaymentsPage from './pages/Payments';
+import ProfitAnalysisPage from './pages/ProfitAnalysis';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -863,14 +867,14 @@ const PlaceholderPage = ({ title, icon: Icon }) => (
   </div>
 );
 
-const Quotations = () => <PlaceholderPage title="報價單管理" icon={FileText} />;
+const Quotations = (props) => <QuotationsPage {...props} />;
 const Contracts = (props) => <ContractsPage {...props} />;
-const ChangeOrders = () => <PlaceholderPage title="變更單管理" icon={RefreshCw} />;
+const ChangeOrders = (props) => <ChangeOrdersPage {...props} />;
 const Invoices = () => <PlaceholderPage title="發票管理" icon={Receipt} />;
-const Payments = () => <PlaceholderPage title="付款管理" icon={CreditCard} />;
+const Payments = (props) => <PaymentsPage {...props} />;
 const Construction = (props) => <ConstructionPage {...props} />;
-const Events = () => <PlaceholderPage title="行事曆" icon={Calendar} />;
-const ProfitAnalysis = () => <PlaceholderPage title="利潤分析" icon={TrendingUp} />;
+const Events = () => <CalendarPage />;
+const ProfitAnalysis = (props) => <ProfitAnalysisPage {...props} />;
 const UserSettings = () => <PlaceholderPage title="使用者管理" icon={Users} />;
 const Integrations = () => <PlaceholderPage title="整合設定" icon={Link2} />;
 const Storage = () => <PlaceholderPage title="文件管理" icon={FolderOpen} />;

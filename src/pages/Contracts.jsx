@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     FileText, Plus, Search, Eye, Edit2, Trash2, CheckCircle,
     Clock, AlertCircle, Building2, Users, Calendar, DollarSign,
-    FileSignature, Shield, TrendingUp, ArrowRight, Paperclip, Receipt, RefreshCw
+    FileSignature, Shield, TrendingUp, ArrowRight
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 import ContractService, {
@@ -19,8 +19,6 @@ import ContractService, {
     PAYMENT_TERM_TEMPLATES,
 } from '../services/ContractService';
 import { QuotationService, QUOTATION_STATUS } from '../services/QuotationService';
-import ContractAttachments from '../components/contracts/ContractAttachments';
-import ContractEditor from '../components/contracts/ContractEditor';
 
 // ============================================
 // 格式化函數
@@ -140,8 +138,8 @@ const CreateContractModal = ({ isOpen, onClose, onSubmit, addToast }) => {
                                         key={q.id}
                                         onClick={() => setSelectedQuotation(q)}
                                         className={`w-full p-3 rounded-lg border-2 text-left transition-all ${selectedQuotation?.id === q.id
-                                            ? 'border-orange-500 bg-orange-50'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-orange-500 bg-orange-50'
+                                                : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <div className="flex justify-between items-start">
@@ -261,9 +259,6 @@ const CreateContractModal = ({ isOpen, onClose, onSubmit, addToast }) => {
 // 合約詳情
 // ============================================
 const ContractDetail = ({ contract, onBack, onRefresh, addToast }) => {
-    const [activeTab, setActiveTab] = useState('info');
-    const [isEditing, setIsEditing] = useState(false);
-
     const progress = contract.currentAmount > 0
         ? Math.round((contract.paidAmount / contract.currentAmount) * 100)
         : 0;
@@ -272,10 +267,10 @@ const ContractDetail = ({ contract, onBack, onRefresh, addToast }) => {
         if (window.confirm('確定要簽約嗎？')) {
             try {
                 await ContractService.sign(contract.id);
-                addToast?.('合約已簽約', 'success');
+                addToast?.('success', '合約已簽約');
                 onRefresh?.();
-            } catch (_err) {
-                addToast?.('簽約失敗', 'error');
+            } catch (error) {
+                addToast?.('error', '簽約失敗');
             }
         }
     };
@@ -284,10 +279,10 @@ const ContractDetail = ({ contract, onBack, onRefresh, addToast }) => {
         if (window.confirm('確定要標記完工嗎？')) {
             try {
                 await ContractService.complete(contract.id);
-                addToast?.('已標記完工', 'success');
+                addToast?.('success', '已標記完工');
                 onRefresh?.();
-            } catch (_err) {
-                addToast?.('操作失敗', 'error');
+            } catch (error) {
+                addToast?.('error', '操作失敗');
             }
         }
     };
@@ -296,37 +291,13 @@ const ContractDetail = ({ contract, onBack, onRefresh, addToast }) => {
         if (window.confirm('確定要結案嗎？')) {
             try {
                 await ContractService.close(contract.id);
-                addToast?.('已結案', 'success');
+                addToast?.('success', '已結案');
                 onRefresh?.();
-            } catch (_err) {
-                addToast?.('操作失敗', 'error');
+            } catch (error) {
+                addToast?.('error', '操作失敗');
             }
         }
     };
-
-    const handleEditSave = () => {
-        setIsEditing(false);
-        onRefresh?.();
-    };
-
-    // 編輯模式
-    if (isEditing) {
-        return (
-            <ContractEditor
-                contract={contract}
-                onSave={handleEditSave}
-                onCancel={() => setIsEditing(false)}
-                addToast={addToast}
-            />
-        );
-    }
-
-    const tabs = [
-        { id: 'info', label: '合約資訊', icon: FileText },
-        { id: 'attachments', label: '附件', icon: Paperclip },
-        { id: 'payments', label: '請款記錄', icon: Receipt },
-        { id: 'changes', label: '變更單', icon: RefreshCw },
-    ];
 
     return (
         <div className="space-y-6">
@@ -345,13 +316,6 @@ const ContractDetail = ({ contract, onBack, onRefresh, addToast }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                    >
-                        <Edit2 size={16} />
-                        編輯
-                    </button>
                     {contract.status === CONTRACT_STATUS.DRAFT && (
                         <button
                             onClick={handleSign}
@@ -419,129 +383,75 @@ const ContractDetail = ({ contract, onBack, onRefresh, addToast }) => {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === tab.id
-                                ? 'bg-white text-orange-600 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        <tab.icon size={16} />
-                        {tab.label}
-                    </button>
-                ))}
+            {/* 合約資訊 */}
+            <div className="grid grid-cols-2 gap-6">
+                {/* 基本資訊 */}
+                <div className="bg-white rounded-xl p-6 border border-gray-100">
+                    <h3 className="font-semibold mb-4">基本資訊</h3>
+                    <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">合約類型</span>
+                            <span>{CONTRACT_TYPE_LABELS[contract.type]}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">客戶</span>
+                            <span>{contract.customerName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">來源估價單</span>
+                            <span>{contract.quotationNo}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">保留款比例</span>
+                            <span>{contract.retentionRate}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">保固期</span>
+                            <span>{contract.warrantyMonths} 個月</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 日期資訊 */}
+                <div className="bg-white rounded-xl p-6 border border-gray-100">
+                    <h3 className="font-semibold mb-4">日期資訊</h3>
+                    <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">建立日期</span>
+                            <span>{formatDate(contract.createdAt)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">簽約日期</span>
+                            <span>{formatDate(contract.signedDate)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">預計開工</span>
+                            <span>{formatDate(contract.startDate)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">預計完工</span>
+                            <span>{formatDate(contract.endDate)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">保固到期</span>
+                            <span>{formatDate(contract.warrantyEndDate)}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Tab 內容 */}
-            {activeTab === 'info' && (
-                <div className="grid grid-cols-2 gap-6">
-                    {/* 基本資訊 */}
-                    <div className="bg-white rounded-xl p-6 border border-gray-100">
-                        <h3 className="font-semibold mb-4">基本資訊</h3>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">合約類型</span>
-                                <span>{CONTRACT_TYPE_LABELS[contract.type]}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">客戶</span>
-                                <span>{contract.customerName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">來源估價單</span>
-                                <span>{contract.quotationNo}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">保留款比例</span>
-                                <span>{contract.retentionRate}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">保固期</span>
-                                <span>{contract.warrantyMonths} 個月</span>
-                            </div>
+            {/* 付款條件 */}
+            <div className="bg-white rounded-xl p-6 border border-gray-100">
+                <h3 className="font-semibold mb-4">付款條件</h3>
+                <div className="flex gap-2">
+                    {contract.paymentTerms?.map((term, index) => (
+                        <div key={index} className="flex-1 p-3 bg-gray-50 rounded-lg text-center">
+                            <p className="text-xs text-gray-500">{term.name}</p>
+                            <p className="text-lg font-bold text-gray-800">{term.percentage}%</p>
                         </div>
-                    </div>
-
-                    {/* 日期資訊 */}
-                    <div className="bg-white rounded-xl p-6 border border-gray-100">
-                        <h3 className="font-semibold mb-4">日期資訊</h3>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">建立日期</span>
-                                <span>{formatDate(contract.createdAt)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">簽約日期</span>
-                                <span>{formatDate(contract.signedDate)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">預計開工</span>
-                                <span>{formatDate(contract.startDate)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">預計完工</span>
-                                <span>{formatDate(contract.endDate)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">保固到期</span>
-                                <span>{formatDate(contract.warrantyEndDate)}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 付款條件 */}
-                    <div className="col-span-2 bg-white rounded-xl p-6 border border-gray-100">
-                        <h3 className="font-semibold mb-4">付款條件</h3>
-                        <div className="flex gap-2">
-                            {contract.paymentTerms?.map((term, index) => (
-                                <div key={index} className="flex-1 p-3 bg-gray-50 rounded-lg text-center">
-                                    <p className="text-xs text-gray-500">{term.name}</p>
-                                    <p className="text-lg font-bold text-gray-800">{term.percentage}%</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    ))}
                 </div>
-            )}
-
-            {activeTab === 'attachments' && (
-                <div className="bg-white rounded-xl p-6 border border-gray-100">
-                    <ContractAttachments
-                        contractId={contract.id}
-                        addToast={addToast}
-                    />
-                </div>
-            )}
-
-            {activeTab === 'payments' && (
-                <div className="bg-white rounded-xl p-6 border border-gray-100">
-                    <div className="text-center py-12 text-gray-400">
-                        <Receipt size={48} className="mx-auto mb-4 opacity-50" />
-                        <p className="font-medium">請款記錄</p>
-                        <p className="text-sm mt-1">此功能連結到請款管理模組</p>
-                        <button className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
-                            查看請款管理
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'changes' && (
-                <div className="bg-white rounded-xl p-6 border border-gray-100">
-                    <div className="text-center py-12 text-gray-400">
-                        <RefreshCw size={48} className="mx-auto mb-4 opacity-50" />
-                        <p className="font-medium">變更單記錄</p>
-                        <p className="text-sm mt-1">此功能連結到變更單管理模組</p>
-                        <button className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
-                            查看變更單
-                        </button>
-                    </div>
-                </div>
-            )}
+            </div>
         </div>
     );
 };

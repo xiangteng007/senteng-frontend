@@ -69,25 +69,19 @@ const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('zh-TW');
 };
 
-// 統計卡片組件 (Premium Design)
+// 統計卡片組件
 const StatCard = ({ icon: Icon, label, value, color = 'gray', onClick }) => (
     <div
         onClick={onClick}
-        className={`stat-card group ${onClick ? 'cursor-pointer' : ''}`}
+        className={`bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}
     >
         <div className="flex items-center justify-between">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg shadow-blue-200' :
-                    color === 'orange' ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-200' :
-                        color === 'red' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg shadow-red-200' :
-                            color === 'purple' ? 'bg-gradient-to-br from-purple-400 to-purple-600 text-white shadow-lg shadow-purple-200' :
-                                color === 'green' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-200' :
-                                    'bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-lg shadow-gray-200'
-                }`}>
-                <Icon size={22} />
+            <div className={`w-10 h-10 rounded-lg bg-${color}-100 flex items-center justify-center`}>
+                <Icon size={20} className={`text-${color}-600`} />
             </div>
             <div className="text-right">
-                <div className="text-3xl font-bold text-gray-800">{value}</div>
-                <div className="text-sm text-gray-500 font-medium">{label}</div>
+                <div className={`text-2xl font-bold text-${color}-600`}>{value}</div>
+                <div className="text-xs text-gray-500">{label}</div>
             </div>
         </div>
     </div>
@@ -536,7 +530,7 @@ const Inventory = ({ data, addToast, onUpdateInventory }) => {
                     )}
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="btn-primary flex items-center gap-2"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         <Plus size={18} />
                         新增品項
@@ -575,7 +569,7 @@ const Inventory = ({ data, addToast, onUpdateInventory }) => {
             </div>
 
             {/* 搜尋與篩選 */}
-            <div className="glass-card rounded-2xl p-5 shadow-soft">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex flex-col md:flex-row gap-4">
                     {/* 搜尋框 */}
                     <div className="flex-1 relative">
