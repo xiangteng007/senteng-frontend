@@ -98,15 +98,16 @@ export const signInWithGoogle = async () => {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
 
         if (!userDoc.exists()) {
-            // First user becomes super_admin, others are users
+            // System owner email gets super_admin, first user also gets super_admin, others get user
             const usersCollection = await getDocs(collection(db, 'users'));
             const isFirstUser = usersCollection.empty;
+            const isSystemOwner = user.email === 'xiangteng007@gmail.com';
 
             await setDoc(doc(db, 'users', user.uid), {
                 email: user.email,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
-                role: isFirstUser ? 'super_admin' : 'user',
+                role: (isFirstUser || isSystemOwner) ? 'super_admin' : 'user',
                 googleId: user.uid,
                 lineUserId: null,
                 createdAt: serverTimestamp(),

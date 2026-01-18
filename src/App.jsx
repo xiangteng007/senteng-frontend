@@ -52,6 +52,7 @@ import ChangeOrdersPage from './pages/ChangeOrders';
 import PaymentsPage from './pages/Payments';
 import ProfitAnalysisPage from './pages/ProfitAnalysis';
 import InvoicesPage from './pages/Invoices';
+import UserManagement from './pages/UserManagement';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -972,7 +973,7 @@ const App = () => {
       case 'profit-analysis': return <ProfitAnalysis />;
       case 'inventory': return <InventoryPage data={MOCK_DATA.inventory} addToast={console.log} />;
       case 'vendors': return <VendorsPage data={MOCK_DATA.vendors || []} addToast={console.log} />;
-      case 'users': return <UserSettings />;
+      case 'users': return <UserManagement addToast={console.log} />;
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;
       case 'material-calc': return <MaterialCalculator />;
