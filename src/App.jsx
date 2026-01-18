@@ -54,6 +54,7 @@ import PaymentsPage from './pages/Payments';
 import ProfitAnalysisPage from './pages/ProfitAnalysis';
 import InvoicesPage from './pages/Invoices';
 import UserManagement from './pages/UserManagement';
+import LoginPage from './pages/LoginPage';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -905,7 +906,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 const App = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   // URL path to tab mappings
   const ROUTES = {
     '/': 'dashboard',
@@ -1010,6 +1011,23 @@ const App = () => {
     'bim': 'BIM 管理'
   };
   const getTitle = () => titles[activeTab] || '儀表板';
+
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
+          <p className="text-gray-500 text-sm">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if user is not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-900 selection:bg-gray-200">
