@@ -51,6 +51,7 @@ import QuotationsPage from './pages/Quotations';
 import ChangeOrdersPage from './pages/ChangeOrders';
 import PaymentsPage from './pages/Payments';
 import ProfitAnalysisPage from './pages/ProfitAnalysis';
+import InvoicesPage from './pages/Invoices';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -870,7 +871,7 @@ const PlaceholderPage = ({ title, icon: Icon }) => (
 const Quotations = (props) => <QuotationsPage {...props} />;
 const Contracts = (props) => <ContractsPage {...props} />;
 const ChangeOrders = (props) => <ChangeOrdersPage {...props} />;
-const Invoices = () => <PlaceholderPage title="發票管理" icon={Receipt} />;
+const Invoices = (props) => <InvoicesPage {...props} />;
 const Payments = (props) => <PaymentsPage {...props} />;
 const Construction = (props) => <ConstructionPage {...props} />;
 const Events = () => <CalendarPage />;
