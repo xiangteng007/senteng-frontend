@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from './context/AuthContext';
 import {
   LayoutDashboard,
   Users,
@@ -904,6 +905,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 const App = () => {
+  const { user } = useAuth();
   // URL path to tab mappings
   const ROUTES = {
     '/': 'dashboard',
@@ -1017,7 +1019,7 @@ const App = () => {
         <div className="p-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-gray-200">S</div>
-            <span className="mt-0.5">SENTENG ERP</span>
+            <span className="mt-0.5">SENTENG</span>
           </h1>
         </div>
 
@@ -1063,12 +1065,16 @@ const App = () => {
 
         <div className="p-4 border-t border-gray-50">
           <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
-              A
-            </div>
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
+                {user?.displayName?.[0] || user?.email?.[0] || 'G'}
+              </div>
+            )}
             <div>
-              <p className="text-sm font-bold text-gray-900">設計總監</p>
-              <p className="text-xs text-gray-400">v3.2.1-debug (admin)</p>
+              <p className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{user?.displayName || '訪客'}</p>
+              <p className="text-xs text-gray-400">v3.2.1 ({user?.role || 'guest'})</p>
             </div>
           </div>
         </div>
@@ -1089,12 +1095,16 @@ const App = () => {
             <div className="h-8 w-px bg-gray-200"></div>
             <div className="flex items-center gap-2">
               <div className="text-right">
-                <p className="text-sm font-bold text-gray-900">Alex Chen</p>
-                <p className="text-xs text-gray-400">設計總監</p>
+                <p className="text-sm font-bold text-gray-900">{user?.displayName || '訪客'}</p>
+                <p className="text-xs text-gray-400">{user?.role === 'super_admin' ? '最高管理員' : user?.role === 'admin' ? '管理員' : '使用者'}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold shadow-lg shadow-gray-200">
-                A
-              </div>
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full object-cover shadow-lg shadow-gray-200" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold shadow-lg shadow-gray-200">
+                  {user?.displayName?.[0] || user?.email?.[0] || 'G'}
+                </div>
+              )}
             </div>
           </div>
         </header>
