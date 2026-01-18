@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -903,7 +903,60 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // URL path to tab mappings
+  const ROUTES = {
+    '/': 'dashboard',
+    '/dashboard': 'dashboard',
+    '/clients': 'clients',
+    '/projects': 'projects',
+    '/construction': 'construction',
+    '/events': 'events',
+    '/quotations': 'quotations',
+    '/contracts': 'contracts',
+    '/change-orders': 'change-orders',
+    '/invoices': 'invoices',
+    '/payments': 'payments',
+    '/finance': 'finance',
+    '/profit-analysis': 'profit-analysis',
+    '/inventory': 'inventory',
+    '/vendors': 'vendors',
+    '/users': 'users',
+    '/integrations': 'integrations',
+    '/storage': 'storage',
+    '/material-calc': 'material-calc',
+    '/cost-est': 'cost-est',
+    '/quotation-edit': 'quotation-edit',
+    '/bim': 'bim'
+  };
+
+  // Get initial tab from URL
+  const getTabFromPath = (path) => ROUTES[path] || 'dashboard';
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(window.location.pathname));
+
+  // Navigate function that updates both URL and state
+  const navigate = (tab) => {
+    const path = Object.keys(ROUTES).find(key => ROUTES[key] === tab && key !== '/') || '/';
+    window.history.pushState({ tab }, '', path);
+    setActiveTab(tab);
+  };
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (event.state?.tab) {
+        setActiveTab(event.state.tab);
+      } else {
+        setActiveTab(getTabFromPath(window.location.pathname));
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Set initial history state
+    window.history.replaceState({ tab: activeTab }, '', window.location.pathname);
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -971,42 +1024,42 @@ const App = () => {
 
         <nav className="flex-1 px-3 overflow-y-auto">
           <div className="mb-2">
-            <SidebarItem icon={LayoutDashboard} label="儀表板" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+            <SidebarItem icon={LayoutDashboard} label="儀表板" active={activeTab === 'dashboard'} onClick={() => navigate('dashboard')} />
           </div>
 
           <SidebarGroup label="營運管理">
-            <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
-            <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => setActiveTab('projects')} />
-            <SidebarItem icon={Building2} label="工程管理" active={activeTab === 'construction'} onClick={() => setActiveTab('construction')} />
-            <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
+            <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => navigate('clients')} />
+            <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => navigate('projects')} />
+            <SidebarItem icon={Building2} label="工程管理" active={activeTab === 'construction'} onClick={() => navigate('construction')} />
+            <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => navigate('events')} />
           </SidebarGroup>
 
           <SidebarGroup label="商務文件">
-            <SidebarItem icon={FileText} label="報價單" active={activeTab === 'quotations'} onClick={() => setActiveTab('quotations')} />
-            <SidebarItem icon={FileSignature} label="合約管理" active={activeTab === 'contracts'} onClick={() => setActiveTab('contracts')} />
-            <SidebarItem icon={RefreshCw} label="變更單" active={activeTab === 'change-orders'} onClick={() => setActiveTab('change-orders')} />
-            <SidebarItem icon={Receipt} label="發票管理" active={activeTab === 'invoices'} onClick={() => setActiveTab('invoices')} />
-            <SidebarItem icon={CreditCard} label="付款管理" active={activeTab === 'payments'} onClick={() => setActiveTab('payments')} />
+            <SidebarItem icon={FileText} label="報價單" active={activeTab === 'quotations'} onClick={() => navigate('quotations')} />
+            <SidebarItem icon={FileSignature} label="合約管理" active={activeTab === 'contracts'} onClick={() => navigate('contracts')} />
+            <SidebarItem icon={RefreshCw} label="變更單" active={activeTab === 'change-orders'} onClick={() => navigate('change-orders')} />
+            <SidebarItem icon={Receipt} label="發票管理" active={activeTab === 'invoices'} onClick={() => navigate('invoices')} />
+            <SidebarItem icon={CreditCard} label="付款管理" active={activeTab === 'payments'} onClick={() => navigate('payments')} />
           </SidebarGroup>
 
           <SidebarGroup label="財務庫存">
-            <SidebarItem icon={Wallet} label="財務管理" active={activeTab === 'finance'} onClick={() => setActiveTab('finance')} />
-            <SidebarItem icon={TrendingUp} label="利潤分析" active={activeTab === 'profit-analysis'} onClick={() => setActiveTab('profit-analysis')} />
-            <SidebarItem icon={Package} label="庫存管理" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
-            <SidebarItem icon={HardHat} label="廠商管理" active={activeTab === 'vendors'} onClick={() => setActiveTab('vendors')} />
+            <SidebarItem icon={Wallet} label="財務管理" active={activeTab === 'finance'} onClick={() => navigate('finance')} />
+            <SidebarItem icon={TrendingUp} label="利潤分析" active={activeTab === 'profit-analysis'} onClick={() => navigate('profit-analysis')} />
+            <SidebarItem icon={Package} label="庫存管理" active={activeTab === 'inventory'} onClick={() => navigate('inventory')} />
+            <SidebarItem icon={HardHat} label="廠商管理" active={activeTab === 'vendors'} onClick={() => navigate('vendors')} />
           </SidebarGroup>
 
           <SidebarGroup label="工程估算">
-            <SidebarItem icon={Ruler} label="材料估算" active={activeTab === 'material-calc'} onClick={() => setActiveTab('material-calc')} />
-            <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => setActiveTab('cost-est')} />
-            <SidebarItem icon={FileText} label="報價編輯" active={activeTab === 'quotation-edit'} onClick={() => setActiveTab('quotation-edit')} />
-            <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => setActiveTab('bim')} />
+            <SidebarItem icon={Ruler} label="材料估算" active={activeTab === 'material-calc'} onClick={() => navigate('material-calc')} />
+            <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => navigate('cost-est')} />
+            <SidebarItem icon={FileText} label="報價編輯" active={activeTab === 'quotation-edit'} onClick={() => navigate('quotation-edit')} />
+            <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => navigate('bim')} />
           </SidebarGroup>
 
           <SidebarGroup label="設定">
-            <SidebarItem icon={Users} label="使用者管理" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-            <SidebarItem icon={Link2} label="整合設定" active={activeTab === 'integrations'} onClick={() => setActiveTab('integrations')} />
-            <SidebarItem icon={FolderOpen} label="文件管理" active={activeTab === 'storage'} onClick={() => setActiveTab('storage')} />
+            <SidebarItem icon={Users} label="使用者管理" active={activeTab === 'users'} onClick={() => navigate('users')} />
+            <SidebarItem icon={Link2} label="整合設定" active={activeTab === 'integrations'} onClick={() => navigate('integrations')} />
+            <SidebarItem icon={FolderOpen} label="文件管理" active={activeTab === 'storage'} onClick={() => navigate('storage')} />
           </SidebarGroup>
         </nav>
 
