@@ -30,7 +30,8 @@ import {
   FolderOpen,
   ChevronDown,
   Calculator,
-  Ruler
+  Ruler,
+  LogOut
 } from 'lucide-react';
 
 // Import P0 pages from design-system
@@ -906,7 +907,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 const App = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   // URL path to tab mappings
   const ROUTES = {
     '/': 'dashboard',
@@ -1090,10 +1091,17 @@ const App = () => {
                 {user?.displayName?.[0] || user?.email?.[0] || 'G'}
               </div>
             )}
-            <div>
-              <p className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{user?.displayName || '訪客'}</p>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-gray-900 truncate max-w-[100px]">{user?.displayName || '訪客'}</p>
               <p className="text-xs text-gray-400">v3.2.1 ({user?.role || 'guest'})</p>
             </div>
+            <button
+              onClick={signOut}
+              className="p-2 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+              title="登出"
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </aside>
