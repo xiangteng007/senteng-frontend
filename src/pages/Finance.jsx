@@ -9,7 +9,7 @@ import { LoanAccountModal } from '../components/finance/LoanAccountModal';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
-import { Plus, Download, Search, Building2 } from 'lucide-react';
+import { Plus, Download, Search, Building2, Settings, X } from 'lucide-react';
 import { GoogleService } from '../services/GoogleService';
 
 // 收支類別選項
@@ -71,6 +71,9 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    // Widget Edit Mode
+    const [isEditMode, setIsEditMode] = useState(false);
 
     // Drag Refs
     const dragItem = useRef(null);
@@ -364,18 +367,45 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateL
         <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <SectionTitle title="財務管理" />
-                <button
-                    onClick={() => setIsExportModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-all shadow-sm"
-                >
-                    <Download size={18} />
-                    匯出報表
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all shadow-sm ${isEditMode
+                                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                    >
+                        {isEditMode ? <X size={18} /> : <Settings size={18} />}
+                        {isEditMode ? '完成編輯' : '編輯版面'}
+                    </button>
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-all shadow-sm"
+                    >
+                        <Download size={18} />
+                        匯出報表
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 auto-rows-auto">
+            {isEditMode && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-3">
+                    <span className="text-orange-600 text-sm font-medium">✏️ 編輯模式</span>
+                    <span className="text-orange-600/70 text-sm">拖曳 Widget 調整順序，點擊角落調整大小</span>
+                </div>
+            )}
+
+            <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 auto-rows-auto ${isEditMode ? 'ring-2 ring-orange-300 ring-offset-4 rounded-2xl p-2 bg-orange-50/50' : ''}`}>
                 {widgets.map((w, i) => (
-                    <WidgetWrapper key={w.id} widget={w} onResize={handleResize} onDragStart={(e) => handleDragStart(e, i)} onDragEnter={(e) => handleDragEnter(e, i)} onDragEnd={handleDragEnd}>
+                    <WidgetWrapper
+                        key={w.id}
+                        widget={w}
+                        onResize={handleResize}
+                        onDragStart={isEditMode ? (e) => handleDragStart(e, i) : undefined}
+                        onDragEnter={isEditMode ? (e) => handleDragEnter(e, i) : undefined}
+                        onDragEnd={isEditMode ? handleDragEnd : undefined}
+                        isEditMode={isEditMode}
+                    >
                         {renderWidget(w)}
                     </WidgetWrapper>
                 ))}
