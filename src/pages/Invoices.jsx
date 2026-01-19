@@ -1,84 +1,163 @@
 /**
- * 發票管理頁面 (Invoices.jsx)
- * 發票列表與編輯器 - 串接專案、客戶、廠商、財務資料
+ * 發票管理系統 (InvoicesPage.jsx)
+ * 台灣營造/室內設計/建築企業專用
+ * - 支援二聯式/三聯式/電子發票
+ * - 專案成本歸戶
+ * - 進項扣抵管理
+ * - AI 辨識整合
+ * - 簽核付款流程
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     FileText, Plus, Search, Filter, Eye, Edit2, Trash2, Send,
-    Check, X, DollarSign, Calendar, Building2, Users, Receipt,
-    AlertCircle, Clock, CheckCircle, TrendingUp, Download, Upload,
-    Printer, Copy, ExternalLink, Calculator
+    Check, X, DollarSign, Calendar, Building2, Receipt, Upload,
+    AlertCircle, Clock, CheckCircle, TrendingUp, Download, Camera,
+    ChevronDown, ChevronRight, Briefcase, Tag, CreditCard, RefreshCw,
+    FileCheck, AlertTriangle, Zap, MoreHorizontal, ArrowUpRight,
+    ScanLine, Loader2, CheckCircle2, XCircle, Sparkles
 } from 'lucide-react';
-import { SectionTitle } from '../components/common/Indicators';
-import { Modal } from '../components/common/Modal';
-import { InputField } from '../components/common/InputField';
-import { projectsApi, clientsApi, vendorsApi } from '../services/api';
+import { vendorsApi, projectsApi } from '../services/api';
 
 // ============================================
-// 發票狀態與類型常量
+// 常量定義
 // ============================================
-export const INVOICE_STATUS = {
+
+// 文件類型
+export const DOC_TYPES = {
+    INVOICE_B2B: 'INVOICE_B2B',     // 三聯式
+    INVOICE_B2C: 'INVOICE_B2C',     // 二聯式
+    INVOICE_EGUI: 'INVOICE_EGUI',   // 電子發票
+    RECEIPT: 'RECEIPT',             // 收據
+    CLAIM: 'CLAIM',                 // 請款單
+};
+
+export const DOC_TYPE_LABELS = {
+    INVOICE_B2B: '三聯式發票',
+    INVOICE_B2C: '二聯式發票',
+    INVOICE_EGUI: '電子發票',
+    RECEIPT: '收據',
+    CLAIM: '請款單',
+};
+
+export const DOC_TYPE_COLORS = {
+    INVOICE_B2B: 'bg-purple-100 text-purple-700',
+    INVOICE_B2C: 'bg-amber-100 text-amber-700',
+    INVOICE_EGUI: 'bg-blue-100 text-blue-700',
+    RECEIPT: 'bg-gray-100 text-gray-700',
+    CLAIM: 'bg-green-100 text-green-700',
+};
+
+// 發票狀態
+export const INVOICE_STATES = {
     DRAFT: 'DRAFT',
-    ISSUED: 'ISSUED',
-    SENT: 'SENT',
+    UPLOADED: 'UPLOADED',
+    AI_EXTRACTED: 'AI_EXTRACTED',
+    NEEDS_REVIEW: 'NEEDS_REVIEW',
+    REVIEWED: 'REVIEWED',
+    ASSIGNED: 'ASSIGNED',
+    PENDING_APPROVAL: 'PENDING_APPROVAL',
+    APPROVED: 'APPROVED',
+    REJECTED: 'REJECTED',
+    PAYABLE_SCHEDULED: 'PAYABLE_SCHEDULED',
     PAID: 'PAID',
-    PARTIAL: 'PARTIAL',
-    OVERDUE: 'OVERDUE',
-    CANCELLED: 'CANCELLED',
+    VAT_CLAIMED: 'VAT_CLAIMED',
+    VOIDED: 'VOIDED',
 };
 
-export const INVOICE_STATUS_LABELS = {
+export const STATE_LABELS = {
     DRAFT: '草稿',
-    ISSUED: '已開立',
-    SENT: '已寄送',
-    PAID: '已收款',
-    PARTIAL: '部分收款',
-    OVERDUE: '逾期',
-    CANCELLED: '已作廢',
+    UPLOADED: '已上傳',
+    AI_EXTRACTED: 'AI辨識中',
+    NEEDS_REVIEW: '待覆核',
+    REVIEWED: '已覆核',
+    ASSIGNED: '已歸戶',
+    PENDING_APPROVAL: '待簽核',
+    APPROVED: '已核准',
+    REJECTED: '已退回',
+    PAYABLE_SCHEDULED: '已排程',
+    PAID: '已付款',
+    VAT_CLAIMED: '已扣抵',
+    VOIDED: '已作廢',
 };
 
-export const INVOICE_STATUS_COLORS = {
-    DRAFT: 'bg-gray-100 text-gray-700',
-    ISSUED: 'bg-blue-100 text-blue-700',
-    SENT: 'bg-purple-100 text-purple-700',
+export const STATE_COLORS = {
+    DRAFT: 'bg-gray-100 text-gray-600',
+    UPLOADED: 'bg-blue-50 text-blue-600',
+    AI_EXTRACTED: 'bg-indigo-100 text-indigo-600',
+    NEEDS_REVIEW: 'bg-amber-100 text-amber-700',
+    REVIEWED: 'bg-cyan-100 text-cyan-700',
+    ASSIGNED: 'bg-teal-100 text-teal-700',
+    PENDING_APPROVAL: 'bg-orange-100 text-orange-700',
+    APPROVED: 'bg-emerald-100 text-emerald-700',
+    REJECTED: 'bg-red-100 text-red-700',
+    PAYABLE_SCHEDULED: 'bg-violet-100 text-violet-700',
     PAID: 'bg-green-100 text-green-700',
-    PARTIAL: 'bg-orange-100 text-orange-700',
-    OVERDUE: 'bg-red-100 text-red-700',
-    CANCELLED: 'bg-gray-300 text-gray-600',
+    VAT_CLAIMED: 'bg-green-200 text-green-800',
+    VOIDED: 'bg-gray-300 text-gray-600',
 };
 
-export const INVOICE_TYPES = {
-    SALES: 'SALES',         // 銷項發票 (開給客戶)
-    PURCHASE: 'PURCHASE',   // 進項發票 (廠商開給我們)
+// 進項扣抵狀態
+export const VAT_STATUS = {
+    UNKNOWN: 'UNKNOWN',
+    ELIGIBLE: 'ELIGIBLE',
+    INELIGIBLE: 'INELIGIBLE',
+    CLAIMED: 'CLAIMED',
+    ADJUSTED: 'ADJUSTED',
 };
 
-export const INVOICE_TYPE_LABELS = {
-    SALES: '銷項發票',
-    PURCHASE: '進項發票',
+export const VAT_STATUS_LABELS = {
+    UNKNOWN: '待判定',
+    ELIGIBLE: '可扣抵',
+    INELIGIBLE: '不可扣抵',
+    CLAIMED: '已扣抵',
+    ADJUSTED: '需調整',
 };
 
-// 發票格式 (二聯式/三聯式)
-export const INVOICE_FORMATS = {
-    TWO_COPY: 'TWO_COPY',     // 二聯式 (開給個人消費者)
-    THREE_COPY: 'THREE_COPY', // 三聯式 (開給公司行號)
+// 付款狀態
+export const PAYMENT_STATUS = {
+    UNPAID: 'UNPAID',
+    PARTIAL: 'PARTIAL',
+    PAID: 'PAID',
 };
 
-export const INVOICE_FORMAT_LABELS = {
-    TWO_COPY: '二聯式',
-    THREE_COPY: '三聯式',
+export const PAYMENT_STATUS_LABELS = {
+    UNPAID: '未付款',
+    PARTIAL: '部分付款',
+    PAID: '已付款',
 };
 
-// 稅率
-export const TAX_RATES = {
-    STANDARD: 0.05,  // 5% 營業稅
-    ZERO: 0,         // 零稅率
-    EXEMPT: 0,       // 免稅
+// 成本科目
+export const COST_CATEGORIES = {
+    MATERIAL: 'MATERIAL',
+    LABOR: 'LABOR',
+    SUBCONTRACT: 'SUBCONTRACT',
+    EQUIPMENT: 'EQUIPMENT',
+    TRANSPORT: 'TRANSPORT',
+    OVERHEAD: 'OVERHEAD',
+    MISC: 'MISC',
 };
 
-// ============================================
+export const COST_CATEGORY_LABELS = {
+    MATERIAL: '材料費',
+    LABOR: '人工費',
+    SUBCONTRACT: '分包費',
+    EQUIPMENT: '設備費',
+    TRANSPORT: '運輸費',
+    OVERHEAD: '管理費',
+    MISC: '雜支',
+};
+
+// 發票期別計算
+const getInvoicePeriod = (date) => {
+    const d = new Date(date);
+    const month = d.getMonth() + 1;
+    const periodEnd = Math.ceil(month / 2) * 2;
+    const periodStart = periodEnd - 1;
+    return `${periodStart}-${periodEnd}`;
+};
+
 // 格式化函數
-// ============================================
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('zh-TW', {
         style: 'currency',
@@ -93,177 +172,302 @@ const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('zh-TW');
 };
 
-// 產生發票號碼
-const generateInvoiceNo = (type) => {
-    const prefix = type === INVOICE_TYPES.SALES ? 'SI' : 'PI';
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    return `${prefix}${year}${month}-${random}`;
+// ============================================
+// 子元件
+// ============================================
+
+// 狀態標籤
+const StateBadge = ({ state }) => (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATE_COLORS[state] || 'bg-gray-100 text-gray-600'}`}>
+        {STATE_LABELS[state] || state}
+    </span>
+);
+
+// 文件類型標籤
+const DocTypeBadge = ({ type }) => (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${DOC_TYPE_COLORS[type] || 'bg-gray-100 text-gray-600'}`}>
+        {DOC_TYPE_LABELS[type] || type}
+    </span>
+);
+
+// 付款狀態標籤
+const PaymentBadge = ({ status }) => {
+    const colors = {
+        UNPAID: 'bg-red-50 text-red-600 border-red-200',
+        PARTIAL: 'bg-amber-50 text-amber-600 border-amber-200',
+        PAID: 'bg-green-50 text-green-600 border-green-200',
+    };
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${colors[status] || ''}`}>
+            {PAYMENT_STATUS_LABELS[status] || status}
+        </span>
+    );
 };
 
-// ============================================
-// 狀態徽章
-// ============================================
-const StatusBadge = ({ status }) => (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${INVOICE_STATUS_COLORS[status]}`}>
-        {INVOICE_STATUS_LABELS[status]}
-    </span>
-);
-
-const TypeBadge = ({ type }) => (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${type === INVOICE_TYPES.SALES
-        ? 'bg-green-100 text-green-700'
-        : 'bg-blue-100 text-blue-700'
-        }`}>
-        {INVOICE_TYPE_LABELS[type]}
-    </span>
-);
-
-const FormatBadge = ({ format }) => (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${format === INVOICE_FORMATS.THREE_COPY
-        ? 'bg-indigo-100 text-indigo-700'
-        : 'bg-amber-100 text-amber-700'
-        }`}>
-        {INVOICE_FORMAT_LABELS[format]}
-    </span>
-);
-
-// ============================================
 // 統計卡片
-// ============================================
-const StatCard = ({ icon: Icon, label, value, color = 'gray', subValue }) => (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-${color}-100`}>
-                <Icon size={20} className={`text-${color}-600`} />
+const StatCard = ({ title, value, subValue, icon: Icon, color = 'gray', trend }) => {
+    const colorClasses = {
+        gray: 'from-gray-50 to-white border-gray-200',
+        blue: 'from-blue-50 to-white border-blue-200',
+        green: 'from-green-50 to-white border-green-200',
+        amber: 'from-amber-50 to-white border-amber-200',
+        red: 'from-red-50 to-white border-red-200',
+        purple: 'from-purple-50 to-white border-purple-200',
+    };
+    const iconColors = {
+        gray: 'text-gray-500 bg-gray-100',
+        blue: 'text-blue-600 bg-blue-100',
+        green: 'text-green-600 bg-green-100',
+        amber: 'text-amber-600 bg-amber-100',
+        red: 'text-red-600 bg-red-100',
+        purple: 'text-purple-600 bg-purple-100',
+    };
+
+    return (
+        <div className={`bg-gradient-to-br ${colorClasses[color]} rounded-xl p-5 border shadow-sm`}>
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-sm text-gray-500 mb-1">{title}</p>
+                    <p className="text-2xl font-bold text-gray-900">{value}</p>
+                    {subValue && <p className="text-sm text-gray-500 mt-1">{subValue}</p>}
+                </div>
+                <div className={`p-3 rounded-xl ${iconColors[color]}`}>
+                    <Icon size={24} />
+                </div>
             </div>
-            <div className="flex-1">
-                <p className="text-sm text-gray-500">{label}</p>
-                <p className={`text-xl font-bold text-${color}-600`}>{value}</p>
-                {subValue && <p className="text-xs text-gray-400">{subValue}</p>}
-            </div>
+            {trend && (
+                <div className="mt-3 flex items-center gap-1 text-sm">
+                    <TrendingUp size={14} className="text-green-500" />
+                    <span className="text-green-600 font-medium">{trend}</span>
+                </div>
+            )}
         </div>
+    );
+};
+
+// 收件匣標籤
+const InboxTab = ({ label, count, active, onClick, color = 'gray' }) => {
+    const activeColors = {
+        gray: 'border-gray-500 text-gray-700',
+        amber: 'border-amber-500 text-amber-700',
+        blue: 'border-blue-500 text-blue-700',
+        green: 'border-green-500 text-green-700',
+    };
+    const badgeColors = {
+        gray: 'bg-gray-500',
+        amber: 'bg-amber-500',
+        blue: 'bg-blue-500',
+        green: 'bg-green-500',
+    };
+
+    return (
+        <button
+            onClick={onClick}
+            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${active
+                    ? activeColors[color]
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+        >
+            <span className="font-medium">{label}</span>
+            {count > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-xs text-white ${badgeColors[color]}`}>
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+};
+
+// 篩選器下拉選單
+const FilterDropdown = ({ label, value, options, onChange, placeholder = '全部' }) => (
+    <div className="relative">
+        <select
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value || null)}
+            className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        >
+            <option value="">{placeholder}</option>
+            {options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+        </select>
+        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+    </div>
+);
+
+// 空狀態
+const EmptyState = ({ title, description, action }) => (
+    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <Receipt size={32} className="text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">{title}</h3>
+        <p className="text-gray-500 text-sm mb-4 text-center max-w-md">{description}</p>
+        {action}
     </div>
 );
 
 // ============================================
-// 發票項目表格
+// 上傳模態框
 // ============================================
-const InvoiceItemsTable = ({ items, setItems, isEditable, taxRate }) => {
-    const addItem = () => {
-        setItems([...items, {
-            id: `item-${Date.now()}`,
-            description: '',
-            quantity: 1,
-            unitPrice: 0,
-            amount: 0,
-        }]);
+const UploadModal = ({ isOpen, onClose, onUpload }) => {
+    const [files, setFiles] = useState([]);
+    const [dragOver, setDragOver] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const droppedFiles = Array.from(e.dataTransfer.files).filter(
+            f => f.type.startsWith('image/') || f.type === 'application/pdf'
+        );
+        setFiles(prev => [...prev, ...droppedFiles]);
     };
 
-    const updateItem = (index, field, value) => {
-        const updated = [...items];
-        updated[index][field] = value;
-        if (field === 'quantity' || field === 'unitPrice') {
-            updated[index].amount = updated[index].quantity * updated[index].unitPrice;
-        }
-        setItems(updated);
+    const handleFileChange = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        setFiles(prev => [...prev, ...selectedFiles]);
     };
 
-    const removeItem = (index) => {
-        setItems(items.filter((_, i) => i !== index));
+    const removeFile = (index) => {
+        setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-    const taxAmount = Math.round(subtotal * taxRate);
-    const total = subtotal + taxAmount;
+    const handleUpload = async () => {
+        setUploading(true);
+        // TODO: 實際上傳邏輯
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        onUpload?.(files);
+        setUploading(false);
+        setFiles([]);
+        onClose();
+    };
+
+    if (!isOpen) return null;
 
     return (
-        <div className="space-y-4">
-            <table className="w-full">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th className="py-2 px-3 text-left text-sm font-medium text-gray-600">品名/說明</th>
-                        <th className="py-2 px-3 text-center text-sm font-medium text-gray-600 w-24">數量</th>
-                        <th className="py-2 px-3 text-right text-sm font-medium text-gray-600 w-32">單價</th>
-                        <th className="py-2 px-3 text-right text-sm font-medium text-gray-600 w-32">金額</th>
-                        {isEditable && <th className="py-2 px-3 w-12"></th>}
-                    </tr>
-                </thead>
-                <tbody>
-                    {items.map((item, index) => (
-                        <tr key={item.id} className="border-b border-gray-100">
-                            <td className="py-2 px-3">
-                                <input
-                                    type="text"
-                                    value={item.description}
-                                    onChange={(e) => updateItem(index, 'description', e.target.value)}
-                                    disabled={!isEditable}
-                                    placeholder="項目說明"
-                                    className="w-full px-2 py-1 border rounded"
-                                />
-                            </td>
-                            <td className="py-2 px-3">
-                                <input
-                                    type="number"
-                                    value={item.quantity}
-                                    onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                                    disabled={!isEditable}
-                                    min="0"
-                                    className="w-full px-2 py-1 border rounded text-center"
-                                />
-                            </td>
-                            <td className="py-2 px-3">
-                                <input
-                                    type="number"
-                                    value={item.unitPrice}
-                                    onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                    disabled={!isEditable}
-                                    min="0"
-                                    className="w-full px-2 py-1 border rounded text-right"
-                                />
-                            </td>
-                            <td className="py-2 px-3 text-right font-medium">
-                                {formatCurrency(item.amount)}
-                            </td>
-                            {isEditable && (
-                                <td className="py-2 px-3 text-center">
-                                    <button
-                                        onClick={() => removeItem(index)}
-                                        className="text-red-500 hover:text-red-700"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </td>
-                            )}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            {isEditable && (
-                <button
-                    onClick={addItem}
-                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                >
-                    <Plus size={16} /> 新增項目
-                </button>
-            )}
-
-            {/* 金額合計 */}
-            <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">小計</span>
-                    <span className="font-medium">{formatCurrency(subtotal)}</span>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                            <Upload size={20} className="text-purple-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">上傳發票/憑證</h2>
+                            <p className="text-sm text-gray-500">支援 JPG、PNG、PDF 格式</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X size={24} />
+                    </button>
                 </div>
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">營業稅 ({(taxRate * 100).toFixed(0)}%)</span>
-                    <span className="font-medium">{formatCurrency(taxAmount)}</span>
+
+                {/* Body */}
+                <div className="p-6 space-y-6">
+                    {/* Drop Zone */}
+                    <div
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={handleDrop}
+                        className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${dragOver
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                    >
+                        <div className="flex flex-col items-center">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${dragOver ? 'bg-purple-100' : 'bg-gray-100'
+                                }`}>
+                                <Camera size={32} className={dragOver ? 'text-purple-600' : 'text-gray-400'} />
+                            </div>
+                            <p className="text-gray-700 font-medium mb-2">
+                                拖曳檔案到此處，或
+                                <label className="text-purple-600 hover:text-purple-800 cursor-pointer mx-1">
+                                    點擊選擇
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*,.pdf"
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                支援多張照片或 PDF，單檔最大 10MB
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* File List */}
+                    {files.length > 0 && (
+                        <div className="space-y-2">
+                            <h4 className="font-medium text-gray-700">已選擇 {files.length} 個檔案</h4>
+                            <div className="max-h-40 overflow-y-auto space-y-2">
+                                {files.map((file, index) => (
+                                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                        <div className="w-10 h-10 bg-white rounded-lg border flex items-center justify-center">
+                                            <FileText size={20} className="text-gray-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                                            <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                                        </div>
+                                        <button
+                                            onClick={() => removeFile(index)}
+                                            className="text-gray-400 hover:text-red-500"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* AI 辨識提示 */}
+                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100">
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                                <Sparkles size={16} className="text-purple-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-purple-800 mb-1">AI 自動辨識</h4>
+                                <p className="text-sm text-purple-600">
+                                    上傳後系統將自動辨識發票資訊（字軌、號碼、統編、金額），
+                                    電子發票 QR Code 可達 95%+ 準確率
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>總計</span>
-                    <span className="text-green-600">{formatCurrency(total)}</span>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                    >
+                        取消
+                    </button>
+                    <button
+                        onClick={handleUpload}
+                        disabled={files.length === 0 || uploading}
+                        className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        {uploading ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                上傳中...
+                            </>
+                        ) : (
+                            <>
+                                <Upload size={18} />
+                                上傳並辨識
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
         </div>
@@ -271,809 +475,377 @@ const InvoiceItemsTable = ({ items, setItems, isEditable, taxRate }) => {
 };
 
 // ============================================
-// 發票編輯器
+// 發票列表項目
 // ============================================
-const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
-    const [formData, setFormData] = useState({
-        invoiceNo: invoice?.invoiceNo || generateInvoiceNo(INVOICE_TYPES.SALES),
-        type: invoice?.type || INVOICE_TYPES.SALES,
-        format: invoice?.format || INVOICE_FORMATS.THREE_COPY, // 預設三聯式
-        status: invoice?.status || INVOICE_STATUS.DRAFT,
-        issueDate: invoice?.issueDate?.split('T')[0] || new Date().toISOString().split('T')[0],
-        dueDate: invoice?.dueDate?.split('T')[0] || '',
-        // 關聯資料
-        projectId: invoice?.projectId || '',
-        projectName: invoice?.projectName || '',
-        clientId: invoice?.clientId || '',
-        clientName: invoice?.clientName || '',
-        buyerTaxId: invoice?.buyerTaxId || '', // 買受人統一編號 (三聯式必填)
-        vendorId: invoice?.vendorId || '',
-        vendorName: invoice?.vendorName || '',
-        // 金額
-        taxRate: invoice?.taxRate ?? TAX_RATES.STANDARD,
-        subtotal: invoice?.subtotal || 0,
-        taxAmount: invoice?.taxAmount || 0,
-        total: invoice?.total || 0,
-        paidAmount: invoice?.paidAmount || 0,
-        // 項目
-        items: invoice?.items || [],
-        // 其他
-        notes: invoice?.notes || '',
-        paymentTerms: invoice?.paymentTerms || '30天',
-    });
-    const [isSaving, setIsSaving] = useState(false);
-    const [projects, setProjects] = useState([]);
-    const [clients, setClients] = useState([]);
+const InvoiceListItem = ({ invoice, onView, onEdit }) => {
+    return (
+        <div className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md hover:border-purple-200 transition-all group">
+            <div className="flex items-start gap-4">
+                {/* 縮圖/圖示 */}
+                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                    {invoice.thumbnail ? (
+                        <img src={invoice.thumbnail} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <Receipt size={28} className="text-gray-400" />
+                    )}
+                </div>
+
+                {/* 主要資訊 */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <DocTypeBadge type={invoice.doc_type} />
+                        <span className="text-sm font-mono text-gray-600">
+                            {invoice.invoice_track}-{invoice.invoice_no}
+                        </span>
+                        {invoice.ai_needs_review && (
+                            <span className="text-amber-500" title="需要覆核">
+                                <AlertTriangle size={14} />
+                            </span>
+                        )}
+                    </div>
+
+                    <h3 className="font-semibold text-gray-900 truncate mb-1">
+                        {invoice.seller_name || '未知廠商'}
+                    </h3>
+
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            {formatDate(invoice.invoice_date)}
+                        </span>
+                        {invoice.project_name && (
+                            <span className="flex items-center gap-1">
+                                <Briefcase size={14} />
+                                {invoice.project_name}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* 金額 */}
+                <div className="text-right">
+                    <p className="text-lg font-bold text-gray-900">
+                        {formatCurrency(invoice.amount_gross)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        稅額 {formatCurrency(invoice.amount_tax)}
+                    </p>
+                </div>
+
+                {/* 狀態 */}
+                <div className="flex flex-col items-end gap-2">
+                    <StateBadge state={invoice.current_state} />
+                    <PaymentBadge status={invoice.payment_status} />
+                </div>
+
+                {/* 操作按鈕 */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <button
+                        onClick={() => onView?.(invoice)}
+                        className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                    >
+                        <Eye size={18} />
+                    </button>
+                    <button
+                        onClick={() => onEdit?.(invoice)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                    >
+                        <Edit2 size={18} />
+                    </button>
+                    <button className="p-2 text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal size={18} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================
+// 主頁面元件
+// ============================================
+const InvoicesPage = ({ addToast }) => {
+    // 狀態
+    const [invoices, setInvoices] = useState([]);
     const [vendors, setVendors] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeInbox, setActiveInbox] = useState('all');
+    const [showUploadModal, setShowUploadModal] = useState(false);
 
-    const isEditable = !invoice || formData.status === INVOICE_STATUS.DRAFT;
+    // 篩選條件
+    const [filters, setFilters] = useState({
+        search: '',
+        docType: null,
+        state: null,
+        project: null,
+        period: null,
+        paymentStatus: null,
+        vatStatus: null,
+    });
 
-    // 載入關聯資料
+    // 載入資料
     useEffect(() => {
         const loadData = async () => {
+            setLoading(true);
             try {
-                const [projectsData, clientsData, vendorsData] = await Promise.all([
-                    projectsApi.getAll().catch(() => []),
-                    clientsApi.getAll().catch(() => []),
+                const [vendorsData, projectsData] = await Promise.all([
                     vendorsApi.getAll().catch(() => []),
+                    projectsApi.getAll().catch(() => []),
                 ]);
-                setProjects(projectsData || []);
-                setClients(clientsData || []);
                 setVendors(vendorsData || []);
+                setProjects(projectsData || []);
+
+                // TODO: 載入發票資料 (目前使用模擬資料)
+                setInvoices(getMockInvoices());
             } catch (error) {
-                console.error('Load data error:', error);
+                console.error('Failed to load data:', error);
+            } finally {
+                setLoading(false);
             }
         };
         loadData();
     }, []);
 
-    // 更新專案時同步客戶
-    const handleProjectChange = (projectId) => {
-        const project = projects.find(p => p.id === projectId);
-        if (project) {
-            setFormData(prev => ({
-                ...prev,
-                projectId,
-                projectName: project.name,
-                clientId: project.clientId || '',
-                clientName: project.clientName || '',
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                projectId: '',
-                projectName: '',
-            }));
-        }
-    };
+    // 模擬發票資料 (開發用)
+    const getMockInvoices = () => [];
 
-    // 計算金額
-    useEffect(() => {
-        const subtotal = formData.items.reduce((sum, item) => sum + (item.amount || 0), 0);
-        const taxAmount = Math.round(subtotal * formData.taxRate);
-        const total = subtotal + taxAmount;
-        setFormData(prev => ({ ...prev, subtotal, taxAmount, total }));
-    }, [formData.items, formData.taxRate]);
-
-    const handleSave = async () => {
-        if (!formData.invoiceNo.trim()) {
-            addToast?.('請輸入發票號碼', 'error');
-            return;
-        }
-        if (formData.items.length === 0) {
-            addToast?.('請至少新增一個項目', 'error');
-            return;
-        }
-        // 三聯式銷項發票必須填寫統編
-        if (formData.format === INVOICE_FORMATS.THREE_COPY &&
-            formData.type === INVOICE_TYPES.SALES &&
-            (!formData.buyerTaxId || formData.buyerTaxId.length !== 8)) {
-            addToast?.('三聯式發票需填寫8碼統一編號', 'error');
-            return;
-        }
-
-        setIsSaving(true);
-        try {
-            // 模擬 API 儲存
-            await new Promise(resolve => setTimeout(resolve, 500));
-            addToast?.('儲存成功', 'success');
-            onSave?.();
-        } catch (error) {
-            console.error('Save error:', error);
-            addToast?.('儲存失敗', 'error');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleIssue = async () => {
-        setFormData(prev => ({ ...prev, status: INVOICE_STATUS.ISSUED }));
-        await handleSave();
-        addToast?.('發票已開立', 'success');
-    };
-
-    const handleCancel = async () => {
-        if (!window.confirm('確定要作廢此發票？此操作無法復原。')) return;
-        setFormData(prev => ({ ...prev, status: INVOICE_STATUS.CANCELLED }));
-        await handleSave();
-        addToast?.('發票已作廢', 'warning');
-    };
-
-    return (
-        <div className="space-y-6">
-            {/* 頂部導航 */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        ← 返回
-                    </button>
-                    <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                            <Receipt size={24} className="text-purple-600" />
-                            {invoice ? formData.invoiceNo : '新增發票'}
-                        </h2>
-                        {formData.projectName && (
-                            <p className="text-sm text-gray-500">專案：{formData.projectName}</p>
-                        )}
-                    </div>
-                    <StatusBadge status={formData.status} />
-                    <TypeBadge type={formData.type} />
-                    <FormatBadge format={formData.format} />
-                </div>
-                <div className="flex gap-2">
-                    {isEditable && (
-                        <>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {isSaving ? '儲存中...' : '儲存草稿'}
-                            </button>
-                            <button
-                                onClick={handleIssue}
-                                disabled={isSaving}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-                            >
-                                <Check size={18} /> 開立發票
-                            </button>
-                        </>
-                    )}
-                    {formData.status !== INVOICE_STATUS.DRAFT && formData.status !== INVOICE_STATUS.CANCELLED && (
-                        <button
-                            onClick={() => window.print()}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
-                        >
-                            <Printer size={18} /> 列印
-                        </button>
-                    )}
-                    {formData.status === INVOICE_STATUS.ISSUED && (
-                        <button
-                            onClick={handleCancel}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-                        >
-                            <X size={18} /> 作廢
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6">
-                {/* 左欄：基本資訊 */}
-                <div className="col-span-2 space-y-6">
-                    {/* 發票資訊 */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <FileText size={18} /> 發票資訊
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">發票號碼 *</label>
-                                <input
-                                    type="text"
-                                    value={formData.invoiceNo}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, invoiceNo: e.target.value }))}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">發票類型</label>
-                                <select
-                                    value={formData.type}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    {Object.entries(INVOICE_TYPE_LABELS).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">發票格式 *</label>
-                                <select
-                                    value={formData.format}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, format: e.target.value }))}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    {Object.entries(INVOICE_FORMAT_LABELS).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    {formData.format === INVOICE_FORMATS.THREE_COPY
-                                        ? '三聯式：開給公司行號，需填統編'
-                                        : '二聯式：開給個人消費者'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">稅率</label>
-                                <select
-                                    value={formData.taxRate}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, taxRate: parseFloat(e.target.value) }))}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    <option value={TAX_RATES.STANDARD}>5% (一般稅率)</option>
-                                    <option value={TAX_RATES.ZERO}>0% (零稅率)</option>
-                                    <option value={TAX_RATES.EXEMPT}>免稅</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">開立日期</label>
-                                <input
-                                    type="date"
-                                    value={formData.issueDate}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, issueDate: e.target.value }))}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">付款期限</label>
-                                <input
-                                    type="date"
-                                    value={formData.dueDate}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">付款條件</label>
-                                <input
-                                    type="text"
-                                    value={formData.paymentTerms}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
-                                    disabled={!isEditable}
-                                    placeholder="例：30天"
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 關聯資料 */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Building2 size={18} /> 關聯資料
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">
-                                    <span className="flex items-center gap-1">
-                                        <FileText size={14} /> 專案
-                                    </span>
-                                </label>
-                                <select
-                                    value={formData.projectId}
-                                    onChange={(e) => handleProjectChange(e.target.value)}
-                                    disabled={!isEditable}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    <option value="">-- 選擇專案 --</option>
-                                    {projects.map(project => (
-                                        <option key={project.id} value={project.id}>
-                                            {project.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">
-                                    <span className="flex items-center gap-1">
-                                        <Users size={14} /> 客戶
-                                    </span>
-                                </label>
-                                <select
-                                    value={formData.clientId}
-                                    onChange={(e) => {
-                                        const client = clients.find(c => c.id === e.target.value);
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            clientId: e.target.value,
-                                            clientName: client?.name || '',
-                                        }));
-                                    }}
-                                    disabled={!isEditable || formData.type === INVOICE_TYPES.PURCHASE}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    <option value="">-- 選擇客戶 --</option>
-                                    {clients.map(client => (
-                                        <option key={client.id} value={client.id}>
-                                            {client.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">
-                                    <span className="flex items-center gap-1">
-                                        <Building2 size={14} /> 廠商
-                                    </span>
-                                </label>
-                                <select
-                                    value={formData.vendorId}
-                                    onChange={(e) => {
-                                        const vendor = vendors.find(v => v.id === e.target.value);
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            vendorId: e.target.value,
-                                            vendorName: vendor?.name || '',
-                                        }));
-                                    }}
-                                    disabled={!isEditable || formData.type === INVOICE_TYPES.SALES}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    <option value="">-- 選擇廠商 --</option>
-                                    {vendors.map(vendor => (
-                                        <option key={vendor.id} value={vendor.id}>
-                                            {vendor.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        {/* 買受人統編 - 三聯式必填 */}
-                        {formData.format === INVOICE_FORMATS.THREE_COPY && (
-                            <div className="mt-4 pt-4 border-t border-gray-100">
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm text-gray-600 mb-1">
-                                            買受人統一編號 {formData.type === INVOICE_TYPES.SALES ? '*' : ''}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.buyerTaxId}
-                                            onChange={(e) => {
-                                                // 只允許輸入數字，最多8碼
-                                                const value = e.target.value.replace(/\D/g, '').slice(0, 8);
-                                                setFormData(prev => ({ ...prev, buyerTaxId: value }));
-                                            }}
-                                            disabled={!isEditable}
-                                            placeholder="8碼統一編號"
-                                            maxLength={8}
-                                            className="w-full px-3 py-2 border rounded-lg font-mono"
-                                        />
-                                        {formData.buyerTaxId && formData.buyerTaxId.length !== 8 && (
-                                            <p className="text-xs text-red-500 mt-1">統編需為8碼數字</p>
-                                        )}
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-sm text-gray-600 mb-1">買受人名稱</label>
-                                        <input
-                                            type="text"
-                                            value={formData.clientName || formData.vendorName || ''}
-                                            disabled
-                                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            依據選擇的客戶或廠商自動填入
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 發票項目 */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Receipt size={18} /> 發票項目
-                        </h3>
-                        <InvoiceItemsTable
-                            items={formData.items}
-                            setItems={(items) => setFormData(prev => ({ ...prev, items }))}
-                            isEditable={isEditable}
-                            taxRate={formData.taxRate}
-                        />
-                    </div>
-
-                    {/* 備註 */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-semibold mb-4">備註</h3>
-                        <textarea
-                            value={formData.notes}
-                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                            disabled={!isEditable}
-                            placeholder="發票備註、付款說明等..."
-                            rows={3}
-                            className="w-full px-3 py-2 border rounded-lg resize-none"
-                        />
-                    </div>
-                </div>
-
-                {/* 右欄：摘要資訊 */}
-                <div className="space-y-4">
-                    {/* 金額摘要 */}
-                    <div className="bg-gradient-to-br from-purple-600 to-purple-500 rounded-xl p-6 text-white">
-                        <h3 className="font-semibold mb-4">金額摘要</h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-purple-200">小計</span>
-                                <span className="font-medium">{formatCurrency(formData.subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-purple-200">營業稅 ({(formData.taxRate * 100).toFixed(0)}%)</span>
-                                <span className="font-medium">{formatCurrency(formData.taxAmount)}</span>
-                            </div>
-                            <div className="flex justify-between text-xl font-bold border-t border-purple-400 pt-3">
-                                <span>總計</span>
-                                <span>{formatCurrency(formData.total)}</span>
-                            </div>
-                            {formData.paidAmount > 0 && (
-                                <>
-                                    <div className="flex justify-between pt-2">
-                                        <span className="text-purple-200">已收款</span>
-                                        <span className="font-medium text-green-300">{formatCurrency(formData.paidAmount)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-purple-200">未收款</span>
-                                        <span className="font-medium text-orange-300">
-                                            {formatCurrency(formData.total - formData.paidAmount)}
-                                        </span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 狀態資訊 */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-semibold mb-4">狀態資訊</h3>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">狀態</span>
-                                <StatusBadge status={formData.status} />
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">類型</span>
-                                <TypeBadge type={formData.type} />
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">開立日期</span>
-                                <span>{formatDate(formData.issueDate)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">付款期限</span>
-                                <span>{formatDate(formData.dueDate) || '-'}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 關聯專案/客戶資訊 */}
-                    {(formData.projectName || formData.clientName || formData.vendorName) && (
-                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                            <h3 className="font-semibold mb-4">關聯資料</h3>
-                            <div className="space-y-3 text-sm">
-                                {formData.projectName && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500 flex items-center gap-1">
-                                            <FileText size={14} /> 專案
-                                        </span>
-                                        <span className="font-medium">{formData.projectName}</span>
-                                    </div>
-                                )}
-                                {formData.clientName && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500 flex items-center gap-1">
-                                            <Users size={14} /> 客戶
-                                        </span>
-                                        <span className="font-medium">{formData.clientName}</span>
-                                    </div>
-                                )}
-                                {formData.vendorName && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500 flex items-center gap-1">
-                                            <Building2 size={14} /> 廠商
-                                        </span>
-                                        <span className="font-medium">{formData.vendorName}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// ============================================
-// 發票列表
-// ============================================
-const InvoiceList = ({ onEdit, addToast }) => {
-    const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('ALL');
-    const [typeFilter, setTypeFilter] = useState('ALL');
-
-    // 載入發票資料
-    const loadInvoices = async () => {
-        setLoading(true);
-        try {
-            // TODO: 串接發票 API
-            // const data = await invoicesApi.getAll();
-            // setInvoices(data || []);
-
-            // 暫時設為空陣列，等待 API 實作
-            setInvoices([]);
-        } catch (error) {
-            console.error('Load error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadInvoices();
-    }, []);
-
-    // 篩選
-    const filteredInvoices = useMemo(() => {
-        return invoices.filter(inv => {
-            if (statusFilter !== 'ALL' && inv.status !== statusFilter) return false;
-            if (typeFilter !== 'ALL' && inv.type !== typeFilter) return false;
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                return (
-                    inv.invoiceNo?.toLowerCase().includes(term) ||
-                    inv.projectName?.toLowerCase().includes(term) ||
-                    inv.clientName?.toLowerCase().includes(term) ||
-                    inv.vendorName?.toLowerCase().includes(term)
-                );
-            }
-            return true;
-        });
-    }, [invoices, statusFilter, typeFilter, searchTerm]);
-
-    // 統計
+    // 統計數據
     const stats = useMemo(() => {
-        const total = invoices.length;
-        const salesCount = invoices.filter(i => i.type === INVOICE_TYPES.SALES).length;
-        const purchaseCount = invoices.filter(i => i.type === INVOICE_TYPES.PURCHASE).length;
-        const totalSalesAmount = invoices
-            .filter(i => i.type === INVOICE_TYPES.SALES)
-            .reduce((sum, i) => sum + (i.total || 0), 0);
-        const totalPurchaseAmount = invoices
-            .filter(i => i.type === INVOICE_TYPES.PURCHASE)
-            .reduce((sum, i) => sum + (i.total || 0), 0);
-        const unpaidAmount = invoices
-            .filter(i => i.status !== INVOICE_STATUS.PAID && i.status !== INVOICE_STATUS.CANCELLED)
-            .reduce((sum, i) => sum + ((i.total || 0) - (i.paidAmount || 0)), 0);
+        const needsReview = invoices.filter(i => i.current_state === INVOICE_STATES.NEEDS_REVIEW).length;
+        const pendingApproval = invoices.filter(i => i.current_state === INVOICE_STATES.PENDING_APPROVAL).length;
+        const unpaid = invoices.filter(i => i.payment_status === PAYMENT_STATUS.UNPAID && i.current_state === INVOICE_STATES.APPROVED).length;
+        const totalThisMonth = invoices
+            .filter(i => {
+                const d = new Date(i.invoice_date);
+                const now = new Date();
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            })
+            .reduce((sum, i) => sum + (i.amount_gross || 0), 0);
 
-        return { total, salesCount, purchaseCount, totalSalesAmount, totalPurchaseAmount, unpaidAmount };
+        return { needsReview, pendingApproval, unpaid, totalThisMonth };
     }, [invoices]);
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('確定要刪除此發票？')) return;
-        setInvoices(invoices.filter(i => i.id !== id));
-        addToast?.('已刪除', 'success');
+    // 篩選後的發票
+    const filteredInvoices = useMemo(() => {
+        let result = [...invoices];
+
+        // 收件匣篩選
+        if (activeInbox === 'review') {
+            result = result.filter(i => i.current_state === INVOICE_STATES.NEEDS_REVIEW);
+        } else if (activeInbox === 'approval') {
+            result = result.filter(i => i.current_state === INVOICE_STATES.PENDING_APPROVAL);
+        } else if (activeInbox === 'payment') {
+            result = result.filter(i => i.payment_status === PAYMENT_STATUS.UNPAID && i.current_state === INVOICE_STATES.APPROVED);
+        }
+
+        // 搜尋
+        if (filters.search) {
+            const search = filters.search.toLowerCase();
+            result = result.filter(i =>
+                i.seller_name?.toLowerCase().includes(search) ||
+                i.invoice_no?.includes(search) ||
+                i.seller_tax_id?.includes(search)
+            );
+        }
+
+        // 其他篩選
+        if (filters.docType) result = result.filter(i => i.doc_type === filters.docType);
+        if (filters.state) result = result.filter(i => i.current_state === filters.state);
+        if (filters.project) result = result.filter(i => i.project_id === filters.project);
+        if (filters.paymentStatus) result = result.filter(i => i.payment_status === filters.paymentStatus);
+
+        return result;
+    }, [invoices, activeInbox, filters]);
+
+    // 處理上傳
+    const handleUpload = (files) => {
+        addToast?.(`已上傳 ${files.length} 個檔案，AI 辨識中...`, 'info');
+        // TODO: 實際 API 呼叫
     };
 
     return (
-        <div className="space-y-6">
-            {/* 標題 */}
+        <div className="space-y-6 animate-fade-in">
+            {/* 頁面標題 */}
             <div className="flex items-center justify-between">
-                <SectionTitle
-                    icon={Receipt}
-                    title="發票管理"
-                    subtitle="管理銷項/進項發票"
-                />
-                <button
-                    onClick={() => onEdit(null)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 flex items-center gap-2 transition-colors"
-                >
-                    <Plus size={18} /> 新增發票
-                </button>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">發票管理</h1>
+                    <p className="text-gray-500 text-sm mt-1">
+                        管理進項/銷項發票、專案成本歸戶、進項扣抵申報
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-2">
+                        <Download size={18} />
+                        匯出
+                    </button>
+                    <button
+                        onClick={() => setShowUploadModal(true)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center gap-2 shadow-lg shadow-purple-200"
+                    >
+                        <Upload size={18} />
+                        上傳發票
+                    </button>
+                </div>
             </div>
 
             {/* 統計卡片 */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-                <StatCard icon={FileText} label="全部發票" value={stats.total} color="gray" />
-                <StatCard icon={TrendingUp} label="銷項發票" value={stats.salesCount} color="green" />
-                <StatCard icon={Receipt} label="進項發票" value={stats.purchaseCount} color="blue" />
-                <StatCard icon={DollarSign} label="銷項金額" value={formatCurrency(stats.totalSalesAmount)} color="green" />
-                <StatCard icon={DollarSign} label="進項金額" value={formatCurrency(stats.totalPurchaseAmount)} color="blue" />
-                <StatCard icon={AlertCircle} label="應收未收" value={formatCurrency(stats.unpaidAmount)} color="orange" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    title="本月進項金額"
+                    value={formatCurrency(stats.totalThisMonth)}
+                    subValue="含稅總額"
+                    icon={DollarSign}
+                    color="green"
+                />
+                <StatCard
+                    title="待覆核"
+                    value={stats.needsReview}
+                    subValue="張發票"
+                    icon={AlertCircle}
+                    color="amber"
+                />
+                <StatCard
+                    title="待簽核"
+                    value={stats.pendingApproval}
+                    subValue="張發票"
+                    icon={Clock}
+                    color="blue"
+                />
+                <StatCard
+                    title="待付款"
+                    value={stats.unpaid}
+                    subValue="張發票"
+                    icon={CreditCard}
+                    color="red"
+                />
+            </div>
+
+            {/* 收件匣標籤 */}
+            <div className="border-b border-gray-200">
+                <div className="flex gap-2">
+                    <InboxTab
+                        label="全部"
+                        count={invoices.length}
+                        active={activeInbox === 'all'}
+                        onClick={() => setActiveInbox('all')}
+                        color="gray"
+                    />
+                    <InboxTab
+                        label="待覆核"
+                        count={stats.needsReview}
+                        active={activeInbox === 'review'}
+                        onClick={() => setActiveInbox('review')}
+                        color="amber"
+                    />
+                    <InboxTab
+                        label="待簽核"
+                        count={stats.pendingApproval}
+                        active={activeInbox === 'approval'}
+                        onClick={() => setActiveInbox('approval')}
+                        color="blue"
+                    />
+                    <InboxTab
+                        label="待付款"
+                        count={stats.unpaid}
+                        active={activeInbox === 'payment'}
+                        onClick={() => setActiveInbox('payment')}
+                        color="green"
+                    />
+                </div>
             </div>
 
             {/* 搜尋與篩選 */}
-            <div className="flex gap-3 flex-wrap">
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="搜尋發票號碼、專案、客戶、廠商..."
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            <div className="bg-white rounded-xl border border-gray-100 p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* 搜尋框 */}
+                    <div className="relative flex-1 min-w-[200px] max-w-md">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="搜尋發票號碼、廠商名稱、統編..."
+                            value={filters.search}
+                            onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                    </div>
+
+                    {/* 篩選器 */}
+                    <FilterDropdown
+                        label="文件類型"
+                        value={filters.docType}
+                        options={Object.entries(DOC_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                        onChange={(v) => setFilters(f => ({ ...f, docType: v }))}
+                        placeholder="全部類型"
                     />
+                    <FilterDropdown
+                        label="專案"
+                        value={filters.project}
+                        options={projects.map(p => ({ value: p.id, label: p.name }))}
+                        onChange={(v) => setFilters(f => ({ ...f, project: v }))}
+                        placeholder="全部專案"
+                    />
+                    <FilterDropdown
+                        label="付款狀態"
+                        value={filters.paymentStatus}
+                        options={Object.entries(PAYMENT_STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                        onChange={(v) => setFilters(f => ({ ...f, paymentStatus: v }))}
+                        placeholder="全部狀態"
+                    />
+
+                    {/* 清除篩選 */}
+                    {(filters.search || filters.docType || filters.project || filters.paymentStatus) && (
+                        <button
+                            onClick={() => setFilters({ search: '', docType: null, state: null, project: null, period: null, paymentStatus: null, vatStatus: null })}
+                            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                        >
+                            <X size={14} />
+                            清除篩選
+                        </button>
+                    )}
                 </div>
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-4 py-2.5 border border-gray-200 rounded-xl bg-white"
-                >
-                    <option value="ALL">全部類型</option>
-                    {Object.entries(INVOICE_TYPE_LABELS).map(([key, label]) => (
-                        <option key={key} value={key}>{label}</option>
-                    ))}
-                </select>
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-4 py-2.5 border border-gray-200 rounded-xl bg-white"
-                >
-                    <option value="ALL">全部狀態</option>
-                    {Object.entries(INVOICE_STATUS_LABELS).map(([key, label]) => (
-                        <option key={key} value={key}>{label}</option>
-                    ))}
-                </select>
             </div>
 
             {/* 發票列表 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">發票號碼</th>
-                            <th className="py-3 px-4 text-center text-sm font-medium text-gray-600">類型</th>
-                            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">專案</th>
-                            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">對象</th>
-                            <th className="py-3 px-4 text-center text-sm font-medium text-gray-600">狀態</th>
-                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-600">金額</th>
-                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-600">已收/付</th>
-                            <th className="py-3 px-4 text-center text-sm font-medium text-gray-600">開立日期</th>
-                            <th className="py-3 px-4 text-center text-sm font-medium text-gray-600">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredInvoices.map(invoice => (
-                            <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                <td className="py-3 px-4 font-medium text-purple-600">{invoice.invoiceNo}</td>
-                                <td className="py-3 px-4 text-center">
-                                    <TypeBadge type={invoice.type} />
-                                </td>
-                                <td className="py-3 px-4">{invoice.projectName || '-'}</td>
-                                <td className="py-3 px-4">
-                                    {invoice.type === INVOICE_TYPES.SALES
-                                        ? invoice.clientName
-                                        : invoice.vendorName}
-                                </td>
-                                <td className="py-3 px-4 text-center">
-                                    <StatusBadge status={invoice.status} />
-                                </td>
-                                <td className="py-3 px-4 text-right font-medium">
-                                    {formatCurrency(invoice.total)}
-                                </td>
-                                <td className="py-3 px-4 text-right font-medium text-green-600">
-                                    {formatCurrency(invoice.paidAmount)}
-                                </td>
-                                <td className="py-3 px-4 text-center text-sm text-gray-500">
-                                    {formatDate(invoice.issueDate)}
-                                </td>
-                                <td className="py-3 px-4 text-center">
-                                    <div className="flex justify-center gap-2">
-                                        <button
-                                            onClick={() => onEdit(invoice)}
-                                            className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                        >
-                                            {invoice.status === INVOICE_STATUS.DRAFT ? '編輯' : '查看'}
-                                        </button>
-                                        {invoice.status === INVOICE_STATUS.DRAFT && (
-                                            <button
-                                                onClick={() => handleDelete(invoice.id)}
-                                                className="px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-                                            >
-                                                刪除
-                                            </button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="space-y-3">
                 {loading ? (
-                    <div className="text-center py-8 text-gray-400">載入中...</div>
-                ) : filteredInvoices.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
-                        尚無發票，請點擊「新增發票」建立
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 size={32} className="animate-spin text-purple-600" />
                     </div>
+                ) : filteredInvoices.length === 0 ? (
+                    <EmptyState
+                        title="尚無發票資料"
+                        description="上傳發票或收據，系統將自動辨識並建檔。支援 QR Code 電子發票、紙本發票掃描。"
+                        action={
+                            <button
+                                onClick={() => setShowUploadModal(true)}
+                                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center gap-2"
+                            >
+                                <Upload size={18} />
+                                上傳第一張發票
+                            </button>
+                        }
+                    />
+                ) : (
+                    filteredInvoices.map(invoice => (
+                        <InvoiceListItem
+                            key={invoice.id}
+                            invoice={invoice}
+                            onView={(inv) => console.log('View', inv)}
+                            onEdit={(inv) => console.log('Edit', inv)}
+                        />
+                    ))
                 )}
             </div>
-        </div>
-    );
-};
 
-// ============================================
-// 主元件
-// ============================================
-import InvoiceHelper from '../components/InvoiceHelper';
-
-const Invoices = ({ addToast }) => {
-    const [viewMode, setViewMode] = useState('list'); // list | editor | helper
-    const [selectedInvoice, setSelectedInvoice] = useState(null);
-
-    const handleEdit = (invoice) => {
-        setSelectedInvoice(invoice);
-        setViewMode('editor');
-    };
-
-    const handleBack = () => {
-        setSelectedInvoice(null);
-        setViewMode('list');
-    };
-
-    if (viewMode === 'editor') {
-        return (
-            <InvoiceEditor
-                invoice={selectedInvoice}
-                onSave={handleBack}
-                onBack={handleBack}
-                addToast={addToast}
-            />
-        );
-    }
-
-    if (viewMode === 'helper') {
-        return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        ← 返回發票列表
-                    </button>
-                </div>
-                <InvoiceHelper />
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-6">
-            {/* 頂部操作列 - 添加手開發票小幫手按鈕 */}
-            <div className="flex justify-end">
-                <button
-                    onClick={() => setViewMode('helper')}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md flex items-center gap-2"
-                >
-                    <Calculator size={18} />
-                    手開發票小幫手
-                </button>
-            </div>
-            <InvoiceList
-                onEdit={handleEdit}
-                addToast={addToast}
+            {/* 上傳模態框 */}
+            <UploadModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                onUpload={handleUpload}
             />
         </div>
     );
 };
 
-export default Invoices;
+export default InvoicesPage;
