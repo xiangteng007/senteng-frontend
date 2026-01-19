@@ -443,6 +443,11 @@ const ChangeOrderList = ({ quotationId, onEdit, onBack, addToast }) => {
     const [cumulative, setCumulative] = useState({ totalAdded: 0, totalDeducted: 0, netChange: 0, count: 0 });
 
     const loadData = async () => {
+        // Skip API calls if quotationId is not provided
+        if (!quotationId) {
+            setLoading(false);
+            return;
+        }
         try {
             const [orders, quo, cum] = await Promise.all([
                 ChangeOrderService.getChangeOrders(quotationId),
@@ -462,6 +467,7 @@ const ChangeOrderList = ({ quotationId, onEdit, onBack, addToast }) => {
     useEffect(() => {
         loadData();
     }, [quotationId]);
+
 
     const handleCreate = async () => {
         const newOrder = await ChangeOrderService.createChangeOrder({
@@ -484,6 +490,22 @@ const ChangeOrderList = ({ quotationId, onEdit, onBack, addToast }) => {
 
     if (loading) {
         return <div className="text-center py-8">載入中...</div>;
+    }
+
+    // Show empty state when no quotationId is provided
+    if (!quotationId) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-bold">工程變更單</h2>
+                </div>
+                <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">尚無變更單，請點擊「新增變更單」建立</h3>
+                    <p className="text-gray-500">請先從估價單頁面選擇一個估價單，再建立變更單</p>
+                </div>
+            </div>
+        );
     }
 
     return (

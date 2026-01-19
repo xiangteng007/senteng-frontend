@@ -8,12 +8,12 @@ import {
     FileText, Plus, Search, Filter, Eye, Edit2, Trash2, Send,
     Check, X, DollarSign, Calendar, Building2, Users, Receipt,
     AlertCircle, Clock, CheckCircle, TrendingUp, Download, Upload,
-    Printer, Copy, ExternalLink
+    Printer, Copy, ExternalLink, Calculator
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
-import { projectsApi, clientsApi } from '../services/api';
+import { projectsApi, clientsApi, vendorsApi } from '../services/api';
 
 // ============================================
 // 發票狀態與類型常量
@@ -56,6 +56,17 @@ export const INVOICE_TYPES = {
 export const INVOICE_TYPE_LABELS = {
     SALES: '銷項發票',
     PURCHASE: '進項發票',
+};
+
+// 發票格式 (二聯式/三聯式)
+export const INVOICE_FORMATS = {
+    TWO_COPY: 'TWO_COPY',     // 二聯式 (開給個人消費者)
+    THREE_COPY: 'THREE_COPY', // 三聯式 (開給公司行號)
+};
+
+export const INVOICE_FORMAT_LABELS = {
+    TWO_COPY: '二聯式',
+    THREE_COPY: '三聯式',
 };
 
 // 稅率
@@ -107,6 +118,15 @@ const TypeBadge = ({ type }) => (
         : 'bg-blue-100 text-blue-700'
         }`}>
         {INVOICE_TYPE_LABELS[type]}
+    </span>
+);
+
+const FormatBadge = ({ format }) => (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${format === INVOICE_FORMATS.THREE_COPY
+        ? 'bg-indigo-100 text-indigo-700'
+        : 'bg-amber-100 text-amber-700'
+        }`}>
+        {INVOICE_FORMAT_LABELS[format]}
     </span>
 );
 
@@ -257,6 +277,7 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
     const [formData, setFormData] = useState({
         invoiceNo: invoice?.invoiceNo || generateInvoiceNo(INVOICE_TYPES.SALES),
         type: invoice?.type || INVOICE_TYPES.SALES,
+        format: invoice?.format || INVOICE_FORMATS.THREE_COPY, // 預設三聯式
         status: invoice?.status || INVOICE_STATUS.DRAFT,
         issueDate: invoice?.issueDate?.split('T')[0] || new Date().toISOString().split('T')[0],
         dueDate: invoice?.dueDate?.split('T')[0] || '',
@@ -265,6 +286,7 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
         projectName: invoice?.projectName || '',
         clientId: invoice?.clientId || '',
         clientName: invoice?.clientName || '',
+        buyerTaxId: invoice?.buyerTaxId || '', // 買受人統一編號 (三聯式必填)
         vendorId: invoice?.vendorId || '',
         vendorName: invoice?.vendorName || '',
         // 金額
@@ -290,20 +312,14 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [projectsData, clientsData] = await Promise.all([
+                const [projectsData, clientsData, vendorsData] = await Promise.all([
                     projectsApi.getAll().catch(() => []),
                     clientsApi.getAll().catch(() => []),
+                    vendorsApi.getAll().catch(() => []),
                 ]);
                 setProjects(projectsData || []);
                 setClients(clientsData || []);
-                // Mock vendors data (vendorsApi not available)
-                setVendors([
-                    { id: 'v1', name: '大成木工行' },
-                    { id: 'v2', name: '永豐水電工程' },
-                    { id: 'v3', name: '金鼎建材' },
-                    { id: 'v4', name: '美居油漆行' },
-                    { id: 'v5', name: '宏達鋁窗' },
-                ]);
+                setVendors(vendorsData || []);
             } catch (error) {
                 console.error('Load data error:', error);
             }
@@ -346,6 +362,13 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
         }
         if (formData.items.length === 0) {
             addToast?.('請至少新增一個項目', 'error');
+            return;
+        }
+        // 三聯式銷項發票必須填寫統編
+        if (formData.format === INVOICE_FORMATS.THREE_COPY &&
+            formData.type === INVOICE_TYPES.SALES &&
+            (!formData.buyerTaxId || formData.buyerTaxId.length !== 8)) {
+            addToast?.('三聯式發票需填寫8碼統一編號', 'error');
             return;
         }
 
@@ -395,6 +418,7 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
                     </div>
                     <StatusBadge status={formData.status} />
                     <TypeBadge type={formData.type} />
+                    <FormatBadge format={formData.format} />
                 </div>
                 <div className="flex gap-2">
                     {isEditable && (
@@ -465,6 +489,24 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
                                         <option key={key} value={key}>{label}</option>
                                     ))}
                                 </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">發票格式 *</label>
+                                <select
+                                    value={formData.format}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, format: e.target.value }))}
+                                    disabled={!isEditable}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                >
+                                    {Object.entries(INVOICE_FORMAT_LABELS).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {formData.format === INVOICE_FORMATS.THREE_COPY
+                                        ? '三聯式：開給公司行號，需填統編'
+                                        : '二聯式：開給個人消費者'}
+                                </p>
                             </div>
                             <div>
                                 <label className="block text-sm text-gray-600 mb-1">稅率</label>
@@ -594,6 +636,46 @@ const InvoiceEditor = ({ invoice, onSave, onBack, addToast }) => {
                                 </select>
                             </div>
                         </div>
+                        {/* 買受人統編 - 三聯式必填 */}
+                        {formData.format === INVOICE_FORMATS.THREE_COPY && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-600 mb-1">
+                                            買受人統一編號 {formData.type === INVOICE_TYPES.SALES ? '*' : ''}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.buyerTaxId}
+                                            onChange={(e) => {
+                                                // 只允許輸入數字，最多8碼
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                                                setFormData(prev => ({ ...prev, buyerTaxId: value }));
+                                            }}
+                                            disabled={!isEditable}
+                                            placeholder="8碼統一編號"
+                                            maxLength={8}
+                                            className="w-full px-3 py-2 border rounded-lg font-mono"
+                                        />
+                                        {formData.buyerTaxId && formData.buyerTaxId.length !== 8 && (
+                                            <p className="text-xs text-red-500 mt-1">統編需為8碼數字</p>
+                                        )}
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm text-gray-600 mb-1">買受人名稱</label>
+                                        <input
+                                            type="text"
+                                            value={formData.clientName || formData.vendorName || ''}
+                                            disabled
+                                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            依據選擇的客戶或廠商自動填入
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* 發票項目 */}
@@ -973,8 +1055,10 @@ const InvoiceList = ({ onEdit, addToast }) => {
 // ============================================
 // 主元件
 // ============================================
+import InvoiceHelper from '../components/InvoiceHelper';
+
 const Invoices = ({ addToast }) => {
-    const [viewMode, setViewMode] = useState('list');
+    const [viewMode, setViewMode] = useState('list'); // list | editor | helper
     const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     const handleEdit = (invoice) => {
@@ -998,11 +1082,39 @@ const Invoices = ({ addToast }) => {
         );
     }
 
+    if (viewMode === 'helper') {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        ← 返回發票列表
+                    </button>
+                </div>
+                <InvoiceHelper />
+            </div>
+        );
+    }
+
     return (
-        <InvoiceList
-            onEdit={handleEdit}
-            addToast={addToast}
-        />
+        <div className="space-y-6">
+            {/* 頂部操作列 - 添加手開發票小幫手按鈕 */}
+            <div className="flex justify-end">
+                <button
+                    onClick={() => setViewMode('helper')}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md flex items-center gap-2"
+                >
+                    <Calculator size={18} />
+                    手開發票小幫手
+                </button>
+            </div>
+            <InvoiceList
+                onEdit={handleEdit}
+                addToast={addToast}
+            />
+        </div>
     );
 };
 
