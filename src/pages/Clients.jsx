@@ -176,15 +176,16 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
             const savedClient = await clientsApi.create(clientData);
             const updatedList = [...data, savedClient];
-            onUpdateClients(updatedList);
+            if (onUpdateClients) onUpdateClients(updatedList);
 
-            addToast("客戶新增成功！", "success", {
-                action: driveFolder ? { label: '開啟 Drive 資料夾', onClick: () => window.open(driveFolder, '_blank') } : null
-            });
+            if (addToast) addToast("客戶新增成功！", "success");
+            if (driveFolder) {
+                window.open(driveFolder, '_blank');
+            }
             setIsAddModalOpen(false);
         } catch (error) {
             console.error('Create client failed:', error);
-            addToast(`儲存失敗: ${error.message}`, 'error');
+            if (addToast) addToast(`儲存失敗: ${error.message}`, 'error');
         } finally {
             setIsSaving(false);
         }

@@ -60,6 +60,7 @@ import LoginPage from './pages/LoginPage';
 // Import shared components
 import { Badge } from './components/common/Badge';
 import { Card } from './components/common/Card';
+import { ToastContainer } from './components/common/Toast';
 
 // --- MOCK DATA (From Prompt) ---
 const MOCK_DATA = {
@@ -876,6 +877,22 @@ const App = () => {
   // Get initial tab from URL
   const getTabFromPath = (path) => ROUTES[path] || 'dashboard';
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(window.location.pathname));
+  const [clients, setClients] = useState([]);
+  const [toasts, setToasts] = useState([]);
+
+  // Proper addToast function with full signature (message, type, options)
+  const addToast = (message, type = 'info', options = {}) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type, action: options.action }]);
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   // Navigate function that updates both URL and state
   const navigate = (tab) => {
@@ -905,7 +922,7 @@ const App = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
-      case 'clients': return <ClientsPage data={MOCK_DATA.clients || []} allProjects={MOCK_DATA.projects || []} addToast={console.log} />;
+      case 'clients': return <ClientsPage data={clients} allProjects={MOCK_DATA.projects || []} addToast={addToast} onUpdateClients={setClients} />;
       case 'projects': return <ProjectsPage data={MOCK_DATA} />;
       case 'events': return <CalendarPage />;
       case 'quotations': return <Quotations />;
@@ -915,9 +932,9 @@ const App = () => {
       case 'payments': return <Payments />;
       case 'finance': return <FinancePage data={MOCK_DATA} />;
       case 'profit-analysis': return <ProfitAnalysis />;
-      case 'inventory': return <InventoryPage data={MOCK_DATA.inventory} addToast={console.log} />;
-      case 'vendors': return <VendorsPage data={MOCK_DATA.vendors || []} addToast={console.log} />;
-      case 'users': return <UserManagement addToast={console.log} />;
+      case 'inventory': return <InventoryPage data={MOCK_DATA.inventory} addToast={addToast} />;
+      case 'vendors': return <VendorsPage data={MOCK_DATA.vendors || []} addToast={addToast} />;
+      case 'users': return <UserManagement addToast={addToast} />;
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;
       case 'material-calc': return <MaterialCalculator />;
@@ -1081,6 +1098,9 @@ const App = () => {
         </div>
 
       </main>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };
