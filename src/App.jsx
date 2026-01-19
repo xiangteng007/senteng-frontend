@@ -56,6 +56,7 @@ import ProfitAnalysisPage from './pages/ProfitAnalysis';
 import InvoicesPage from './pages/Invoices';
 import UserManagement from './pages/UserManagement';
 import LoginPage from './pages/LoginPage';
+import { clientsApi, projectsApi } from './services/api';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -878,7 +879,25 @@ const App = () => {
   const getTabFromPath = (path) => ROUTES[path] || 'dashboard';
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(window.location.pathname));
   const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [toasts, setToasts] = useState([]);
+
+  // Fetch clients and projects data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [clientsData, projectsData] = await Promise.all([
+          clientsApi.getAll(),
+          projectsApi.getAll()
+        ]);
+        setClients(clientsData || []);
+        setProjects(projectsData || []);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Proper addToast function with full signature (message, type, options)
   const addToast = (message, type = 'info', options = {}) => {
@@ -925,7 +944,7 @@ const App = () => {
       case 'clients': return <ClientsPage data={clients} allProjects={MOCK_DATA.projects || []} addToast={addToast} onUpdateClients={setClients} />;
       case 'projects': return <ProjectsPage data={MOCK_DATA} />;
       case 'events': return <CalendarPage />;
-      case 'quotations': return <Quotations />;
+      case 'quotations': return <QuotationsPage addToast={addToast} projects={projects} clients={clients} />;
       case 'contracts': return <Contracts />;
       case 'change-orders': return <ChangeOrders />;
       case 'invoices': return <Invoices />;
