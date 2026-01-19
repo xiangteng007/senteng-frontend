@@ -63,40 +63,7 @@ import { Card } from './components/common/Card';
 
 // --- MOCK DATA (From Prompt) ---
 const MOCK_DATA = {
-  clients: [
-    {
-      id: "c-1",
-      name: "林先生",
-      status: "已簽約",
-      source: "網路廣告",
-      phone: "0912-345-678",
-      email: "lin@example.com",
-      address: "台北市信義區信義路五段...",
-      houseType: "電梯大樓",
-      condition: "新成屋",
-      size: "35坪",
-      budgetRange: "300-500萬",
-      style: "現代簡約",
-      family: "夫妻+1子",
-      note: "喜歡大理石材質，主臥需有更衣室。預計明年三月入住。"
-    },
-    {
-      id: "c-2",
-      name: "陳小姐",
-      status: "提案/報價",
-      source: "朋友介紹",
-      phone: "0922-333-444",
-      email: "chen@example.com",
-      address: "台北市大安區和平東路...",
-      houseType: "電梯大樓",
-      condition: "新成屋",
-      size: "22坪",
-      budgetRange: "500-800萬",
-      style: "北歐風",
-      family: "單身貴族",
-      note: "有養兩隻貓，需貓跳台與耐磨地板，注重收納空間。"
-    }
-  ],
+  clients: [],
   projects: [
     {
       id: "p-1",
