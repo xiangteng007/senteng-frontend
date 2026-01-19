@@ -54,6 +54,7 @@ import ChangeOrdersPage from './pages/ChangeOrders';
 import PaymentsPage from './pages/Payments';
 import ProfitAnalysisPage from './pages/ProfitAnalysis';
 import InvoicesPage from './pages/Invoices';
+import InvoiceHelperPage from './pages/InvoiceHelperPage';
 import UserManagement from './pages/UserManagement';
 import LoginPage from './pages/LoginPage';
 import { clientsApi, projectsApi } from './services/api';
@@ -872,7 +873,8 @@ const App = () => {
     '/material-calc': 'material-calc',
     '/cost-est': 'cost-est',
     '/quotation-edit': 'quotation-edit',
-    '/bim': 'bim'
+    '/bim': 'bim',
+    '/invoice-helper': 'invoice-helper'
   };
 
   // Get initial tab from URL
@@ -960,6 +962,7 @@ const App = () => {
       case 'cost-est': return <CostEstimator />;
       case 'quotation-edit': return <QuotationEditor />;
       case 'bim': return <BimManagement />;
+      case 'invoice-helper': return <InvoiceHelperPage />;
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
@@ -985,7 +988,8 @@ const App = () => {
     'material-calc': '材料估算',
     'cost-est': '成本估算',
     'quotation-edit': '報價編輯',
-    'bim': 'BIM 管理'
+    'bim': 'BIM 管理',
+    'invoice-helper': '發票小幫手'
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -1049,6 +1053,7 @@ const App = () => {
             <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => navigate('cost-est')} />
             <SidebarItem icon={FileText} label="報價編輯" active={activeTab === 'quotation-edit'} onClick={() => navigate('quotation-edit')} />
             <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => navigate('bim')} />
+            <SidebarItem icon={Receipt} label="發票小幫手" active={activeTab === 'invoice-helper'} onClick={() => navigate('invoice-helper')} />
           </SidebarGroup>
 
           <SidebarGroup label="設定">
