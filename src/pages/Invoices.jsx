@@ -811,58 +811,16 @@ const InvoiceList = ({ onEdit, addToast }) => {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [typeFilter, setTypeFilter] = useState('ALL');
 
-    // 模擬載入發票資料
+    // 載入發票資料
     const loadInvoices = async () => {
         setLoading(true);
         try {
-            // 模擬 API 回傳
-            await new Promise(resolve => setTimeout(resolve, 300));
-            // 模擬資料
-            const mockInvoices = [
-                {
-                    id: '1',
-                    invoiceNo: 'SI2601-0001',
-                    type: INVOICE_TYPES.SALES,
-                    status: INVOICE_STATUS.ISSUED,
-                    issueDate: '2026-01-15',
-                    dueDate: '2026-02-15',
-                    projectName: '信義區豪宅案',
-                    clientName: '林先生',
-                    subtotal: 1500000,
-                    taxAmount: 75000,
-                    total: 1575000,
-                    paidAmount: 0,
-                },
-                {
-                    id: '2',
-                    invoiceNo: 'PI2601-0001',
-                    type: INVOICE_TYPES.PURCHASE,
-                    status: INVOICE_STATUS.PAID,
-                    issueDate: '2026-01-10',
-                    dueDate: '2026-02-10',
-                    projectName: '內湖科技案',
-                    vendorName: '大成木工行',
-                    subtotal: 280000,
-                    taxAmount: 14000,
-                    total: 294000,
-                    paidAmount: 294000,
-                },
-                {
-                    id: '3',
-                    invoiceNo: 'SI2601-0002',
-                    type: INVOICE_TYPES.SALES,
-                    status: INVOICE_STATUS.PARTIAL,
-                    issueDate: '2026-01-05',
-                    dueDate: '2026-02-05',
-                    projectName: '大安區住宅案',
-                    clientName: '王小姐',
-                    subtotal: 800000,
-                    taxAmount: 40000,
-                    total: 840000,
-                    paidAmount: 500000,
-                },
-            ];
-            setInvoices(mockInvoices);
+            // TODO: 串接發票 API
+            // const data = await invoicesApi.getAll();
+            // setInvoices(data || []);
+
+            // 暫時設為空陣列，等待 API 實作
+            setInvoices([]);
         } catch (error) {
             console.error('Load error:', error);
         } finally {
