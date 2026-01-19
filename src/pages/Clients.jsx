@@ -19,9 +19,11 @@ import { ContactsSection } from '../components/common/ContactsSection';
 const STATUS_CONFIG = {
     '洽談中': { color: 'blue', icon: Clock, bg: 'bg-blue-100 text-blue-700' },
     '提案/報價': { color: 'yellow', icon: FileText, bg: 'bg-yellow-100 text-yellow-700' },
+    '預售屋': { color: 'purple', icon: Calendar, bg: 'bg-purple-100 text-purple-700' },
+    '工程中': { color: 'orange', icon: Star, bg: 'bg-orange-100 text-orange-700' },
     '已簽約': { color: 'green', icon: UserCheck, bg: 'bg-green-100 text-green-700' },
     '已完工': { color: 'gray', icon: Star, bg: 'bg-gray-100 text-gray-700' },
-    '暫緩': { color: 'orange', icon: UserX, bg: 'bg-orange-100 text-orange-700' },
+    '暫緩': { color: 'red', icon: UserX, bg: 'bg-red-100 text-red-700' },
 };
 
 // 統計卡片
@@ -116,6 +118,10 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
     // 新增聯絡記錄 Modal
     const [isContactLogModalOpen, setIsContactLogModalOpen] = useState(false);
     const [newContactLog, setNewContactLog] = useState({ type: '電話聯繫', date: new Date().toISOString().split('T')[0], note: '' });
+
+    // 新增聯絡人 Modal
+    const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+    const [newContactPerson, setNewContactPerson] = useState({ name: '', phone: '', email: '', title: '' });
 
     // 計算統計
     const stats = useMemo(() => ({
@@ -261,6 +267,34 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
             addToast("聯絡記錄已新增", "success");
         } catch (error) {
             console.error('Add contact log failed:', error);
+            addToast(`新增失敗: ${error.message}`, 'error');
+        }
+    };
+
+    // 新增聯絡人
+    const handleAddContactPerson = async () => {
+        if (!newContactPerson.name) return addToast("請輸入聯絡人姓名", "error");
+
+        try {
+            const updatedContacts = [...(activeClient.contacts || []), {
+                ...newContactPerson,
+                id: `contact-${Date.now()}`,
+                syncStatus: 'PENDING'
+            }];
+
+            const updatedClient = await clientsApi.update(activeClient.id, {
+                contacts: updatedContacts
+            });
+
+            const updatedList = data.map(c => c.id === updatedClient.id ? updatedClient : c);
+            onUpdateClients(updatedList);
+            setActiveClient(updatedClient);
+
+            setIsAddContactModalOpen(false);
+            setNewContactPerson({ name: '', phone: '', email: '', title: '' });
+            addToast("聯絡人已新增", "success");
+        } catch (error) {
+            console.error('Add contact person failed:', error);
             addToast(`新增失敗: ${error.message}`, 'error');
         }
     };
@@ -434,6 +468,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                                 }).catch(console.error);
                             }}
                             addToast={addToast}
+                            onAddContact={() => setIsAddContactModalOpen(true)}
                         />
                     </Card>
 
@@ -516,6 +551,43 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                                 className="w-full border rounded-lg px-3 py-2 min-h-[100px] resize-none"
                             />
                         </div>
+                    </div>
+                </Modal>
+
+                {/* 新增聯絡人 Modal */}
+                <Modal
+                    isOpen={isAddContactModalOpen}
+                    onClose={() => setIsAddContactModalOpen(false)}
+                    title="新增聯絡人"
+                    onConfirm={handleAddContactPerson}
+                >
+                    <div className="space-y-4">
+                        <InputField
+                            label="姓名"
+                            value={newContactPerson.name}
+                            onChange={e => setNewContactPerson({ ...newContactPerson, name: e.target.value })}
+                            placeholder="必填"
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField
+                                label="電話"
+                                value={newContactPerson.phone}
+                                onChange={e => setNewContactPerson({ ...newContactPerson, phone: e.target.value })}
+                                placeholder="例：0912-345-678"
+                            />
+                            <InputField
+                                label="Email"
+                                value={newContactPerson.email}
+                                onChange={e => setNewContactPerson({ ...newContactPerson, email: e.target.value })}
+                                placeholder="例：contact@email.com"
+                            />
+                        </div>
+                        <InputField
+                            label="職稱"
+                            value={newContactPerson.title}
+                            onChange={e => setNewContactPerson({ ...newContactPerson, title: e.target.value })}
+                            placeholder="例：負責人、工地主任"
+                        />
                     </div>
                 </Modal>
             </div>
@@ -614,7 +686,19 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                     <InputField label="來源" value={newClientData.source} onChange={e => setNewClientData({ ...newClientData, source: e.target.value })} placeholder="例：朋友介紹" />
                     <InputField label="預算範圍" value={newClientData.budget} onChange={e => setNewClientData({ ...newClientData, budget: e.target.value })} placeholder="例：200-300萬" />
                 </div>
-                <InputField label="LINE ID" value={newClientData.lineId} onChange={e => setNewClientData({ ...newClientData, lineId: e.target.value })} placeholder="例：@lineid 或 名稱" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="LINE ID" value={newClientData.lineId} onChange={e => setNewClientData({ ...newClientData, lineId: e.target.value })} placeholder="例：@lineid 或 名稱" />
+                    <div>
+                        <label className="block text-sm text-gray-500 mb-1">客戶狀態</label>
+                        <select
+                            value={newClientData.status}
+                            onChange={e => setNewClientData({ ...newClientData, status: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                </div>
                 <div className="border-t border-gray-100 pt-4 mt-4">
                     <h4 className="text-sm font-bold text-gray-700 mb-3">自訂欄位</h4>
                     <DynamicFieldEditor fields={newClientData.customFields} onChange={(newFields) => setNewClientData({ ...newClientData, customFields: newFields })} />
