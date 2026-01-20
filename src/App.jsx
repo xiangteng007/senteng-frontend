@@ -892,8 +892,9 @@ const App = () => {
           clientsApi.getAll(),
           projectsApi.getAll()
         ]);
-        setClients(clientsData || []);
-        setProjects(projectsData || []);
+        // API returns { items: [], total: N }, extract the items array
+        setClients(clientsData?.items || clientsData || []);
+        setProjects(projectsData?.items || projectsData || []);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
