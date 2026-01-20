@@ -17,7 +17,7 @@ import {
     FileCheck, AlertTriangle, Zap, MoreHorizontal, ArrowUpRight,
     ScanLine, Loader2, CheckCircle2, XCircle, Sparkles
 } from 'lucide-react';
-import { vendorsApi, projectsApi } from '../services/api';
+import { vendorsApi, projectsApi, invoicesApi } from '../services/api';
 
 // ============================================
 // 常量定義
@@ -264,8 +264,8 @@ const InboxTab = ({ label, count, active, onClick, color = 'gray' }) => {
         <button
             onClick={onClick}
             className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${active
-                    ? activeColors[color]
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? activeColors[color]
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
         >
             <span className="font-medium">{label}</span>
@@ -372,8 +372,8 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
                         onDragLeave={() => setDragOver(false)}
                         onDrop={handleDrop}
                         className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${dragOver
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-300 hover:border-gray-400'
                             }`}
                     >
                         <div className="flex flex-col items-center">
@@ -584,20 +584,41 @@ const InvoicesPage = ({ addToast }) => {
         vatStatus: null,
     });
 
+    // 統計資料 (從 API 取得)
+    const [stats, setStats] = useState({
+        needsReview: 0,
+        pendingApproval: 0,
+        unpaid: 0,
+        totalThisMonth: 0,
+    });
+
     // 載入資料
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [vendorsData, projectsData] = await Promise.all([
+                const [vendorsData, projectsData, invoicesResult, statsData] = await Promise.all([
                     vendorsApi.getAll().catch(() => []),
                     projectsApi.getAll().catch(() => []),
+                    invoicesApi.getAll({ limit: 100 }).catch(() => ({ data: [] })),
+                    invoicesApi.getStats().catch(() => ({})),
                 ]);
                 setVendors(vendorsData || []);
                 setProjects(projectsData || []);
 
-                // TODO: 載入發票資料 (目前使用模擬資料)
-                setInvoices(getMockInvoices());
+                // 處理發票資料 (API 回傳 { data, total, page, limit })
+                const invoiceData = invoicesResult?.data || invoicesResult || [];
+                setInvoices(Array.isArray(invoiceData) ? invoiceData : []);
+
+                // 處理統計資料
+                if (statsData) {
+                    setStats({
+                        needsReview: statsData.needsReviewCount || 0,
+                        pendingApproval: statsData.pendingApprovalCount || 0,
+                        unpaid: statsData.unpaidCount || 0,
+                        totalThisMonth: statsData.totalAmountGross || 0,
+                    });
+                }
             } catch (error) {
                 console.error('Failed to load data:', error);
             } finally {
@@ -606,25 +627,6 @@ const InvoicesPage = ({ addToast }) => {
         };
         loadData();
     }, []);
-
-    // 模擬發票資料 (開發用)
-    const getMockInvoices = () => [];
-
-    // 統計數據
-    const stats = useMemo(() => {
-        const needsReview = invoices.filter(i => i.current_state === INVOICE_STATES.NEEDS_REVIEW).length;
-        const pendingApproval = invoices.filter(i => i.current_state === INVOICE_STATES.PENDING_APPROVAL).length;
-        const unpaid = invoices.filter(i => i.payment_status === PAYMENT_STATUS.UNPAID && i.current_state === INVOICE_STATES.APPROVED).length;
-        const totalThisMonth = invoices
-            .filter(i => {
-                const d = new Date(i.invoice_date);
-                const now = new Date();
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            })
-            .reduce((sum, i) => sum + (i.amount_gross || 0), 0);
-
-        return { needsReview, pendingApproval, unpaid, totalThisMonth };
-    }, [invoices]);
 
     // 篩選後的發票
     const filteredInvoices = useMemo(() => {

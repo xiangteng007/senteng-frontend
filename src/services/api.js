@@ -191,11 +191,17 @@ export const invoicesApi = {
         return api.get(`/invoices${query ? `?${query}` : ''}`);
     },
     getById: (id) => api.get(`/invoices/${id}`),
+    getStats: () => api.get('/invoices/stats'),
+    getMonthlyStats: (year, month) => api.get(`/invoices/stats/monthly?year=${year}&month=${month}`),
     create: (data) => api.post('/invoices', data),
     update: (id, data) => api.patch(`/invoices/${id}`, data),
-    issue: (id) => api.post(`/invoices/${id}/issue`),
-    recordPayment: (id, data) => api.post(`/invoices/${id}/payment`, data),
+    changeState: (id, state) => api.post(`/invoices/${id}/state`, { state }),
+    submit: (id) => api.post(`/invoices/${id}/submit`),
+    approve: (id) => api.post(`/invoices/${id}/approve`),
+    reject: (id) => api.post(`/invoices/${id}/reject`),
+    recordPayment: (id, amount) => api.post(`/invoices/${id}/payment`, { amount }),
     void: (id, reason) => api.post(`/invoices/${id}/void`, { reason }),
+    delete: (id) => api.delete(`/invoices/${id}`),
 };
 
 // ===== Inventory API =====
