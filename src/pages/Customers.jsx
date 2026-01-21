@@ -284,7 +284,11 @@ const CustomerModal = ({ onClose, onSubmit, initialData }) => {
         e.preventDefault();
         setSaving(true);
         try {
-            await onSubmit(formData);
+            // Filter out empty strings to avoid validation errors on optional fields
+            const cleanedData = Object.fromEntries(
+                Object.entries(formData).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+            );
+            await onSubmit(cleanedData);
         } finally {
             setSaving(false);
         }
