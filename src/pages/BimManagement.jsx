@@ -17,10 +17,15 @@ import {
     Clock,
     FileText,
     Ruler,
-    Boxes
+    Boxes,
+    ExternalLink,
+    HardDrive
 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { Card } from '../components/common/Card';
+
+// Google Drive 公司根資料夾
+const DRIVE_ROOT_URL = 'https://drive.google.com/drive/folders/1psz5gGuYxwSm7Ui3KHgknnVaI3GJqq4s';
 
 // Mock data for BIM models
 const MOCK_BIM_MODELS = [
@@ -147,9 +152,17 @@ const BimManagement = () => {
                     <h2 className="text-2xl font-bold text-gray-800">BIM 管理</h2>
                     <p className="text-gray-500 text-sm mt-1">模型管理、版本控制、BCF 議題追蹤</p>
                 </div>
-                <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                    <Upload size={16} /> 上傳模型
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => window.open(DRIVE_ROOT_URL, '_blank')}
+                        className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                    >
+                        <HardDrive size={16} /> 模型資料夾
+                    </button>
+                    <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                        <Upload size={16} /> 上傳模型
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}

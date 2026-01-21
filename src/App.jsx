@@ -62,6 +62,8 @@ import LoginPage from './pages/LoginPage';
 // CustomersPage removed - using Clients instead
 import ProcurementsPage from './pages/Procurements';
 import SiteLogsPage from './pages/SiteLogs';
+import IntegrationsPage from './pages/IntegrationsPage';
+import StoragePage from './pages/StoragePage';
 import { clientsApi, projectsApi } from './services/api';
 
 // Import shared components
@@ -829,8 +831,8 @@ const Construction = (props) => <ConstructionPage {...props} />;
 const Events = () => <CalendarPage />;
 const ProfitAnalysis = (props) => <ProfitAnalysisPage {...props} />;
 const UserSettings = () => <PlaceholderPage title="使用者管理" icon={Users} />;
-const Integrations = () => <PlaceholderPage title="整合設定" icon={Link2} />;
-const Storage = () => <PlaceholderPage title="文件管理" icon={FolderOpen} />;
+const Integrations = () => <IntegrationsPage />;
+const Storage = () => <StoragePage />;
 
 // --- MAIN LAYOUT & APP ---
 
