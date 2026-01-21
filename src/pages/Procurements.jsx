@@ -37,9 +37,9 @@ const ProcurementsPage = ({ addToast }) => {
                 projectsApi.getAll(),
                 vendorsApi.getAll(),
             ]);
-            setProcurements(procurementsRes.data || procurementsRes || []);
-            setProjects(projectsRes.data || projectsRes || []);
-            setVendors(vendorsRes.data || vendorsRes || []);
+            setProcurements(procurementsRes.items || procurementsRes.data || (Array.isArray(procurementsRes) ? procurementsRes : []));
+            setProjects(projectsRes.items || projectsRes.data || (Array.isArray(projectsRes) ? projectsRes : []));
+            setVendors(vendorsRes.items || vendorsRes.data || (Array.isArray(vendorsRes) ? vendorsRes : []));
         } catch (err) {
             setError(err.message);
             console.error('Failed to fetch procurements:', err);

@@ -33,8 +33,8 @@ const CustomersPage = ({ addToast }) => {
                 customersApi.getAll(),
                 projectsApi.getAll(),
             ]);
-            setCustomers(customersRes.data || customersRes || []);
-            setProjects(projectsRes.data || projectsRes || []);
+            setCustomers(customersRes.items || customersRes.data || (Array.isArray(customersRes) ? customersRes : []));
+            setProjects(projectsRes.items || projectsRes.data || (Array.isArray(projectsRes) ? projectsRes : []));
         } catch (err) {
             setError(err.message);
             console.error('Failed to fetch customers:', err);

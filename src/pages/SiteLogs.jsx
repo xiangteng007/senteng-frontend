@@ -40,8 +40,8 @@ const SiteLogsPage = ({ addToast }) => {
                 siteLogsApi.getAll(),
                 projectsApi.getAll(),
             ]);
-            setSiteLogs(logsRes.data || logsRes || []);
-            setProjects(projectsRes.data || projectsRes || []);
+            setSiteLogs(logsRes.items || logsRes.data || (Array.isArray(logsRes) ? logsRes : []));
+            setProjects(projectsRes.items || projectsRes.data || (Array.isArray(projectsRes) ? projectsRes : []));
         } catch (err) {
             setError(err.message);
             console.error('Failed to fetch site logs:', err);
