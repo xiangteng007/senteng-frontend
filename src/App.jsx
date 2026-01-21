@@ -33,8 +33,7 @@ import {
   Ruler,
   LogOut,
   ShoppingCart,
-  ClipboardList,
-  UserPlus
+  ClipboardList
 } from 'lucide-react';
 
 // Import P0 pages from design-system
@@ -60,10 +59,10 @@ import InvoicesPage from './pages/Invoices';
 import InvoiceHelperPage from './pages/InvoiceHelperPage';
 import UserManagement from './pages/UserManagement';
 import LoginPage from './pages/LoginPage';
-import CustomersPage from './pages/Customers';
+// CustomersPage removed - using Clients instead
 import ProcurementsPage from './pages/Procurements';
 import SiteLogsPage from './pages/SiteLogs';
-import { clientsApi, customersApi, projectsApi } from './services/api';
+import { clientsApi, projectsApi } from './services/api';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -880,7 +879,8 @@ const App = () => {
     '/cost-est': 'cost-est',
     '/quotation-edit': 'quotation-edit',
     '/bim': 'bim',
-    '/invoice-helper': 'invoice-helper'
+    '/invoice-helper': 'invoice-helper',
+    '/site-logs': 'site-logs'
   };
 
   // Get initial tab from URL
@@ -970,7 +970,7 @@ const App = () => {
       case 'quotation-edit': return <QuotationEditor />;
       case 'bim': return <BimManagement />;
       case 'invoice-helper': return <InvoiceHelperPage />;
-      case 'customers': return <CustomersPage addToast={addToast} />;
+      // case 'customers' removed - use clients instead
       case 'procurements': return <ProcurementsPage addToast={addToast} />;
       case 'site-logs': return <SiteLogsPage addToast={addToast} />;
       default: return <Dashboard data={MOCK_DATA} />;
@@ -1000,7 +1000,7 @@ const App = () => {
     'quotation-edit': '報價編輯',
     'bim': 'BIM 管理',
     'invoice-helper': '發票小幫手',
-    'customers': '客戶 CRM',
+
     'procurements': '採購管理',
     'site-logs': '工地日誌'
   };
@@ -1042,7 +1042,7 @@ const App = () => {
 
           <SidebarGroup label="營運管理">
             <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => navigate('clients')} />
-            <SidebarItem icon={UserPlus} label="客戶 CRM" active={activeTab === 'customers'} onClick={() => navigate('customers')} />
+
             <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => navigate('projects')} />
             <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => navigate('events')} />
           </SidebarGroup>
@@ -1070,7 +1070,7 @@ const App = () => {
           <SidebarGroup label="工程估算">
             <SidebarItem icon={Ruler} label="材料估算" active={activeTab === 'material-calc'} onClick={() => navigate('material-calc')} />
             <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => navigate('cost-est')} />
-            <SidebarItem icon={FileText} label="報價編輯" active={activeTab === 'quotation-edit'} onClick={() => navigate('quotation-edit')} />
+
             <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => navigate('bim')} />
             <SidebarItem icon={Receipt} label="發票小幫手" active={activeTab === 'invoice-helper'} onClick={() => navigate('invoice-helper')} />
           </SidebarGroup>

@@ -598,16 +598,19 @@ const InvoicesPage = ({ addToast }) => {
             setLoading(true);
             try {
                 const [vendorsData, projectsData, invoicesResult, statsData] = await Promise.all([
-                    vendorsApi.getAll().catch(() => []),
-                    projectsApi.getAll().catch(() => []),
+                    vendorsApi.getAll().catch(() => ({ items: [] })),
+                    projectsApi.getAll().catch(() => ({ items: [] })),
                     invoicesApi.getAll({ limit: 100 }).catch(() => ({ data: [] })),
                     invoicesApi.getStats().catch(() => ({})),
                 ]);
-                setVendors(vendorsData || []);
-                setProjects(projectsData || []);
+                // Handle paginated responses - extract items array
+                const vendorItems = vendorsData?.items || vendorsData?.data || (Array.isArray(vendorsData) ? vendorsData : []);
+                const projectItems = projectsData?.items || projectsData?.data || (Array.isArray(projectsData) ? projectsData : []);
+                setVendors(vendorItems);
+                setProjects(projectItems);
 
                 // 處理發票資料 (API 回傳 { data, total, page, limit })
-                const invoiceData = invoicesResult?.data || invoicesResult || [];
+                const invoiceData = invoicesResult?.data || invoicesResult?.items || (Array.isArray(invoicesResult) ? invoicesResult : []);
                 setInvoices(Array.isArray(invoiceData) ? invoiceData : []);
 
                 // 處理統計資料
