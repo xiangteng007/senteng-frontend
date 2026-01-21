@@ -11,9 +11,13 @@ import {
     Search, Filter, User, UserCheck, UserX, Clock, MessageCircle,
     MapPin, Calendar, FileText, Star, X, ChevronRight, Briefcase, Database
 } from 'lucide-react';
-import { clientsApi } from '../services/api';
+import { clientsApi, customersApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 import { ContactsSection } from '../components/common/ContactsSection';
+
+// API 選擇 - 設為 true 以使用新版 Customers API
+const USE_NEW_API = false; // 設為 true 啟用新版 API
+const api = USE_NEW_API ? customersApi : clientsApi;
 
 // 狀態配置
 const STATUS_CONFIG = {
@@ -180,7 +184,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                 driveFolder,
             };
 
-            const savedClient = await clientsApi.create(clientData);
+            const savedClient = await api.create(clientData);
             const updatedList = [...data, savedClient];
             if (onUpdateClients) onUpdateClients(updatedList);
 
@@ -199,7 +203,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
     const handleDeleteClient = async (id) => {
         try {
-            await clientsApi.delete(id);
+            await api.delete(id);
             const updatedList = data.filter(c => c.id !== id);
             onUpdateClients(updatedList);
             addToast("客戶已刪除", "success");
@@ -232,7 +236,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                 contactLogs: editFormData.contactLogs,
             };
 
-            const updatedClient = await clientsApi.update(editFormData.id, clientData);
+            const updatedClient = await api.update(editFormData.id, clientData);
             const updatedList = data.map(c => c.id === updatedClient.id ? updatedClient : c);
             onUpdateClients(updatedList);
 

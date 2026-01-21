@@ -79,7 +79,7 @@ export const authApi = {
     health: () => api.get('/auth/health'),
 };
 
-// ===== Clients API =====
+// ===== Clients API (Legacy - use customersApi for new features) =====
 export const clientsApi = {
     getAll: (params = {}) => {
         const query = new URLSearchParams(params).toString();
@@ -91,6 +91,24 @@ export const clientsApi = {
     delete: (id) => api.delete(`/clients/${id}`),
 };
 
+// ===== Customers API (New unified platform) =====
+export const customersApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/customers${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/customers/${id}`),
+    create: (data) => api.post('/customers', data),
+    update: (id, data) => api.patch(`/customers/${id}`, data),
+    delete: (id) => api.delete(`/customers/${id}`),
+    // Pipeline management
+    updatePipelineStage: (id, stage) => api.patch(`/customers/${id}/pipeline`, { stage }),
+    // Contacts
+    addContact: (customerId, data) => api.post(`/customers/${customerId}/contacts`, data),
+    updateContact: (customerId, contactId, data) => api.patch(`/customers/${customerId}/contacts/${contactId}`, data),
+    removeContact: (customerId, contactId) => api.delete(`/customers/${customerId}/contacts/${contactId}`),
+};
+
 // ===== Projects API =====
 export const projectsApi = {
     getAll: (params = {}) => {
@@ -99,8 +117,22 @@ export const projectsApi = {
     },
     getById: (id) => api.get(`/projects/${id}`),
     getSummary: (id) => api.get(`/projects/${id}/summary`),
+    getCostSummary: (id) => api.get(`/projects/${id}/cost-summary`),
     create: (data) => api.post('/projects', data),
     update: (id, data) => api.patch(`/projects/${id}`, data),
+    delete: (id) => api.delete(`/projects/${id}`),
+    // Phases (WBS)
+    addPhase: (projectId, data) => api.post(`/projects/${projectId}/phases`, data),
+    updatePhase: (projectId, phaseId, data) => api.patch(`/projects/${projectId}/phases/${phaseId}`, data),
+    removePhase: (projectId, phaseId) => api.delete(`/projects/${projectId}/phases/${phaseId}`),
+    // Project Vendors
+    addVendor: (projectId, data) => api.post(`/projects/${projectId}/vendors`, data),
+    updateVendor: (projectId, vendorId, data) => api.patch(`/projects/${projectId}/vendors/${vendorId}`, data),
+    removeVendor: (projectId, vendorId) => api.delete(`/projects/${projectId}/vendors/${vendorId}`),
+    // Tasks
+    addTask: (projectId, data) => api.post(`/projects/${projectId}/tasks`, data),
+    updateTask: (projectId, taskId, data) => api.patch(`/projects/${projectId}/tasks/${taskId}`, data),
+    removeTask: (projectId, taskId) => api.delete(`/projects/${projectId}/tasks/${taskId}`),
 };
 
 // ===== Users API =====
@@ -256,6 +288,10 @@ export const vendorsApi = {
     blacklist: (id, reason) => api.post(`/vendors/${id}/blacklist`, { reason }),
     activate: (id) => api.post(`/vendors/${id}/activate`),
     delete: (id) => api.delete(`/vendors/${id}`),
+    // Trades management
+    addTrade: (vendorId, data) => api.post(`/vendors/${vendorId}/trades`, data),
+    updateTrade: (vendorId, tradeId, data) => api.patch(`/vendors/${vendorId}/trades/${tradeId}`, data),
+    removeTrade: (vendorId, tradeId) => api.delete(`/vendors/${vendorId}/trades/${tradeId}`),
 };
 
 // ===== Events API =====
@@ -304,5 +340,46 @@ export const storageApi = {
     },
 };
 
-export default api;
+// ===== Procurements API (RFQ/Bidding) =====
+export const procurementsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/procurements${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/procurements/${id}`),
+    getComparison: (id) => api.get(`/procurements/${id}/comparison`),
+    create: (data) => api.post('/procurements', data),
+    update: (id, data) => api.patch(`/procurements/${id}`, data),
+    delete: (id) => api.delete(`/procurements/${id}`),
+    // RFQ workflow
+    sendRfq: (id, vendorIds) => api.post(`/procurements/${id}/send-rfq`, { vendorIds }),
+    // Bidding
+    submitBid: (id, data) => api.post(`/procurements/${id}/bids`, data),
+    evaluateBid: (bidId, data) => api.patch(`/procurements/bids/${bidId}/evaluate`, data),
+    // Award
+    award: (id, data) => api.post(`/procurements/${id}/award`, data),
+};
 
+// ===== Site Logs API =====
+export const siteLogsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return api.get(`/site-logs${query ? `?${query}` : ''}`);
+    },
+    getById: (id) => api.get(`/site-logs/${id}`),
+    getProjectSummary: (projectId, startDate, endDate) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        return api.get(`/site-logs/project/${projectId}/summary${params.toString() ? `?${params}` : ''}`);
+    },
+    create: (data) => api.post('/site-logs', data),
+    update: (id, data) => api.patch(`/site-logs/${id}`, data),
+    delete: (id) => api.delete(`/site-logs/${id}`),
+    // Workflow
+    submit: (id) => api.post(`/site-logs/${id}/submit`),
+    approve: (id) => api.post(`/site-logs/${id}/approve`),
+    reject: (id, reason) => api.post(`/site-logs/${id}/reject`, { reason }),
+};
+
+export default api;

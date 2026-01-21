@@ -31,7 +31,10 @@ import {
   ChevronDown,
   Calculator,
   Ruler,
-  LogOut
+  LogOut,
+  ShoppingCart,
+  ClipboardList,
+  UserPlus
 } from 'lucide-react';
 
 // Import P0 pages from design-system
@@ -57,7 +60,10 @@ import InvoicesPage from './pages/Invoices';
 import InvoiceHelperPage from './pages/InvoiceHelperPage';
 import UserManagement from './pages/UserManagement';
 import LoginPage from './pages/LoginPage';
-import { clientsApi, projectsApi } from './services/api';
+import CustomersPage from './pages/Customers';
+import ProcurementsPage from './pages/Procurements';
+import SiteLogsPage from './pages/SiteLogs';
+import { clientsApi, customersApi, projectsApi } from './services/api';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
@@ -964,6 +970,9 @@ const App = () => {
       case 'quotation-edit': return <QuotationEditor />;
       case 'bim': return <BimManagement />;
       case 'invoice-helper': return <InvoiceHelperPage />;
+      case 'customers': return <CustomersPage addToast={addToast} />;
+      case 'procurements': return <ProcurementsPage addToast={addToast} />;
+      case 'site-logs': return <SiteLogsPage addToast={addToast} />;
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
@@ -990,7 +999,10 @@ const App = () => {
     'cost-est': '成本估算',
     'quotation-edit': '報價編輯',
     'bim': 'BIM 管理',
-    'invoice-helper': '發票小幫手'
+    'invoice-helper': '發票小幫手',
+    'customers': '客戶 CRM',
+    'procurements': '採購管理',
+    'site-logs': '工地日誌'
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -1030,8 +1042,14 @@ const App = () => {
 
           <SidebarGroup label="營運管理">
             <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => navigate('clients')} />
+            <SidebarItem icon={UserPlus} label="客戶 CRM" active={activeTab === 'customers'} onClick={() => navigate('customers')} />
             <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => navigate('projects')} />
             <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => navigate('events')} />
+          </SidebarGroup>
+
+          <SidebarGroup label="採購工程">
+            <SidebarItem icon={ShoppingCart} label="採購管理" active={activeTab === 'procurements'} onClick={() => navigate('procurements')} />
+            <SidebarItem icon={ClipboardList} label="工地日誌" active={activeTab === 'site-logs'} onClick={() => navigate('site-logs')} />
           </SidebarGroup>
 
           <SidebarGroup label="商務文件">
