@@ -92,10 +92,22 @@ const CustomersPage = ({ addToast }) => {
     }
 
     if (error) {
+        const isAuthError = error.toLowerCase().includes('unauthorized') ||
+            error.toLowerCase().includes('missing authentication') ||
+            error.toLowerCase().includes('permission') ||
+            error.toLowerCase().includes('forbidden');
         return (
             <div className="flex flex-col items-center justify-center h-64 text-red-500">
                 <AlertCircle className="w-10 h-10 mb-2" />
-                <p className="text-sm">{error}</p>
+                <p className="text-sm font-medium">
+                    {isAuthError ? '權限不足' : '系統錯誤'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1 max-w-md text-center">
+                    {isAuthError
+                        ? '您沒有存取客戶 CRM 的權限，請聯繫管理員啟用 customers:read 權限'
+                        : error
+                    }
+                </p>
                 <button
                     onClick={fetchData}
                     className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm"
