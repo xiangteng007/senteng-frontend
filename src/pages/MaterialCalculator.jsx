@@ -172,6 +172,28 @@ const COLUMN_PRESETS = [
     { value: 'custom', label: '自訂尺寸', width: 0, depth: 0, type: 'square', desc: '' },
 ];
 
+// 牆壁厚度選項 (cm)
+const WALL_THICKNESS_PRESETS = [
+    { value: 'W1', label: 'W1 薄牆 12cm', thickness: 12, desc: '隔間牆' },
+    { value: 'W2', label: 'W2 標準牆 15cm', thickness: 15, desc: '一般RC牆' },
+    { value: 'W3', label: 'W3 承重牆 18cm', thickness: 18, desc: '承重牆' },
+    { value: 'W4', label: 'W4 厚牆 20cm', thickness: 20, desc: '外牆/剪力牆' },
+    { value: 'W5', label: 'W5 加厚牆 25cm', thickness: 25, desc: '地下室牆' },
+    { value: 'W6', label: 'W6 特厚牆 30cm', thickness: 30, desc: '擋土牆' },
+    { value: 'custom', label: '自訂厚度', thickness: 0, desc: '' },
+];
+
+// 樓板厚度選項 (cm)
+const FLOOR_THICKNESS_PRESETS = [
+    { value: 'F1', label: 'F1 薄板 10cm', thickness: 10, desc: '輕載樓板' },
+    { value: 'F2', label: 'F2 標準板 12cm', thickness: 12, desc: '一般住宅' },
+    { value: 'F3', label: 'F3 加厚板 15cm', thickness: 15, desc: '商辦/公寓' },
+    { value: 'F4', label: 'F4 厚板 18cm', thickness: 18, desc: '重載樓板' },
+    { value: 'F5', label: 'F5 特厚板 20cm', thickness: 20, desc: '停車場/屋頂' },
+    { value: 'F6', label: 'F6 筏基板 25cm', thickness: 25, desc: '筏式基礎' },
+    { value: 'custom', label: '自訂厚度', thickness: 0, desc: '' },
+];
+
 // ============================================
 // 工具函數
 // ============================================
@@ -469,6 +491,21 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
     const [columnHeight, setColumnHeight] = useState('');
     const [columnCount, setColumnCount] = useState(1);
 
+    // 牆壁狀態
+    const [wallPreset, setWallPreset] = useState('W2');
+    const [wallCustomThickness, setWallCustomThickness] = useState('');
+    const [wallLength, setWallLength] = useState('');
+    const [wallHeight, setWallHeight] = useState('');
+    const [wallCount, setWallCount] = useState(1);
+    const [wallDoubleSided, setWallDoubleSided] = useState(true);
+
+    // 樓板狀態
+    const [floorPreset, setFloorPreset] = useState('F2');
+    const [floorCustomThickness, setFloorCustomThickness] = useState('');
+    const [floorLength, setFloorLength] = useState('');
+    const [floorWidth, setFloorWidth] = useState('');
+    const [floorCount, setFloorCount] = useState(1);
+
     // 結構模板計算邏輯
     const getParapetFormwork = () => {
         const length = parseFloat(parapetLength) || 0;
@@ -515,9 +552,28 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
         return (width + depth) * 2 * height * count;
     };
 
+    const getWallFormwork = () => {
+        const length = parseFloat(wallLength) || 0;
+        const height = parseFloat(wallHeight) || 0;
+        const count = parseInt(wallCount) || 1;
+        const sides = wallDoubleSided ? 2 : 1;
+        return length * height * sides * count;
+    };
+
+    const getFloorFormwork = () => {
+        const length = parseFloat(floorLength) || 0;
+        const width = parseFloat(floorWidth) || 0;
+        const count = parseInt(floorCount) || 1;
+        // 樓板模板 = 底模面積
+        return length * width * count;
+    };
+
     const structureFormworkResult = structureType === 'parapet' ? getParapetFormwork()
         : structureType === 'beam' ? getBeamFormwork()
-            : getColumnFormwork();
+            : structureType === 'column' ? getColumnFormwork()
+                : structureType === 'wall' ? getWallFormwork()
+                    : structureType === 'floor' ? getFloorFormwork()
+                        : 0;
 
     const structureFormworkWithWastage = applyWastage(
         structureFormworkResult,
@@ -1255,6 +1311,8 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                                     { id: 'parapet', label: '女兒牆', icon: '🧱' },
                                     { id: 'beam', label: '地樑', icon: '📏' },
                                     { id: 'column', label: '柱子', icon: '🏛️' },
+                                    { id: 'wall', label: '牆壁', icon: '🧱' },
+                                    { id: 'floor', label: '樓板', icon: '📐' },
                                 ].map(item => (
                                     <button
                                         key={item.id}
@@ -1405,6 +1463,99 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                                 </div>
                             )}
 
+                            {/* 牆壁計算 */}
+                            {structureType === 'wall' && (
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                                    <div className="font-medium text-gray-700 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                                        牆壁模板計算
+                                        <span className="text-xs text-gray-500 font-normal">(可選單/雙面)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                        <SelectField
+                                            label="牆壁規格"
+                                            value={wallPreset}
+                                            onChange={setWallPreset}
+                                            options={WALL_THICKNESS_PRESETS.map(p => ({ value: p.value, label: `${p.label}` }))}
+                                        />
+                                        <InputField label="長度" value={wallLength} onChange={setWallLength} unit="m" placeholder="0" />
+                                        <InputField label="高度" value={wallHeight} onChange={setWallHeight} unit="m" placeholder="0" />
+                                        <InputField label="數量" value={wallCount} onChange={setWallCount} unit="面" placeholder="1" />
+                                        <div className="flex items-end pb-2">
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={wallDoubleSided}
+                                                    onChange={(e) => setWallDoubleSided(e.target.checked)}
+                                                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                                />
+                                                雙面模板
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {wallPreset === 'custom' && (
+                                        <InputField label="自訂厚度" value={wallCustomThickness} onChange={setWallCustomThickness} unit="cm" placeholder="0" />
+                                    )}
+                                    {/* 牆壁規格參考表 */}
+                                    <div className="bg-white p-3 rounded border border-gray-200">
+                                        <div className="text-xs font-medium text-gray-600 mb-2">常用規格參考:</div>
+                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
+                                            {WALL_THICKNESS_PRESETS.filter(p => p.value !== 'custom').map(p => (
+                                                <div key={p.value} className={`p-2 rounded border text-center ${wallPreset === p.value ? 'bg-orange-100 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="font-bold">{p.value}</div>
+                                                    <div className="text-gray-600">{p.thickness}cm</div>
+                                                    <div className="text-gray-400 text-[10px]">{p.desc}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                        <strong>公式:</strong> 長度 × 高度 × {wallDoubleSided ? '2(雙面)' : '1(單面)'} × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getWallFormwork())} m²</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 樓板計算 */}
+                            {structureType === 'floor' && (
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                                    <div className="font-medium text-gray-700 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
+                                        樓板模板計算
+                                        <span className="text-xs text-gray-500 font-normal">(底模)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <SelectField
+                                            label="樓板規格"
+                                            value={floorPreset}
+                                            onChange={setFloorPreset}
+                                            options={FLOOR_THICKNESS_PRESETS.map(p => ({ value: p.value, label: `${p.label}` }))}
+                                        />
+                                        <InputField label="長度" value={floorLength} onChange={setFloorLength} unit="m" placeholder="0" />
+                                        <InputField label="寬度" value={floorWidth} onChange={setFloorWidth} unit="m" placeholder="0" />
+                                        <InputField label="數量" value={floorCount} onChange={setFloorCount} unit="處" placeholder="1" />
+                                    </div>
+                                    {floorPreset === 'custom' && (
+                                        <InputField label="自訂厚度" value={floorCustomThickness} onChange={setFloorCustomThickness} unit="cm" placeholder="0" />
+                                    )}
+                                    {/* 樓板規格參考表 */}
+                                    <div className="bg-white p-3 rounded border border-gray-200">
+                                        <div className="text-xs font-medium text-gray-600 mb-2">常用規格參考:</div>
+                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
+                                            {FLOOR_THICKNESS_PRESETS.filter(p => p.value !== 'custom').map(p => (
+                                                <div key={p.value} className={`p-2 rounded border text-center ${floorPreset === p.value ? 'bg-orange-100 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="font-bold">{p.value}</div>
+                                                    <div className="text-gray-600">{p.thickness}cm</div>
+                                                    <div className="text-gray-400 text-[10px]">{p.desc}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                        <strong>公式:</strong> 長度 × 寬度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getFloorFormwork())} m²</span>
+                                    </div>
+                                </div>
+                            )}
+
                             <WastageControl
                                 wastage={formworkWastage}
                                 setWastage={setFormworkWastage}
@@ -1414,7 +1565,7 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                             />
 
                             <ResultDisplay
-                                label={`${structureType === 'parapet' ? '女兒牆' : structureType === 'beam' ? '地樑' : '柱子'}模板面積`}
+                                label={`${structureType === 'parapet' ? '女兒牆' : structureType === 'beam' ? '地樑' : structureType === 'column' ? '柱子' : structureType === 'wall' ? '牆壁' : '樓板'}模板面積`}
                                 value={structureFormworkResult}
                                 unit="m²"
                                 wastageValue={structureFormworkWithWastage}
