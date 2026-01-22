@@ -136,6 +136,43 @@ const REBAR_USAGE_BY_COMPONENT = {
 };
 
 // ============================================
+// 結構模板計算常數
+// ============================================
+
+// 女兒牆厚度選項 (cm)
+const PARAPET_THICKNESS_OPTIONS = [
+    { value: 12, label: '12 cm' },
+    { value: 15, label: '15 cm (常用)' },
+    { value: 18, label: '18 cm' },
+    { value: 20, label: '20 cm' },
+    { value: 'custom', label: '自訂' },
+];
+
+// 地樑預設尺寸 (寬×高 cm)
+const GROUND_BEAM_PRESETS = [
+    { value: 'GB1', label: 'GB1 小地樑', width: 30, height: 50, desc: '輕型結構' },
+    { value: 'GB2', label: 'GB2 一般地樑', width: 35, height: 60, desc: '透天住宅' },
+    { value: 'GB3', label: 'GB3 標準地樑', width: 40, height: 70, desc: '公寓/商辦' },
+    { value: 'GB4', label: 'GB4 大地樑', width: 50, height: 80, desc: '高層建築' },
+    { value: 'GB5', label: 'GB5 特大地樑', width: 60, height: 100, desc: '重載結構' },
+    { value: 'custom', label: '自訂尺寸', width: 0, height: 0, desc: '' },
+];
+
+// 柱子預設尺寸
+const COLUMN_PRESETS = [
+    { value: 'C1', label: 'C1 小柱 30×30', width: 30, depth: 30, type: 'square', desc: '輕型結構' },
+    { value: 'C2', label: 'C2 一般柱 40×40', width: 40, depth: 40, type: 'square', desc: '透天住宅' },
+    { value: 'C3', label: 'C3 標準柱 50×50', width: 50, depth: 50, type: 'square', desc: '公寓/商辦' },
+    { value: 'C4', label: 'C4 大柱 60×60', width: 60, depth: 60, type: 'square', desc: '高層建築' },
+    { value: 'C5', label: 'C5 矩形柱 40×60', width: 40, depth: 60, type: 'square', desc: '特殊配置' },
+    { value: 'C6', label: 'C6 矩形柱 50×80', width: 50, depth: 80, type: 'square', desc: '大跨距' },
+    { value: 'R1', label: 'R1 圓柱 Ø40', diameter: 40, type: 'round', desc: '室內裝飾' },
+    { value: 'R2', label: 'R2 圓柱 Ø50', diameter: 50, type: 'round', desc: '標準圓柱' },
+    { value: 'R3', label: 'R3 圓柱 Ø60', diameter: 60, type: 'round', desc: '大型圓柱' },
+    { value: 'custom', label: '自訂尺寸', width: 0, depth: 0, type: 'square', desc: '' },
+];
+
+// ============================================
 // 工具函數
 // ============================================
 
@@ -400,10 +437,92 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
 
     // 模板計算
     const [formworkArea, setFormworkArea] = useState('');
-    const [formworkRatio, setFormworkRatio] = useState('2.2');
+    const [formworkRatio, setFormworkRatio] = useState('1.8');
     const [formworkWastage, setFormworkWastage] = useState(DEFAULT_WASTAGE.formwork);
     const [formworkCustomWastage, setFormworkCustomWastage] = useState(false);
     const [formworkCost, setFormworkCost] = useState(null);
+
+    // 結構模板計算狀態
+    const [formworkMode, setFormworkMode] = useState('estimate'); // 'estimate' | 'structure'
+    const [structureType, setStructureType] = useState('parapet'); // 'parapet' | 'beam' | 'column'
+
+    // 女兒牆狀態
+    const [parapetLength, setParapetLength] = useState('');
+    const [parapetThickness, setParapetThickness] = useState(15);
+    const [parapetCustomThickness, setParapetCustomThickness] = useState('');
+    const [parapetHeight, setParapetHeight] = useState('');
+    const [parapetCount, setParapetCount] = useState(1);
+
+    // 地樑狀態
+    const [beamPreset, setBeamPreset] = useState('GB2');
+    const [beamCustomWidth, setBeamCustomWidth] = useState('');
+    const [beamCustomHeight, setBeamCustomHeight] = useState('');
+    const [beamLength, setBeamLength] = useState('');
+    const [beamCount, setBeamCount] = useState(1);
+    const [beamIncludeBottom, setBeamIncludeBottom] = useState(false);
+
+    // 柱子狀態
+    const [columnPreset, setColumnPreset] = useState('C2');
+    const [columnCustomWidth, setColumnCustomWidth] = useState('');
+    const [columnCustomDepth, setColumnCustomDepth] = useState('');
+    const [columnCustomDiameter, setColumnCustomDiameter] = useState('');
+    const [columnHeight, setColumnHeight] = useState('');
+    const [columnCount, setColumnCount] = useState(1);
+
+    // 結構模板計算邏輯
+    const getParapetFormwork = () => {
+        const length = parseFloat(parapetLength) || 0;
+        const height = parseFloat(parapetHeight) || 0;
+        const count = parseInt(parapetCount) || 1;
+        // 女兒牆內外兩面
+        return length * height * 2 * count;
+    };
+
+    const getBeamFormwork = () => {
+        const preset = GROUND_BEAM_PRESETS.find(p => p.value === beamPreset);
+        const width = beamPreset === 'custom' ? (parseFloat(beamCustomWidth) || 0) : (preset?.width || 0);
+        const height = beamPreset === 'custom' ? (parseFloat(beamCustomHeight) || 0) : (preset?.height || 0);
+        const length = parseFloat(beamLength) || 0;
+        const count = parseInt(beamCount) || 1;
+        // 地樑兩側 + (可選)底部
+        const sides = (height / 100) * 2 * length;
+        const bottom = beamIncludeBottom ? (width / 100) * length : 0;
+        return (sides + bottom) * count;
+    };
+
+    const getColumnFormwork = () => {
+        const preset = COLUMN_PRESETS.find(p => p.value === columnPreset);
+        const height = parseFloat(columnHeight) || 0;
+        const count = parseInt(columnCount) || 1;
+
+        if (columnPreset === 'custom') {
+            const width = (parseFloat(columnCustomWidth) || 0) / 100;
+            const depth = (parseFloat(columnCustomDepth) || 0) / 100;
+            const diameter = (parseFloat(columnCustomDiameter) || 0) / 100;
+            if (diameter > 0) {
+                return Math.PI * diameter * height * count;
+            }
+            return (width + depth) * 2 * height * count;
+        }
+
+        if (preset?.type === 'round') {
+            const diameter = (preset.diameter || 0) / 100;
+            return Math.PI * diameter * height * count;
+        }
+
+        const width = (preset?.width || 0) / 100;
+        const depth = (preset?.depth || 0) / 100;
+        return (width + depth) * 2 * height * count;
+    };
+
+    const structureFormworkResult = structureType === 'parapet' ? getParapetFormwork()
+        : structureType === 'beam' ? getBeamFormwork()
+            : getColumnFormwork();
+
+    const structureFormworkWithWastage = applyWastage(
+        structureFormworkResult,
+        formworkCustomWastage ? formworkWastage : DEFAULT_WASTAGE.formwork
+    );
 
     // 計算每列混凝土體積
     const concreteRowResults = concreteRows.map(row => {
@@ -1004,98 +1123,316 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
             {/* 模板計算 */}
             {calcType === 'formwork' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: 模板面積 = 建築面積 × 係數 (1.3~2.2)
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="建築面積" value={formworkArea} onChange={setFormworkArea} unit="m²" placeholder="0" />
-                        <SelectField
-                            label="模板係數"
-                            value={formworkRatio}
-                            onChange={setFormworkRatio}
-                            options={[
-                                { value: '1.3', label: '1.3 - 簡單結構 (少柱少現澆板)' },
-                                { value: '1.8', label: '1.8 - 一般結構 (標準框架)' },
-                                { value: '2.2', label: '2.2 - 複雜結構 (多層住宅)' },
-                            ]}
-                        />
+                    {/* 模式切換 */}
+                    <div className="flex gap-2 border-b border-gray-100 pb-3">
+                        <button
+                            onClick={() => setFormworkMode('estimate')}
+                            className={`px-3 py-1.5 rounded-lg text-sm transition-all ${formworkMode === 'estimate'
+                                ? 'bg-orange-100 text-orange-700 font-medium'
+                                : 'text-gray-500 hover:bg-gray-100'}`}
+                        >
+                            建築概算
+                        </button>
+                        <button
+                            onClick={() => setFormworkMode('structure')}
+                            className={`px-3 py-1.5 rounded-lg text-sm transition-all ${formworkMode === 'structure'
+                                ? 'bg-orange-100 text-orange-700 font-medium'
+                                : 'text-gray-500 hover:bg-gray-100'}`}
+                        >
+                            結構模板
+                        </button>
                     </div>
 
-                    {/* 模板係數詳細說明 */}
-                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                        <div className="font-medium text-blue-800 text-sm mb-2 flex items-center gap-2">
-                            <Info size={14} />
-                            模板係數說明
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                            <div className={`p-2 rounded-lg border ${formworkRatio === '1.3' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
-                                <div className="font-bold text-gray-800 mb-1">係數 1.3</div>
-                                <div className="text-gray-600 leading-relaxed">
-                                    <div className="font-medium text-blue-700 mb-1">適用：簡單結構</div>
-                                    <ul className="list-disc list-inside space-y-0.5">
-                                        <li>少量柱子的建築</li>
-                                        <li>預鑄板為主，現澆板少</li>
-                                        <li>單層或簡易倉庫廠房</li>
-                                        <li>開放式空間較多</li>
-                                    </ul>
-                                </div>
+                    {/* 建築概算模式 */}
+                    {formworkMode === 'estimate' && (
+                        <>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Info size={16} />
+                                公式: 模板面積 = 建築面積 × 係數 (1.3~2.2)
                             </div>
-                            <div className={`p-2 rounded-lg border ${formworkRatio === '1.8' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
-                                <div className="font-bold text-gray-800 mb-1">係數 1.8</div>
-                                <div className="text-gray-600 leading-relaxed">
-                                    <div className="font-medium text-blue-700 mb-1">適用：一般結構（最常用）</div>
-                                    <ul className="list-disc list-inside space-y-0.5">
-                                        <li>標準框架結構</li>
-                                        <li>一般商業/辦公建築</li>
-                                        <li>標準柱距與樓板配置</li>
-                                        <li>3~5 層樓建築</li>
-                                    </ul>
-                                </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <InputField label="建築面積" value={formworkArea} onChange={setFormworkArea} unit="m²" placeholder="0" />
+                                <SelectField
+                                    label="模板係數"
+                                    value={formworkRatio}
+                                    onChange={setFormworkRatio}
+                                    options={[
+                                        { value: '1.3', label: '1.3 - 簡單結構 (少柱少現澆板)' },
+                                        { value: '1.8', label: '1.8 - 一般結構 (標準框架)' },
+                                        { value: '2.2', label: '2.2 - 複雜結構 (多層住宅)' },
+                                    ]}
+                                />
                             </div>
-                            <div className={`p-2 rounded-lg border ${formworkRatio === '2.2' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
-                                <div className="font-bold text-gray-800 mb-1">係數 2.2</div>
-                                <div className="text-gray-600 leading-relaxed">
-                                    <div className="font-medium text-blue-700 mb-1">適用：複雜結構</div>
-                                    <ul className="list-disc list-inside space-y-0.5">
-                                        <li>標準多層住宅大樓</li>
-                                        <li>密集柱子與牆面</li>
-                                        <li>多樓梯/電梯井</li>
-                                        <li>複雜梁配置</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mt-2 text-xs text-gray-500 flex items-start gap-1">
-                            <span className="text-blue-500">💡</span>
-                            <span>係數越高代表單位建築面積需要越多模板面積。實際使用時請依現場結構複雜度適當調整。</span>
-                        </div>
-                    </div>
-                    <WastageControl
-                        wastage={formworkWastage}
-                        setWastage={setFormworkWastage}
-                        defaultValue={DEFAULT_WASTAGE.formwork}
-                        useCustom={formworkCustomWastage}
-                        setUseCustom={setFormworkCustomWastage}
-                    />
-                    <ResultDisplay
-                        label="模板面積"
-                        value={formworkResult}
-                        unit="m²"
-                        wastageValue={formworkWithWastage}
-                        onAddRecord={(subType, label, value, unit, wastageValue) =>
-                            onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
-                        subType="模板"
-                    />
 
-                    <CostInput
-                        label="模板"
-                        quantity={formworkWithWastage}
-                        unit="m²"
-                        vendors={vendors.filter(v => v.category === '工程工班' || v.tradeType?.includes('模板'))}
-                        onChange={setFormworkCost}
-                        placeholder={{ spec: '例：清水模板' }}
-                    />
+                            {/* 模板係數詳細說明 */}
+                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                                <div className="font-medium text-blue-800 text-sm mb-2 flex items-center gap-2">
+                                    <Info size={14} />
+                                    模板係數說明
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                    <div className={`p-2 rounded-lg border ${formworkRatio === '1.3' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800 mb-1">係數 1.3</div>
+                                        <div className="text-gray-600 leading-relaxed">
+                                            <div className="font-medium text-blue-700 mb-1">適用：簡單結構</div>
+                                            <ul className="list-disc list-inside space-y-0.5">
+                                                <li>少量柱子的建築</li>
+                                                <li>預鑄板為主，現澆板少</li>
+                                                <li>單層或簡易倉庫廠房</li>
+                                                <li>開放式空間較多</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${formworkRatio === '1.8' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800 mb-1">係數 1.8</div>
+                                        <div className="text-gray-600 leading-relaxed">
+                                            <div className="font-medium text-blue-700 mb-1">適用：一般結構（最常用）</div>
+                                            <ul className="list-disc list-inside space-y-0.5">
+                                                <li>標準框架結構</li>
+                                                <li>一般商業/辦公建築</li>
+                                                <li>標準柱距與樓板配置</li>
+                                                <li>3~5 層樓建築</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${formworkRatio === '2.2' ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-200'}`}>
+                                        <div className="font-bold text-gray-800 mb-1">係數 2.2</div>
+                                        <div className="text-gray-600 leading-relaxed">
+                                            <div className="font-medium text-blue-700 mb-1">適用：複雜結構</div>
+                                            <ul className="list-disc list-inside space-y-0.5">
+                                                <li>標準多層住宅大樓</li>
+                                                <li>密集柱子與牆面</li>
+                                                <li>多樓梯/電梯井</li>
+                                                <li>複雜梁配置</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-500 flex items-start gap-1">
+                                    <span className="text-blue-500">💡</span>
+                                    <span>係數越高代表單位建築面積需要越多模板面積。實際使用時請依現場結構複雜度適當調整。</span>
+                                </div>
+                            </div>
+                            <WastageControl
+                                wastage={formworkWastage}
+                                setWastage={setFormworkWastage}
+                                defaultValue={DEFAULT_WASTAGE.formwork}
+                                useCustom={formworkCustomWastage}
+                                setUseCustom={setFormworkCustomWastage}
+                            />
+                            <ResultDisplay
+                                label="模板面積"
+                                value={formworkResult}
+                                unit="m²"
+                                wastageValue={formworkWithWastage}
+                                onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                    onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                subType="模板"
+                            />
+
+                            <CostInput
+                                label="模板"
+                                quantity={formworkWithWastage}
+                                unit="m²"
+                                vendors={vendors.filter(v => v.category === '工程工班' || v.tradeType?.includes('模板'))}
+                                onChange={setFormworkCost}
+                                placeholder={{ spec: '例：清水模板' }}
+                            />
+                        </>
+                    )}
+
+                    {/* 結構模板模式 */}
+                    {formworkMode === 'structure' && (
+                        <>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Info size={16} />
+                                依結構尺寸精確計算模板面積
+                            </div>
+
+                            {/* 結構類型選擇 */}
+                            <div className="flex gap-2 flex-wrap">
+                                {[
+                                    { id: 'parapet', label: '女兒牆', icon: '🧱' },
+                                    { id: 'beam', label: '地樑', icon: '📏' },
+                                    { id: 'column', label: '柱子', icon: '🏛️' },
+                                ].map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setStructureType(item.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${structureType === item.id
+                                            ? 'bg-orange-500 text-white'
+                                            : 'bg-gray-100 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        <span>{item.icon}</span>
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* 女兒牆計算 */}
+                            {structureType === 'parapet' && (
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                                    <div className="font-medium text-gray-700 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                        女兒牆模板計算
+                                        <span className="text-xs text-gray-500 font-normal">(內外雙面)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <InputField label="長度" value={parapetLength} onChange={setParapetLength} unit="m" placeholder="0" />
+                                        <SelectField
+                                            label="厚度"
+                                            value={parapetThickness}
+                                            onChange={(v) => setParapetThickness(v === 'custom' ? 'custom' : parseInt(v))}
+                                            options={PARAPET_THICKNESS_OPTIONS}
+                                        />
+                                        <InputField label="高度" value={parapetHeight} onChange={setParapetHeight} unit="m" placeholder="0" />
+                                        <InputField label="數量" value={parapetCount} onChange={setParapetCount} unit="處" placeholder="1" />
+                                    </div>
+                                    {parapetThickness === 'custom' && (
+                                        <InputField label="自訂厚度" value={parapetCustomThickness} onChange={setParapetCustomThickness} unit="cm" placeholder="0" />
+                                    )}
+                                    <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                        <strong>公式:</strong> 長度 × 高度 × 2(雙面) × 數量 = {parapetLength || 0} × {parapetHeight || 0} × 2 × {parapetCount || 1} = <span className="text-orange-600 font-bold">{formatNumber(getParapetFormwork())} m²</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 地樑計算 */}
+                            {structureType === 'beam' && (
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                                    <div className="font-medium text-gray-700 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                        地樑模板計算
+                                        <span className="text-xs text-gray-500 font-normal">(側面模板)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <SelectField
+                                            label="地樑規格"
+                                            value={beamPreset}
+                                            onChange={setBeamPreset}
+                                            options={GROUND_BEAM_PRESETS.map(p => ({ value: p.value, label: `${p.label} ${p.width ? `(${p.width}×${p.height}cm)` : ''}` }))}
+                                        />
+                                        <InputField label="長度" value={beamLength} onChange={setBeamLength} unit="m" placeholder="0" />
+                                        <InputField label="數量" value={beamCount} onChange={setBeamCount} unit="支" placeholder="1" />
+                                        <div className="flex items-end pb-2">
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={beamIncludeBottom}
+                                                    onChange={(e) => setBeamIncludeBottom(e.target.checked)}
+                                                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                                />
+                                                含底模
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {beamPreset === 'custom' && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <InputField label="梁寬" value={beamCustomWidth} onChange={setBeamCustomWidth} unit="cm" placeholder="0" />
+                                            <InputField label="梁高" value={beamCustomHeight} onChange={setBeamCustomHeight} unit="cm" placeholder="0" />
+                                        </div>
+                                    )}
+                                    {/* 地樑規格參考表 */}
+                                    <div className="bg-white p-3 rounded border border-gray-200">
+                                        <div className="text-xs font-medium text-gray-600 mb-2">常用規格參考:</div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                                            {GROUND_BEAM_PRESETS.filter(p => p.value !== 'custom').map(p => (
+                                                <div key={p.value} className={`p-2 rounded border text-center ${beamPreset === p.value ? 'bg-orange-100 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="font-bold">{p.value}</div>
+                                                    <div className="text-gray-600">{p.width}×{p.height}cm</div>
+                                                    <div className="text-gray-400 text-[10px]">{p.desc}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                        <strong>公式:</strong> (梁高×2{beamIncludeBottom ? '+梁寬' : ''}) × 長度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getBeamFormwork())} m²</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 柱子計算 */}
+                            {structureType === 'column' && (
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                                    <div className="font-medium text-gray-700 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                        柱子模板計算
+                                        <span className="text-xs text-gray-500 font-normal">(四周面)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <SelectField
+                                            label="柱子規格"
+                                            value={columnPreset}
+                                            onChange={setColumnPreset}
+                                            options={COLUMN_PRESETS.map(p => ({ value: p.value, label: p.label }))}
+                                        />
+                                        <InputField label="柱高" value={columnHeight} onChange={setColumnHeight} unit="m" placeholder="0" />
+                                        <InputField label="數量" value={columnCount} onChange={setColumnCount} unit="支" placeholder="1" />
+                                    </div>
+                                    {columnPreset === 'custom' && (
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <InputField label="柱寬" value={columnCustomWidth} onChange={setColumnCustomWidth} unit="cm" placeholder="0" />
+                                            <InputField label="柱深" value={columnCustomDepth} onChange={setColumnCustomDepth} unit="cm" placeholder="0" />
+                                            <InputField label="或圓柱直徑" value={columnCustomDiameter} onChange={setColumnCustomDiameter} unit="cm" placeholder="0" />
+                                        </div>
+                                    )}
+                                    {/* 柱子規格參考表 */}
+                                    <div className="bg-white p-3 rounded border border-gray-200">
+                                        <div className="text-xs font-medium text-gray-600 mb-2">常用規格參考:</div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                                            {COLUMN_PRESETS.filter(p => p.value !== 'custom').slice(0, 5).map(p => (
+                                                <div key={p.value} className={`p-2 rounded border text-center ${columnPreset === p.value ? 'bg-orange-100 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="font-bold">{p.value}</div>
+                                                    <div className="text-gray-600">{p.type === 'round' ? `Ø${p.diameter}cm` : `${p.width}×${p.depth}cm`}</div>
+                                                    <div className="text-gray-400 text-[10px]">{p.desc}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mt-2">
+                                            {COLUMN_PRESETS.filter(p => p.value !== 'custom').slice(5).map(p => (
+                                                <div key={p.value} className={`p-2 rounded border text-center ${columnPreset === p.value ? 'bg-orange-100 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="font-bold">{p.value}</div>
+                                                    <div className="text-gray-600">{p.type === 'round' ? `Ø${p.diameter}cm` : `${p.width}×${p.depth}cm`}</div>
+                                                    <div className="text-gray-400 text-[10px]">{p.desc}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                        <strong>公式:</strong> {COLUMN_PRESETS.find(p => p.value === columnPreset)?.type === 'round' ? 'π × 直徑' : '(寬+深) × 2'} × 高度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getColumnFormwork())} m²</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <WastageControl
+                                wastage={formworkWastage}
+                                setWastage={setFormworkWastage}
+                                defaultValue={DEFAULT_WASTAGE.formwork}
+                                useCustom={formworkCustomWastage}
+                                setUseCustom={setFormworkCustomWastage}
+                            />
+
+                            <ResultDisplay
+                                label={`${structureType === 'parapet' ? '女兒牆' : structureType === 'beam' ? '地樑' : '柱子'}模板面積`}
+                                value={structureFormworkResult}
+                                unit="m²"
+                                wastageValue={structureFormworkWithWastage}
+                                onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                    onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                subType="模板"
+                            />
+
+                            <CostInput
+                                label="模板"
+                                quantity={structureFormworkWithWastage}
+                                unit="m²"
+                                vendors={vendors.filter(v => v.category === '工程工班' || v.tradeType?.includes('模板'))}
+                                onChange={setFormworkCost}
+                                placeholder={{ spec: '例：清水模板' }}
+                            />
+                        </>
+                    )}
                 </div>
             )}
         </div>
