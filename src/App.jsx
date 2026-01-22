@@ -33,7 +33,9 @@ import {
   Ruler,
   LogOut,
   ShoppingCart,
-  ClipboardList
+  ClipboardList,
+  Menu,
+  X
 } from 'lucide-react';
 
 // Import P0 pages from design-system
@@ -891,6 +893,7 @@ const App = () => {
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch clients and projects data on mount
   useEffect(() => {
@@ -1029,7 +1032,16 @@ const App = () => {
     <div className="flex h-screen bg-gray-50 font-sans text-gray-900 selection:bg-gray-200">
 
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 z-10 flex flex-col">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 z-30 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-gray-200">S</div>
@@ -1109,11 +1121,19 @@ const App = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 flex flex-col min-h-screen">
+      <main className="lg:ml-64 flex-1 flex flex-col min-h-screen">
 
         {/* Top Header */}
-        <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-20 px-8 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800">{getTitle()}</h2>
+        <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 px-4 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <h2 className="text-xl font-bold text-gray-800">{getTitle()}</h2>
+          </div>
 
           <div className="flex items-center gap-6">
             <div className="relative">
