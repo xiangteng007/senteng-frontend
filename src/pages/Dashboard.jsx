@@ -1,12 +1,24 @@
 
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { WidgetWrapper } from '../components/common/WidgetWrapper';
 import { WidgetDailySchedule, WidgetMemo, WidgetOverviewStats, WidgetRecentActivity } from '../components/widgets/DashboardWidgets';
 
+// Smart greeting based on time of day
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return '早安';
+    if (hour < 18) return '午安';
+    return '晚安';
+};
+
 const Dashboard = ({ events, finance, projects, clients }) => {
-    // Check if user has name, otherwise default
-    const userName = "打工人";
+    const { user } = useAuth();
+    // Use logged in user's name, fallback to email prefix or default
+    const userName = user?.name || user?.email?.split('@')[0] || "使用者";
+    const greeting = getGreeting();
     const dateStr = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
+
 
     const [widgets, setWidgets] = useState([
         { id: 'wd-stats', type: 'stats', title: '營運總覽', size: 'L' },
@@ -27,7 +39,7 @@ const Dashboard = ({ events, finance, projects, clients }) => {
         <div className="space-y-4 sm:space-y-6 animate-fade-in relative z-0">
             <div className="mb-6 sm:mb-8 flex justify-between items-end">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-morandi-text-primary">早安，{userName}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-morandi-text-primary">{greeting}，{userName}</h1>
                     <p className="text-sm sm:text-base text-morandi-text-secondary">今天是 {dateStr}</p>
                 </div>
                 {/* Optional: Add a quick action button here if needed */}
