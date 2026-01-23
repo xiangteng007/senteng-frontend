@@ -193,38 +193,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
             let savedClient = await api.create(clientData);
 
-            // Auto-create contact if phone or email exists
-            if (newClientData.phone || newClientData.email) {
-                try {
-                    const newContact = {
-                        name: newClientData.name,
-                        phone: newClientData.phone || '',
-                        email: newClientData.email || '',
-                        title: '客戶',
-                        id: `contact-${Date.now()}`,
-                        syncStatus: 'PENDING'
-                    };
-
-                    // Update client with the new contact
-                    savedClient = await api.update(savedClient.id, {
-                        contacts: [newContact]
-                    });
-
-                    // Auto-sync to Google if connected
-                    if (googleStatus?.connected) {
-                        const addedContact = savedClient.contacts?.find(c => c.name === newContact.name);
-                        if (addedContact?.id) {
-                            await syncContactToGoogle(addedContact.id);
-                            addToast("聯絡人已同步至 Google Contacts", "success");
-                            // Refresh client data
-                            savedClient = await api.getById(savedClient.id);
-                        }
-                    }
-                } catch (contactError) {
-                    console.warn('Auto-create contact failed:', contactError);
-                    addToast('自動建立聯絡人失敗，請手動新增', 'warning');
-                }
-            }
+            // Note: Contacts can be added later from the client detail page
 
             const updatedList = [...data, savedClient];
             if (onUpdateClients) onUpdateClients(updatedList);
