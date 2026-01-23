@@ -6,7 +6,7 @@ import { WidgetProjectVendors } from '../components/widgets/ProjectVendorsWidget
 import { WidgetProjectInventory } from '../components/widgets/ProjectInventoryWidget';
 import { AddVendorModal } from '../components/project/AddVendorModal';
 import { AddInventoryModal } from '../components/project/AddInventoryModal';
-import { Plus, ChevronLeft, Calendar as CalendarIcon, Upload, ImageIcon, Edit2, Save, X, Trash2, Database } from 'lucide-react';
+import { Plus, ChevronLeft, Calendar as CalendarIcon, Upload, ImageIcon, Edit2, Save, X, Trash2, Database, ClipboardList, MapPin, Users } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { LocationField } from '../components/common/LocationField';
@@ -17,20 +17,104 @@ import { GoogleService } from '../services/GoogleService';
 import WidgetProjectProgress from '../components/common/WidgetProjectProgress';
 
 // --- Missing Detail Widgets (Implementing inline for safety) ---
-const WidgetProjectRecords = ({ records, size, onAddRecord }) => (
-    <div className="flex flex-col h-full">
-        <div className="flex justify-between mb-3 items-center"><h4 className="text-xs font-bold text-gray-600">工程/會議紀錄</h4><button onClick={onAddRecord} className="text-morandi-blue-600 hover:bg-morandi-blue-50 p-1.5 rounded-lg transition-colors"><Plus size={14} /></button></div>
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-            {records.map(r => (
-                <div key={r.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 hover:border-morandi-blue-200 transition-colors">
-                    <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>{r.date} · {r.type}</span><span>{r.author}</span></div>
-                    <div className="text-xs text-gray-800 mb-2 leading-relaxed">{r.content}</div>
-                    {r.photos && r.photos.length > 0 && (<div className="flex gap-2 overflow-x-auto pb-1">{r.photos.map((p, idx) => (<div key={idx} className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center shrink-0"><ImageIcon size={14} className="text-gray-400" /></div>))}</div>)}
-                </div>
-            ))}
+const WidgetProjectRecords = ({ records, size, onAddRecord }) => {
+    const typeIcons = {
+        '工程紀錄': '🔧',
+        '會議紀錄': '📋',
+        '驗收紀錄': '✅',
+        '施工日誌': '📝',
+        '其他': '📌',
+        '工程': '🔧' // 向後相容
+    };
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="flex justify-between mb-3 items-center">
+                <h4 className="text-xs font-bold text-gray-600">工程/會議紀錄</h4>
+                <button onClick={onAddRecord} className="text-morandi-blue-600 hover:bg-morandi-blue-50 p-1.5 rounded-lg transition-colors">
+                    <Plus size={14} />
+                </button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                {records.length === 0 ? (
+                    <div className="text-center text-gray-400 text-xs py-8">
+                        尚無紀錄，點擊 + 新增
+                    </div>
+                ) : records.map(r => (
+                    <div key={r.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 hover:border-morandi-blue-200 transition-colors">
+                        {/* 標題列 */}
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm">{typeIcons[r.type] || '📝'}</span>
+                                <span className="text-xs font-bold text-gray-800">
+                                    {r.title || r.type || '紀錄'}
+                                </span>
+                            </div>
+                            <span className="text-[10px] text-gray-400">{r.date}</span>
+                        </div>
+
+                        {/* 內容 */}
+                        {r.content && (
+                            <div className="text-xs text-gray-600 mb-2 leading-relaxed line-clamp-3">
+                                {r.content}
+                            </div>
+                        )}
+
+                        {/* 地點 + 參與人員 */}
+                        {(r.location || r.attendees) && (
+                            <div className="flex flex-wrap gap-2 text-[10px] text-gray-500 mb-2">
+                                {r.location && (
+                                    <span className="flex items-center gap-1">
+                                        <MapPin size={10} /> {r.location}
+                                    </span>
+                                )}
+                                {r.attendees && (
+                                    <span className="flex items-center gap-1">
+                                        <Users size={10} /> {r.attendees}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 待辦事項 */}
+                        {r.todos && r.todos.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-[10px] text-gray-500 mb-1">待辦事項：</div>
+                                <ul className="text-[10px] text-gray-600 space-y-0.5">
+                                    {r.todos.slice(0, 3).map((todo, idx) => (
+                                        <li key={idx} className="flex items-center gap-1">
+                                            <span className="w-3 h-3 border border-gray-300 rounded flex-shrink-0"></span>
+                                            <span className="truncate">{todo}</span>
+                                        </li>
+                                    ))}
+                                    {r.todos.length > 3 && (
+                                        <li className="text-gray-400">+{r.todos.length - 3} 項更多...</li>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* 照片 */}
+                        {r.photos && r.photos.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
+                                {r.photos.map((p, idx) => (
+                                    <div key={idx} className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center shrink-0">
+                                        <ImageIcon size={14} className="text-gray-400" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* 作者 */}
+                        <div className="text-[10px] text-gray-400 mt-2 text-right">
+                            記錄者：{r.author}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const WidgetProjectFinanceDetail = ({ transactions, size, onAddTx, onSyncToSheet, project }) => {
     const income = transactions.filter(t => t.type === '收入').reduce((acc, c) => acc + c.amount, 0);
@@ -187,7 +271,16 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
 
     // Detail Modals
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-    const [newRecord, setNewRecord] = useState({ type: '工程', content: '', photos: [] });
+    const [newRecord, setNewRecord] = useState({
+        type: '工程紀錄',
+        date: new Date().toISOString().split('T')[0],
+        title: '',
+        content: '',
+        location: '',
+        attendees: '',
+        todos: [],
+        photos: []
+    });
 
     const handleResize = (widgets, setWidgets) => (id, size) => setWidgets(prev => prev.map(w => w.id === id ? { ...w, size } : w));
 
@@ -524,13 +617,145 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
 
                 </div>
 
-                <Modal isOpen={isRecordModalOpen} onClose={() => setIsRecordModalOpen(false)} title="新增紀錄" onConfirm={() => {
-                    // Mock Implementation
-                    const record = { id: `r-${Date.now()}`, date: new Date().toISOString().split('T')[0], author: 'Alex', ...newRecord };
+
+                <Modal isOpen={isRecordModalOpen} onClose={() => setIsRecordModalOpen(false)} title="新增工程/會議紀錄" onConfirm={() => {
+                    if (!newRecord.title && !newRecord.content) {
+                        return addToast('請填寫標題或內容', 'error');
+                    }
+                    const record = {
+                        id: `r-${Date.now()}`,
+                        author: 'Admin',
+                        createdAt: new Date().toISOString(),
+                        ...newRecord,
+                        todos: newRecord.todos.filter(t => t.trim() !== '')
+                    };
                     onUpdateProject({ ...activeProject, records: [record, ...(activeProject.records || [])] });
+                    setNewRecord({
+                        type: '工程紀錄',
+                        date: new Date().toISOString().split('T')[0],
+                        title: '',
+                        content: '',
+                        location: '',
+                        attendees: '',
+                        todos: [],
+                        photos: []
+                    });
                     setIsRecordModalOpen(false);
+                    addToast('紀錄已新增', 'success');
                 }}>
-                    <InputField label="內容" type="textarea" value={newRecord.content} onChange={e => setNewRecord({ ...newRecord, content: e.target.value })} />
+                    <div className="space-y-4">
+                        {/* 紀錄類型 + 日期 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                    <ClipboardList size={14} /> 紀錄類型
+                                </label>
+                                <select
+                                    value={newRecord.type}
+                                    onChange={e => setNewRecord({ ...newRecord, type: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="工程紀錄">🔧 工程紀錄</option>
+                                    <option value="會議紀錄">📋 會議紀錄</option>
+                                    <option value="驗收紀錄">✅ 驗收紀錄</option>
+                                    <option value="施工日誌">📝 施工日誌</option>
+                                    <option value="其他">📌 其他</option>
+                                </select>
+                            </div>
+                            <InputField
+                                label="日期"
+                                type="date"
+                                value={newRecord.date}
+                                onChange={e => setNewRecord({ ...newRecord, date: e.target.value })}
+                            />
+                        </div>
+
+                        {/* 標題 */}
+                        <InputField
+                            label="標題"
+                            value={newRecord.title}
+                            onChange={e => setNewRecord({ ...newRecord, title: e.target.value })}
+                            placeholder="例：二樓泥作完成驗收"
+                        />
+
+                        {/* 內容 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">內容</label>
+                            <textarea
+                                value={newRecord.content}
+                                onChange={e => setNewRecord({ ...newRecord, content: e.target.value })}
+                                placeholder="詳細描述工程進度或會議內容..."
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-none"
+                            />
+                        </div>
+
+                        {/* 地點 + 參與人員 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                    <MapPin size={14} /> 地點
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newRecord.location}
+                                    onChange={e => setNewRecord({ ...newRecord, location: e.target.value })}
+                                    placeholder="例：現場/會議室"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                    <Users size={14} /> 參與人員
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newRecord.attendees}
+                                    onChange={e => setNewRecord({ ...newRecord, attendees: e.target.value })}
+                                    placeholder="例：王工程師、李監工"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* 待辦事項 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">待辦事項</label>
+                            <div className="space-y-2">
+                                {newRecord.todos.map((todo, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={todo}
+                                            onChange={e => {
+                                                const updated = [...newRecord.todos];
+                                                updated[idx] = e.target.value;
+                                                setNewRecord({ ...newRecord, todos: updated });
+                                            }}
+                                            placeholder="待辦事項..."
+                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const updated = newRecord.todos.filter((_, i) => i !== idx);
+                                                setNewRecord({ ...newRecord, todos: updated });
+                                            }}
+                                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setNewRecord({ ...newRecord, todos: [...newRecord.todos, ''] })}
+                                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 py-1"
+                                >
+                                    <Plus size={14} /> 新增待辦事項
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </Modal>
 
                 <AddVendorModal
