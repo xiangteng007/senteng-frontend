@@ -14,6 +14,8 @@ import {
 import { clientsApi, customersApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 import { ContactsSection } from '../components/common/ContactsSection';
+import { syncContactToGoogle } from '../services/contactsSyncApi';
+import { useGoogleIntegrationStatus } from '../hooks/useGoogleIntegrationStatus';
 
 // API 選擇 - 設為 true 以使用新版 Customers API
 const USE_NEW_API = false; // 設為 true 啟用新版 API
@@ -126,6 +128,9 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
     // 新增聯絡人 Modal
     const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
     const [newContactPerson, setNewContactPerson] = useState({ name: '', phone: '', email: '', title: '' });
+
+    // Google Integration Status
+    const { data: googleStatus } = useGoogleIntegrationStatus();
 
     // 計算統計
     const stats = useMemo(() => ({
@@ -280,11 +285,12 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
         if (!newContactPerson.name) return addToast("請輸入聯絡人姓名", "error");
 
         try {
-            const updatedContacts = [...(activeClient.contacts || []), {
+            const newContact = {
                 ...newContactPerson,
                 id: `contact-${Date.now()}`,
                 syncStatus: 'PENDING'
-            }];
+            };
+            const updatedContacts = [...(activeClient.contacts || []), newContact];
 
             const updatedClient = await clientsApi.update(activeClient.id, {
                 contacts: updatedContacts
@@ -297,6 +303,30 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
             setIsAddContactModalOpen(false);
             setNewContactPerson({ name: '', phone: '', email: '', title: '' });
             addToast("聯絡人已新增", "success");
+
+            // Auto-sync to Google Contacts if connected
+            if (googleStatus?.connected) {
+                try {
+                    // Find the newly added contact ID from the updated client
+                    const addedContact = updatedClient.contacts?.find(c =>
+                        c.name === newContact.name &&
+                        c.phone === newContact.phone &&
+                        c.email === newContact.email
+                    );
+                    if (addedContact?.id) {
+                        await syncContactToGoogle(addedContact.id);
+                        addToast("已同步至 Google Contacts", "success");
+                        // Refresh to get updated sync status
+                        const refreshedClient = await clientsApi.getById(activeClient.id);
+                        const refreshedList = data.map(c => c.id === refreshedClient.id ? refreshedClient : c);
+                        onUpdateClients(refreshedList);
+                        setActiveClient(refreshedClient);
+                    }
+                } catch (syncError) {
+                    console.warn('Auto-sync contact failed:', syncError);
+                    addToast('同步至 Google 失敗，請稍後手動同步', 'warning');
+                }
+            }
         } catch (error) {
             console.error('Add contact person failed:', error);
             addToast(`新增失敗: ${error.message}`, 'error');

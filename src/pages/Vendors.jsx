@@ -14,6 +14,8 @@ import {
 import { vendorsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 import { ContactsSection } from '../components/common/ContactsSection';
+import { syncContactToGoogle } from '../services/contactsSyncApi';
+import { useGoogleIntegrationStatus } from '../hooks/useGoogleIntegrationStatus';
 
 // 狀態配置
 const STATUS_CONFIG = {
@@ -160,6 +162,13 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
     // 評價 Modal
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [newReview, setNewReview] = useState({ project: '', date: new Date().toISOString().split('T')[0], note: '', sentiment: 'neutral' });
+
+    // 新增聯絡人 Modal
+    const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+    const [newContactPerson, setNewContactPerson] = useState({ name: '', phone: '', email: '', title: '' });
+
+    // Google Integration Status
+    const { data: googleStatus } = useGoogleIntegrationStatus();
 
     // 同步 data
     React.useEffect(() => { setVendorsList(data); }, [data]);
@@ -351,6 +360,61 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
         } catch (error) {
             console.error('Add review failed:', error);
             addToast(`新增評價失敗: ${error.message}`, 'error');
+        }
+    };
+
+    // 新增聯絡人
+    const handleAddContactPerson = async () => {
+        if (!newContactPerson.name) return addToast("請輸入聯絡人姓名", "error");
+
+        try {
+            const newContact = {
+                ...newContactPerson,
+                id: `contact-${Date.now()}`,
+                syncStatus: 'PENDING'
+            };
+            const updatedContacts = [...(activeVendor.contacts || []), newContact];
+
+            const updatedVendor = await vendorsApi.update(activeVendor.id, {
+                contacts: updatedContacts
+            });
+
+            const newList = vendorsList.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+            setVendorsList(newList);
+            setActiveVendor(updatedVendor);
+            if (onUpdateVendors) onUpdateVendors(newList);
+
+            setIsAddContactModalOpen(false);
+            setNewContactPerson({ name: '', phone: '', email: '', title: '' });
+            addToast("聯絡人已新增", "success");
+
+            // Auto-sync to Google Contacts if connected
+            if (googleStatus?.connected) {
+                try {
+                    // Find the newly added contact ID from the updated vendor
+                    const addedContact = updatedVendor.contacts?.find(c =>
+                        c.name === newContact.name &&
+                        c.phone === newContact.phone &&
+                        c.email === newContact.email
+                    );
+                    if (addedContact?.id) {
+                        await syncContactToGoogle(addedContact.id);
+                        addToast("已同步至 Google Contacts", "success");
+                        // Refresh to get updated sync status
+                        const refreshedVendor = await vendorsApi.getById(activeVendor.id);
+                        const refreshedList = vendorsList.map(v => v.id === refreshedVendor.id ? refreshedVendor : v);
+                        setVendorsList(refreshedList);
+                        setActiveVendor(refreshedVendor);
+                        if (onUpdateVendors) onUpdateVendors(refreshedList);
+                    }
+                } catch (syncError) {
+                    console.warn('Auto-sync contact failed:', syncError);
+                    addToast('同步至 Google 失敗，請稍後手動同步', 'warning');
+                }
+            }
+        } catch (error) {
+            console.error('Add contact person failed:', error);
+            addToast(`新增失敗: ${error.message}`, 'error');
         }
     };
 
@@ -562,6 +626,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                                 }).catch(console.error);
                             }}
                             addToast={addToast}
+                            onAddContact={() => setIsAddContactModalOpen(true)}
                         />
                     </Card>
 
@@ -814,6 +879,43 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                     <p className="text-sm text-gray-500">
                         刪除後，該廠商的所有資料將從系統中移除。
                     </p>
+                </div>
+            </Modal>
+
+            {/* 新增聯絡人 Modal */}
+            <Modal
+                isOpen={isAddContactModalOpen}
+                onClose={() => setIsAddContactModalOpen(false)}
+                title="新增聯絡人"
+                onConfirm={handleAddContactPerson}
+            >
+                <div className="space-y-4">
+                    <InputField
+                        label="姓名"
+                        value={newContactPerson.name}
+                        onChange={e => setNewContactPerson({ ...newContactPerson, name: e.target.value })}
+                        placeholder="必填"
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <InputField
+                            label="電話"
+                            value={newContactPerson.phone}
+                            onChange={e => setNewContactPerson({ ...newContactPerson, phone: e.target.value })}
+                            placeholder="例：0912-345-678"
+                        />
+                        <InputField
+                            label="Email"
+                            value={newContactPerson.email}
+                            onChange={e => setNewContactPerson({ ...newContactPerson, email: e.target.value })}
+                            placeholder="例：contact@email.com"
+                        />
+                    </div>
+                    <InputField
+                        label="職稱"
+                        value={newContactPerson.title}
+                        onChange={e => setNewContactPerson({ ...newContactPerson, title: e.target.value })}
+                        placeholder="例：業務負責人、工地主任"
+                    />
                 </div>
             </Modal>
         </div>
