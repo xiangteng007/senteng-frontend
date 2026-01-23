@@ -14,7 +14,7 @@ import {
 import { clientsApi, customersApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 import { ContactsSection } from '../components/common/ContactsSection';
-import { syncContactToGoogle } from '../services/contactsSyncApi';
+import { syncContactToGoogle, deleteClientContactsFromGoogle } from '../services/contactsSyncApi';
 import { useGoogleIntegrationStatus } from '../hooks/useGoogleIntegrationStatus';
 
 // API 選擇 - 設為 true 以使用新版 Customers API
@@ -244,6 +244,20 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
     const handleDeleteClient = async (id) => {
         try {
+            // Find the client to check if it has contacts
+            const clientToDelete = data.find(c => c.id === id);
+
+            // Delete contacts from Google first (if connected)
+            if (googleStatus?.connected && clientToDelete?.contacts?.length > 0) {
+                try {
+                    await deleteClientContactsFromGoogle(id);
+                    addToast('已從 Google Contacts 移除聯絡人', 'success');
+                } catch (syncError) {
+                    console.warn('Delete from Google failed:', syncError);
+                    // Continue with delete even if Google sync fails
+                }
+            }
+
             await api.delete(id);
             const updatedList = data.filter(c => c.id !== id);
             onUpdateClients(updatedList);

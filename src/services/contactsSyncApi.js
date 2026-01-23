@@ -33,8 +33,28 @@ export async function syncVendorContactsToGoogle(vendorId) {
     return api.post(`/integrations/google/contacts/sync/vendor/${vendorId}`);
 }
 
+/**
+ * 刪除客戶所有聯絡人從 Google Contacts
+ * @param {string} clientId 
+ * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
+ */
+export async function deleteClientContactsFromGoogle(clientId) {
+    return api.post(`/integrations/google/contacts/delete/client/${clientId}`);
+}
+
+/**
+ * 刪除廠商所有聯絡人從 Google Contacts
+ * @param {string} vendorId 
+ * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
+ */
+export async function deleteVendorContactsFromGoogle(vendorId) {
+    return api.post(`/integrations/google/contacts/delete/vendor/${vendorId}`);
+}
+
 export default {
     syncContactToGoogle,
     syncClientContactsToGoogle,
     syncVendorContactsToGoogle,
+    deleteClientContactsFromGoogle,
+    deleteVendorContactsFromGoogle,
 };

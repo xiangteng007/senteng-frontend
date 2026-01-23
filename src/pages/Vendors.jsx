@@ -14,7 +14,7 @@ import {
 import { vendorsApi } from '../services/api';
 import { GoogleService } from '../services/GoogleService';
 import { ContactsSection } from '../components/common/ContactsSection';
-import { syncContactToGoogle } from '../services/contactsSyncApi';
+import { syncContactToGoogle, deleteVendorContactsFromGoogle } from '../services/contactsSyncApi';
 import { useGoogleIntegrationStatus } from '../hooks/useGoogleIntegrationStatus';
 
 // 狀態配置
@@ -353,6 +353,17 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
         if (!deletingVendor) return;
 
         try {
+            // Delete contacts from Google first (if connected)
+            if (googleStatus?.connected && deletingVendor.contacts?.length > 0) {
+                try {
+                    await deleteVendorContactsFromGoogle(deletingVendor.id);
+                    addToast('已從 Google Contacts 移除聯絡人', 'success');
+                } catch (syncError) {
+                    console.warn('Delete from Google failed:', syncError);
+                    // Continue with delete even if Google sync fails
+                }
+            }
+
             await vendorsApi.delete(deletingVendor.id);
             const updatedList = vendorsList.filter(v => v.id !== deletingVendor.id);
             setVendorsList(updatedList);
