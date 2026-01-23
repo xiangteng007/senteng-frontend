@@ -783,13 +783,22 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                     const tx = {
                         id: `tx-${Date.now()}`,
                         projectId: activeProject.id,
+                        projectName: activeProject.name,
                         ...newTx,
                         vendor: vendorValue,
                         amount: Number(newTx.amount),
                         createdAt: new Date().toISOString()
                     };
+
+                    // Update project's local transactions
                     const updatedTx = [...(activeProject.transactions || []), tx];
                     onUpdateProject({ ...activeProject, transactions: updatedTx });
+
+                    // Sync to global finance transactions
+                    if (onAddGlobalTx) {
+                        onAddGlobalTx(tx);
+                    }
+
                     setNewTx({
                         type: '支出',
                         category: '材料費',
@@ -801,7 +810,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                         status: '已付款'
                     });
                     setIsTxModalOpen(false);
-                    addToast('收支已新增', 'success');
+                    addToast('收支已新增並同步至財務管理', 'success');
                 }}>
                     <div className="space-y-4">
                         {/* 類型 + 類別 */}

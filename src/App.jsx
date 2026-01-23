@@ -770,6 +770,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(window.location.pathname));
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -838,6 +839,11 @@ const App = () => {
         data={{ ...MOCK_DATA, projects }}
         allClients={clients}
         addToast={addToast}
+        allTransactions={transactions}
+        onAddGlobalTx={(tx) => {
+          const txWithId = { ...tx, id: tx.id || `tx-${Date.now()}`, createdAt: tx.createdAt || new Date().toISOString() };
+          setTransactions(prev => [txWithId, ...prev]);
+        }}
         onUpdateProject={(updatedProject) => {
           setProjects(prev => {
             const exists = prev.find(p => p.id === updatedProject.id);
