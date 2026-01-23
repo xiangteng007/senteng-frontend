@@ -127,7 +127,9 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
 
     // 新增聯絡人 Modal
     const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
-    const [newContactPerson, setNewContactPerson] = useState({ name: '', phone: '', email: '', title: '' });
+    const [newContactPerson, setNewContactPerson] = useState({
+        name: '', phone: '', mobile: '', email: '', title: '', department: '', note: ''
+    });
 
     // Google Integration Status
     const { data: googleStatus } = useGoogleIntegrationStatus();
@@ -301,7 +303,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
             setActiveClient(updatedClient);
 
             setIsAddContactModalOpen(false);
-            setNewContactPerson({ name: '', phone: '', email: '', title: '' });
+            setNewContactPerson({ name: '', phone: '', mobile: '', email: '', title: '', department: '', note: '' });
             addToast("聯絡人已新增", "success");
 
             // Auto-sync to Google Contacts if connected
@@ -604,24 +606,47 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                         />
                         <div className="grid grid-cols-2 gap-4">
                             <InputField
-                                label="電話"
+                                label="公司電話"
                                 value={newContactPerson.phone}
                                 onChange={e => setNewContactPerson({ ...newContactPerson, phone: e.target.value })}
-                                placeholder="例：0912-345-678"
+                                placeholder="例：02-1234-5678"
                             />
                             <InputField
-                                label="Email"
-                                value={newContactPerson.email}
-                                onChange={e => setNewContactPerson({ ...newContactPerson, email: e.target.value })}
-                                placeholder="例：contact@email.com"
+                                label="手機"
+                                value={newContactPerson.mobile}
+                                onChange={e => setNewContactPerson({ ...newContactPerson, mobile: e.target.value })}
+                                placeholder="例：0912-345-678"
                             />
                         </div>
                         <InputField
-                            label="職稱"
-                            value={newContactPerson.title}
-                            onChange={e => setNewContactPerson({ ...newContactPerson, title: e.target.value })}
-                            placeholder="例：負責人、工地主任"
+                            label="Email"
+                            value={newContactPerson.email}
+                            onChange={e => setNewContactPerson({ ...newContactPerson, email: e.target.value })}
+                            placeholder="例：contact@email.com"
                         />
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField
+                                label="職稱"
+                                value={newContactPerson.title}
+                                onChange={e => setNewContactPerson({ ...newContactPerson, title: e.target.value })}
+                                placeholder="例：負責人、總經理"
+                            />
+                            <InputField
+                                label="部門"
+                                value={newContactPerson.department}
+                                onChange={e => setNewContactPerson({ ...newContactPerson, department: e.target.value })}
+                                placeholder="例：業務部、工程部"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-gray-500 mb-1">備註</label>
+                            <textarea
+                                value={newContactPerson.note}
+                                onChange={e => setNewContactPerson({ ...newContactPerson, note: e.target.value })}
+                                placeholder="其他備註資訊..."
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 min-h-[80px] resize-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
                     </div>
                 </Modal>
             </div>
