@@ -835,7 +835,7 @@ const App = () => {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
       case 'clients': return <ClientsPage data={clients} allProjects={MOCK_DATA.projects || []} addToast={addToast} onUpdateClients={setClients} />;
       case 'projects': return <ProjectsPage data={MOCK_DATA} />;
-      case 'events': return <CalendarPage />;
+      case 'events': return <CalendarPage addToast={addToast} />;
       case 'quotations': return <QuotationsPage addToast={addToast} projects={projects} clients={clients} />;
       case 'contracts': return <Contracts />;
       case 'change-orders': return <ChangeOrders />;
