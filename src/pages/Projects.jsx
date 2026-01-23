@@ -136,7 +136,11 @@ const WidgetProjectFinanceDetail = ({ transactions, size, onAddTx, onSyncToSheet
     );
 }
 
-const Projects = ({ data, loading, addToast, onSelectProject, activeProject, setActiveProject, onUpdateProject, onDeleteProject, allTransactions, onAddGlobalTx, accounts, allVendors, allInventory, allClients }) => {
+const Projects = ({ data, loading, addToast, onSelectProject, activeProject: propActiveProject, setActiveProject: propSetActiveProject, onUpdateProject, onDeleteProject, allTransactions = [], onAddGlobalTx, accounts = [], allVendors, allInventory, allClients }) => {
+    // Use internal state if props not provided
+    const [internalActiveProject, setInternalActiveProject] = useState(null);
+    const activeProject = propActiveProject !== undefined ? propActiveProject : internalActiveProject;
+    const setActiveProject = propSetActiveProject || setInternalActiveProject;
 
     // List View State
     const [listWidgets, setListWidgets] = useState([{ id: 'wp-stats', type: 'project-stats', title: '專案概況', size: 'S' }, { id: 'wp-list', type: 'project-list', title: '專案列表', size: 'L' }]);
