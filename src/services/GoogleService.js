@@ -465,11 +465,15 @@ export const GoogleService = {
   },
 
   // 初始化庫存 Sheet（建立資料夾和分頁）
+  // 庫存資料夾 ID (使用者指定)
   initInventorySheet: async () => {
-    console.log(`📦 Initializing Inventory Sheet...`);
+    const INVENTORY_FOLDER_ID = '1ZyCVPGlXq9RwucEM8kCGUoJe8_iiihJ7';
+    console.log(`📦 Initializing Inventory Sheet in specified folder...`);
 
     try {
-      const result = await callGASWithJSONP('init_inventory_sheet', {});
+      const result = await callGASWithJSONP('init_inventory_sheet', {
+        parentId: INVENTORY_FOLDER_ID
+      });
 
       if (result.success) {
         console.log(`✅ Inventory Sheet initialized`);
