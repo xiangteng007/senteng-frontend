@@ -813,53 +813,32 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                     addToast('收支已新增並同步至財務管理', 'success');
                 }}>
                     <div className="space-y-4">
-                        {/* 類型 + 類別 */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">類型</label>
-                                <select
-                                    value={newTx.type}
-                                    onChange={e => setNewTx({ ...newTx, type: e.target.value, category: e.target.value === '收入' ? '工程款' : '材料費' })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                                >
-                                    <option value="支出">💸 支出</option>
-                                    <option value="收入">💰 收入</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">類別</label>
-                                <select
-                                    value={newTx.category}
-                                    onChange={e => setNewTx({ ...newTx, category: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                                >
-                                    {newTx.type === '支出' ? (
-                                        <>
-                                            <option value="材料費">🧱 材料費</option>
-                                            <option value="人工費">👷 人工費</option>
-                                            <option value="設備費">🔧 設備費</option>
-                                            <option value="運輸費">🚚 運輸費</option>
-                                            <option value="其他支出">📦 其他支出</option>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <option value="工程款">🏗️ 工程款</option>
-                                            <option value="追加款">➕ 追加款</option>
-                                            <option value="其他收入">💵 其他收入</option>
-                                        </>
-                                    )}
-                                </select>
-                            </div>
+                        {/* 收入/支出 Toggle Tab - 與財務管理相同樣式 */}
+                        <div className="flex gap-4 mb-2 bg-gray-50 p-1 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => setNewTx({ ...newTx, type: '收入', category: '工程款', vendor: '', status: '待收款' })}
+                                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '收入' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'}`}
+                            >
+                                收入
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setNewTx({ ...newTx, type: '支出', category: '材料費', vendor: '', status: '待付款' })}
+                                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '支出' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400'}`}
+                            >
+                                支出
+                            </button>
                         </div>
 
                         {/* 金額 + 日期 */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <InputField
                                 label="金額"
                                 type="number"
                                 value={newTx.amount}
                                 onChange={e => setNewTx({ ...newTx, amount: e.target.value })}
-                                placeholder="0"
+                                placeholder="請輸入金額"
                             />
                             <InputField
                                 label="日期"
@@ -869,79 +848,92 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                             />
                         </div>
 
-                        {/* 描述 */}
-                        <InputField
-                            label="描述"
-                            value={newTx.desc}
-                            onChange={e => setNewTx({ ...newTx, desc: e.target.value })}
-                            placeholder="例：購買水泥 20 包"
-                        />
-
-                        {/* 廠商/客戶 + 發票號碼 */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {newTx.type === '支出' ? '廠商' : '客戶'}
-                                </label>
-                                <select
-                                    value={newTx.vendor}
-                                    onChange={e => setNewTx({ ...newTx, vendor: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                                >
-                                    <option value="">-- 請選擇 --</option>
-                                    {newTx.type === '支出' ? (
-                                        (allVendors || []).map(v => (
-                                            <option key={v.id} value={v.name}>
-                                                {v.name}{v.contactPerson ? ` (${v.contactPerson})` : ''}
-                                            </option>
-                                        ))
-                                    ) : (
-                                        (allClients || []).map(c => (
-                                            <option key={c.id} value={c.name}>
-                                                {c.name}{c.contact ? ` (${c.contact})` : ''}
-                                            </option>
-                                        ))
-                                    )}
-                                    <option value="__other__">📝 手動輸入...</option>
-                                </select>
-                                {newTx.vendor === '__other__' && (
-                                    <input
-                                        type="text"
-                                        placeholder={newTx.type === '支出' ? '輸入廠商名稱' : '輸入客戶名稱'}
-                                        onChange={e => setNewTx({ ...newTx, vendorCustom: e.target.value })}
-                                        className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    />
+                        {/* 類別 + 廠商/客戶 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <InputField label="類別" type="select" value={newTx.category} onChange={e => setNewTx({ ...newTx, category: e.target.value })}>
+                                <option value="">請選擇類別</option>
+                                {newTx.type === '支出' ? (
+                                    <>
+                                        <option value="材料費">材料費</option>
+                                        <option value="人工費">人工費</option>
+                                        <option value="設備費">設備費</option>
+                                        <option value="運輸費">運輸費</option>
+                                        <option value="其他支出">其他支出</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option value="工程款">工程款</option>
+                                        <option value="追加款">追加款</option>
+                                        <option value="其他收入">其他收入</option>
+                                    </>
                                 )}
-                            </div>
+                            </InputField>
+                            <InputField
+                                label={newTx.type === '支出' ? '廠商' : '客戶'}
+                                type="select"
+                                value={newTx.vendor}
+                                onChange={e => setNewTx({ ...newTx, vendor: e.target.value })}
+                            >
+                                <option value="">請選擇{newTx.type === '支出' ? '廠商' : '客戶'}</option>
+                                {newTx.type === '支出' ? (
+                                    (allVendors || []).map(v => (
+                                        <option key={v.id} value={v.name}>{v.name}</option>
+                                    ))
+                                ) : (
+                                    (allClients || []).map(c => (
+                                        <option key={c.id} value={c.name}>{c.name}</option>
+                                    ))
+                                )}
+                                <option value="__other__">手動輸入...</option>
+                            </InputField>
+                        </div>
+
+                        {/* 手動輸入廠商/客戶 */}
+                        {newTx.vendor === '__other__' && (
+                            <InputField
+                                label={newTx.type === '支出' ? '廠商名稱' : '客戶名稱'}
+                                value={newTx.vendorCustom || ''}
+                                onChange={e => setNewTx({ ...newTx, vendorCustom: e.target.value })}
+                                placeholder={`輸入${newTx.type === '支出' ? '廠商' : '客戶'}名稱`}
+                            />
+                        )}
+
+                        {/* 發票號碼 + 付款狀態 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <InputField
                                 label="發票號碼"
                                 value={newTx.invoiceNo}
                                 onChange={e => setNewTx({ ...newTx, invoiceNo: e.target.value })}
                                 placeholder="例：AB12345678"
                             />
-                        </div>
-
-                        {/* 付款狀態 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">付款狀態</label>
-                            <select
-                                value={newTx.status}
-                                onChange={e => setNewTx({ ...newTx, status: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                            >
+                            <InputField label="付款狀態" type="select" value={newTx.status} onChange={e => setNewTx({ ...newTx, status: e.target.value })}>
                                 {newTx.type === '支出' ? (
                                     <>
-                                        <option value="待付款">⏳ 待付款</option>
-                                        <option value="已付款">✅ 已付款</option>
+                                        <option value="待付款">待付款</option>
+                                        <option value="已付款">已付款</option>
                                     </>
                                 ) : (
                                     <>
-                                        <option value="待收款">⏳ 待收款</option>
-                                        <option value="已收款">✅ 已收款</option>
+                                        <option value="待收款">待收款</option>
+                                        <option value="已收款">已收款</option>
                                     </>
                                 )}
-                            </select>
+                            </InputField>
                         </div>
+
+                        {/* 關聯專案 (已自動選取當前專案) */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <span className="text-sm text-blue-600 font-medium">📁 關聯專案：</span>
+                            <span className="text-sm text-blue-800 ml-2">{activeProject?.name || '未知專案'}</span>
+                        </div>
+
+                        {/* 摘要 */}
+                        <InputField
+                            label="摘要"
+                            value={newTx.desc}
+                            onChange={e => setNewTx({ ...newTx, desc: e.target.value })}
+                            placeholder="例：購買水泥 20 包"
+                        />
                     </div>
                 </Modal>
 
