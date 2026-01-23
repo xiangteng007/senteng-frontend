@@ -847,8 +847,14 @@ const App = () => {
             return [updatedProject, ...prev];
           });
         }}
-        onDeleteProject={(projectId) => {
-          setProjects(prev => prev.filter(p => p.id !== projectId));
+        onDeleteProject={async (projectId) => {
+          try {
+            await projectsApi.delete(projectId);
+            setProjects(prev => prev.filter(p => p.id !== projectId));
+          } catch (error) {
+            console.error('Delete project failed:', error);
+            addToast(`刪除失敗: ${error.message}`, 'error');
+          }
         }}
       />;
       case 'events': return <CalendarPage addToast={addToast} />;
