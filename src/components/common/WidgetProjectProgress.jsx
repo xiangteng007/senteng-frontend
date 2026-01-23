@@ -1,6 +1,6 @@
 /**
  * WidgetProjectProgress.jsx
- * 專案進度追蹤組件 - 整合里程碑、任務、甘特圖
+ * 專案進度追蹤組件 - 整合工程節點、任務、甘特圖
  */
 
 import React, { useState, useMemo } from 'react';
@@ -103,14 +103,34 @@ const TaskStatusBadge = ({ status }) => {
 };
 
 // ============================================
-// 里程碑時間軸
+// 工程節點時間軸
 // ============================================
-const MilestoneTimeline = ({ milestones = [], onComplete }) => {
+const NODE_TYPES = {
+    DESIGN: '設計階段',
+    CONSTRUCTION: '施工階段',
+    INSPECTION: '驗收階段'
+};
+
+const NODE_STATUS = {
+    PENDING: '未開始',
+    IN_PROGRESS: '進行中',
+    COMPLETED: '已完成',
+    DELAYED: '已延遲'
+};
+
+const NODE_STATUS_COLORS = {
+    PENDING: 'bg-gray-200 text-gray-500',
+    IN_PROGRESS: 'bg-blue-500 text-white',
+    COMPLETED: 'bg-green-500 text-white',
+    DELAYED: 'bg-red-500 text-white'
+};
+
+const MilestoneTimeline = ({ milestones = [], onComplete, onEdit }) => {
     if (milestones.length === 0) {
         return (
             <div className="text-center py-8 text-gray-400">
                 <Flag size={32} className="mx-auto mb-2 opacity-50" />
-                <p>尚無里程碑</p>
+                <p>尚無工程節點</p>
             </div>
         );
     }
@@ -142,13 +162,27 @@ const MilestoneTimeline = ({ milestones = [], onComplete }) => {
 
                         <div className="flex-1 pb-4">
                             <div className="flex items-start justify-between">
-                                <div>
-                                    <h4 className={`font-medium ${milestone.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
-                                        {milestone.name}
-                                    </h4>
-                                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
-                                        <Calendar size={12} />
-                                        <span>預定: {formatDate(milestone.dueDate)}</span>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h4 className={`font-medium ${milestone.completed || milestone.status === 'COMPLETED' ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                                            {milestone.name}
+                                        </h4>
+                                        {milestone.nodeType && (
+                                            <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
+                                                {NODE_TYPES[milestone.nodeType] || milestone.nodeType}
+                                            </span>
+                                        )}
+                                        {milestone.status && (
+                                            <span className={`text-xs px-1.5 py-0.5 rounded ${NODE_STATUS_COLORS[milestone.status] || 'bg-gray-100'}`}>
+                                                {NODE_STATUS[milestone.status] || milestone.status}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-1 flex-wrap">
+                                        <span className="flex items-center gap-1">
+                                            <Calendar size={12} />
+                                            預定: {formatDate(milestone.dueDate)}
+                                        </span>
                                         {milestone.completedDate && (
                                             <span className="text-green-600">
                                                 ✓ 完成: {formatDate(milestone.completedDate)}
@@ -159,17 +193,38 @@ const MilestoneTimeline = ({ milestones = [], onComplete }) => {
                                                 逾期 {Math.abs(daysUntil)} 天
                                             </span>
                                         )}
-                                        {isUpcoming && !milestone.completed && (
+                                        {isUpcoming && !(milestone.completed || milestone.status === 'COMPLETED') && (
                                             <span className="text-orange-600">
                                                 剩餘 {daysUntil} 天
                                             </span>
                                         )}
                                     </div>
+                                    {/* 負責人和付款金額 */}
+                                    {(milestone.assignee || milestone.paymentAmount) && (
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                            {milestone.assignee && (
+                                                <span className="flex items-center gap-1">
+                                                    <Users size={12} /> {milestone.assignee}
+                                                </span>
+                                            )}
+                                            {milestone.paymentAmount && (
+                                                <span className="text-green-600 font-medium">
+                                                    💰 ${Number(milestone.paymentAmount).toLocaleString()}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                    {/* 備註 */}
+                                    {milestone.notes && (
+                                        <div className="text-xs text-gray-500 mt-1 bg-gray-50 p-2 rounded">
+                                            {milestone.notes}
+                                        </div>
+                                    )}
                                 </div>
-                                {!milestone.completed && onComplete && (
+                                {!(milestone.completed || milestone.status === 'COMPLETED') && onComplete && (
                                     <button
                                         onClick={() => onComplete(milestone.id)}
-                                        className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100"
+                                        className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 shrink-0"
                                     >
                                         標記完成
                                     </button>
@@ -342,7 +397,15 @@ const WidgetProjectProgress = ({
     const [activeTab, setActiveTab] = useState('milestones');
     const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false);
     const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-    const [newMilestone, setNewMilestone] = useState({ name: '', dueDate: '' });
+    const [newMilestone, setNewMilestone] = useState({
+        name: '',
+        dueDate: '',
+        nodeType: 'CONSTRUCTION',
+        status: 'PENDING',
+        assignee: '',
+        paymentAmount: '',
+        notes: ''
+    });
     const [newTask, setNewTask] = useState({ name: '', priority: 'MEDIUM', startDate: '', endDate: '', assignee: '' });
 
     const milestones = project?.milestones || [];
@@ -362,7 +425,7 @@ const WidgetProjectProgress = ({
                 : m
         );
         onUpdateProject?.({ ...project, milestones: updatedMilestones });
-        addToast?.('里程碑已完成', 'success');
+        addToast?.('工程節點已完成', 'success');
     };
 
     const handleTaskStatusChange = (taskId, newStatus) => {
@@ -385,9 +448,17 @@ const WidgetProjectProgress = ({
             completed: false
         };
         onUpdateProject?.({ ...project, milestones: [...milestones, milestone] });
-        setNewMilestone({ name: '', dueDate: '' });
+        setNewMilestone({
+            name: '',
+            dueDate: '',
+            nodeType: 'CONSTRUCTION',
+            status: 'PENDING',
+            assignee: '',
+            paymentAmount: '',
+            notes: ''
+        });
         setIsAddMilestoneOpen(false);
-        addToast?.('里程碑已新增', 'success');
+        addToast?.('工程節點已新增', 'success');
     };
 
     const handleAddTask = () => {
@@ -408,7 +479,7 @@ const WidgetProjectProgress = ({
     };
 
     const tabs = [
-        { id: 'milestones', label: '里程碑', icon: Flag, count: milestones.length },
+        { id: 'milestones', label: '工程節點', icon: Flag, count: milestones.length },
         { id: 'tasks', label: '任務', icon: ListChecks, count: tasks.length },
         { id: 'gantt', label: '甘特圖', icon: BarChart3 }
     ];
@@ -422,7 +493,7 @@ const WidgetProjectProgress = ({
                     <p className="text-xl font-bold text-gray-800">{overallProgress}%</p>
                 </div>
                 <div className="bg-blue-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500">里程碑</p>
+                    <p className="text-xs text-gray-500">工程節點</p>
                     <p className="text-xl font-bold text-blue-600">{completedMilestones}/{milestones.length}</p>
                 </div>
                 <div className="bg-green-50 rounded-lg p-3 text-center">
@@ -460,7 +531,7 @@ const WidgetProjectProgress = ({
                                 onClick={() => setIsAddMilestoneOpen(true)}
                                 className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
                             >
-                                <Plus size={14} /> 新增里程碑
+                                <Plus size={14} /> 新增工程節點
                             </button>
                         </div>
                         <MilestoneTimeline
@@ -496,25 +567,88 @@ const WidgetProjectProgress = ({
                 )}
             </div>
 
-            {/* Add Milestone Modal */}
+
+            {/* Add Engineering Node Modal */}
             <Modal
                 isOpen={isAddMilestoneOpen}
                 onClose={() => setIsAddMilestoneOpen(false)}
-                title="新增里程碑"
+                title="新增工程節點"
                 onConfirm={handleAddMilestone}
             >
-                <InputField
-                    label="里程碑名稱"
-                    value={newMilestone.name}
-                    onChange={e => setNewMilestone({ ...newMilestone, name: e.target.value })}
-                    placeholder="例：設計定稿"
-                />
-                <InputField
-                    label="預定完成日"
-                    type="date"
-                    value={newMilestone.dueDate}
-                    onChange={e => setNewMilestone({ ...newMilestone, dueDate: e.target.value })}
-                />
+                <div className="space-y-4">
+                    {/* 節點名稱 */}
+                    <InputField
+                        label="節點名稱"
+                        value={newMilestone.name}
+                        onChange={e => setNewMilestone({ ...newMilestone, name: e.target.value })}
+                        placeholder="例：二樓水電完成"
+                    />
+
+                    {/* 節點類型 + 預定日期 */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">節點類型</label>
+                            <select
+                                value={newMilestone.nodeType}
+                                onChange={e => setNewMilestone({ ...newMilestone, nodeType: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                                <option value="DESIGN">📐 設計階段</option>
+                                <option value="CONSTRUCTION">🔧 施工階段</option>
+                                <option value="INSPECTION">✅ 驗收階段</option>
+                            </select>
+                        </div>
+                        <InputField
+                            label="預定完成日"
+                            type="date"
+                            value={newMilestone.dueDate}
+                            onChange={e => setNewMilestone({ ...newMilestone, dueDate: e.target.value })}
+                        />
+                    </div>
+
+                    {/* 狀態 + 負責人 */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">狀態</label>
+                            <select
+                                value={newMilestone.status}
+                                onChange={e => setNewMilestone({ ...newMilestone, status: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                                <option value="PENDING">⏳ 未開始</option>
+                                <option value="IN_PROGRESS">🔄 進行中</option>
+                                <option value="COMPLETED">✅ 已完成</option>
+                                <option value="DELAYED">⚠️ 已延遲</option>
+                            </select>
+                        </div>
+                        <InputField
+                            label="負責人"
+                            value={newMilestone.assignee}
+                            onChange={e => setNewMilestone({ ...newMilestone, assignee: e.target.value })}
+                            placeholder="例：王工程師"
+                        />
+                    </div>
+
+                    {/* 關聯付款金額 */}
+                    <InputField
+                        label="關聯付款金額"
+                        type="number"
+                        value={newMilestone.paymentAmount}
+                        onChange={e => setNewMilestone({ ...newMilestone, paymentAmount: e.target.value })}
+                        placeholder="例：50000"
+                    />
+
+                    {/* 備註 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">備註</label>
+                        <textarea
+                            value={newMilestone.notes}
+                            onChange={e => setNewMilestone({ ...newMilestone, notes: e.target.value })}
+                            placeholder="節點說明或注意事項..."
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-none"
+                        />
+                    </div>
+                </div>
             </Modal>
 
             {/* Add Task Modal */}

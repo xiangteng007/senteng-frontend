@@ -282,6 +282,19 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
         photos: []
     });
 
+    // Transaction Modal
+    const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+    const [newTx, setNewTx] = useState({
+        type: '支出',
+        category: '材料費',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        desc: '',
+        vendor: '',
+        invoiceNo: '',
+        status: '已付款'
+    });
+
     const handleResize = (widgets, setWidgets) => (id, size) => setWidgets(prev => prev.map(w => w.id === id ? { ...w, size } : w));
 
     // Edit Handlers
@@ -605,7 +618,7 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                             {w.type === 'finance' && <WidgetProjectFinanceDetail
                                 transactions={projectTx}
                                 size={w.size}
-                                onAddTx={() => { }}
+                                onAddTx={() => setIsTxModalOpen(true)}
                                 onSyncToSheet={handleSyncProjectFinance}
                                 project={activeProject}
                             />}
@@ -754,6 +767,138 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                                     <Plus size={14} /> 新增待辦事項
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* Transaction Modal */}
+                <Modal isOpen={isTxModalOpen} onClose={() => setIsTxModalOpen(false)} title="新增收支" onConfirm={() => {
+                    if (!newTx.amount || Number(newTx.amount) <= 0) {
+                        return addToast('請填寫有效金額', 'error');
+                    }
+                    const tx = {
+                        id: `tx-${Date.now()}`,
+                        projectId: activeProject.id,
+                        ...newTx,
+                        amount: Number(newTx.amount),
+                        createdAt: new Date().toISOString()
+                    };
+                    const updatedTx = [...(activeProject.transactions || []), tx];
+                    onUpdateProject({ ...activeProject, transactions: updatedTx });
+                    setNewTx({
+                        type: '支出',
+                        category: '材料費',
+                        amount: '',
+                        date: new Date().toISOString().split('T')[0],
+                        desc: '',
+                        vendor: '',
+                        invoiceNo: '',
+                        status: '已付款'
+                    });
+                    setIsTxModalOpen(false);
+                    addToast('收支已新增', 'success');
+                }}>
+                    <div className="space-y-4">
+                        {/* 類型 + 類別 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">類型</label>
+                                <select
+                                    value={newTx.type}
+                                    onChange={e => setNewTx({ ...newTx, type: e.target.value, category: e.target.value === '收入' ? '工程款' : '材料費' })}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="支出">💸 支出</option>
+                                    <option value="收入">💰 收入</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">類別</label>
+                                <select
+                                    value={newTx.category}
+                                    onChange={e => setNewTx({ ...newTx, category: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    {newTx.type === '支出' ? (
+                                        <>
+                                            <option value="材料費">🧱 材料費</option>
+                                            <option value="人工費">👷 人工費</option>
+                                            <option value="設備費">🔧 設備費</option>
+                                            <option value="運輸費">🚚 運輸費</option>
+                                            <option value="其他支出">📦 其他支出</option>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <option value="工程款">🏗️ 工程款</option>
+                                            <option value="追加款">➕ 追加款</option>
+                                            <option value="其他收入">💵 其他收入</option>
+                                        </>
+                                    )}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* 金額 + 日期 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField
+                                label="金額"
+                                type="number"
+                                value={newTx.amount}
+                                onChange={e => setNewTx({ ...newTx, amount: e.target.value })}
+                                placeholder="0"
+                            />
+                            <InputField
+                                label="日期"
+                                type="date"
+                                value={newTx.date}
+                                onChange={e => setNewTx({ ...newTx, date: e.target.value })}
+                            />
+                        </div>
+
+                        {/* 描述 */}
+                        <InputField
+                            label="描述"
+                            value={newTx.desc}
+                            onChange={e => setNewTx({ ...newTx, desc: e.target.value })}
+                            placeholder="例：購買水泥 20 包"
+                        />
+
+                        {/* 廠商 + 發票號碼 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField
+                                label="廠商/客戶"
+                                value={newTx.vendor}
+                                onChange={e => setNewTx({ ...newTx, vendor: e.target.value })}
+                                placeholder="例：建材行"
+                            />
+                            <InputField
+                                label="發票號碼"
+                                value={newTx.invoiceNo}
+                                onChange={e => setNewTx({ ...newTx, invoiceNo: e.target.value })}
+                                placeholder="例：AB12345678"
+                            />
+                        </div>
+
+                        {/* 付款狀態 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">付款狀態</label>
+                            <select
+                                value={newTx.status}
+                                onChange={e => setNewTx({ ...newTx, status: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                                {newTx.type === '支出' ? (
+                                    <>
+                                        <option value="待付款">⏳ 待付款</option>
+                                        <option value="已付款">✅ 已付款</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option value="待收款">⏳ 待收款</option>
+                                        <option value="已收款">✅ 已收款</option>
+                                    </>
+                                )}
+                            </select>
                         </div>
                     </div>
                 </Modal>
