@@ -507,8 +507,8 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                         <WidgetWrapper key={w.id} widget={w} onResize={handleResize(detailWidgets, setDetailWidgets)}>
                             {w.type === 'info' && <WidgetProjectInfo project={activeProject} size={w.size} />}
                             {/* Reuse Widgets */}
-                            {w.type === 'files' && <WidgetProjectFiles files={activeProject.files} size={w.size} onUpload={() => { }} />}
-                            {w.type === 'records' && <WidgetProjectRecords records={activeProject.records} size={w.size} onAddRecord={() => setIsRecordModalOpen(true)} />}
+                            {w.type === 'files' && <WidgetProjectFiles files={activeProject.files || []} size={w.size} onUpload={() => { }} />}
+                            {w.type === 'records' && <WidgetProjectRecords records={activeProject.records || []} size={w.size} onAddRecord={() => setIsRecordModalOpen(true)} />}
                             {w.type === 'finance' && <WidgetProjectFinanceDetail
                                 transactions={projectTx}
                                 size={w.size}
