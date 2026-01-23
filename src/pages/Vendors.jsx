@@ -291,6 +291,39 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                 addToast("新廠商已建立！", 'success', {
                     action: driveResult?.url ? { label: '開啟 Drive', onClick: () => window.open(driveResult.url, '_blank') } : null
                 });
+
+                // Auto-create contact if contactPerson info exists
+                if (currentVendor.contactPerson || currentVendor.phone || currentVendor.email) {
+                    try {
+                        const newContact = {
+                            name: currentVendor.contactPerson || '主要聯絡人',
+                            phone: currentVendor.phone || '',
+                            email: currentVendor.email || '',
+                            title: '',
+                            id: `contact-${Date.now()}`,
+                            syncStatus: 'PENDING'
+                        };
+
+                        // Update vendor with the new contact
+                        savedVendor = await vendorsApi.update(savedVendor.id, {
+                            contacts: [newContact]
+                        });
+
+                        // Auto-sync to Google if connected
+                        if (googleStatus?.connected) {
+                            const addedContact = savedVendor.contacts?.find(c => c.name === newContact.name);
+                            if (addedContact?.id) {
+                                await syncContactToGoogle(addedContact.id);
+                                addToast("聯絡人已同步至 Google Contacts", "success");
+                                // Refresh vendor data
+                                savedVendor = await vendorsApi.getById(savedVendor.id);
+                            }
+                        }
+                    } catch (contactError) {
+                        console.warn('Auto-create contact failed:', contactError);
+                        addToast('自動建立聯絡人失敗，請手動新增', 'warning');
+                    }
+                }
             }
 
             // Update local state
