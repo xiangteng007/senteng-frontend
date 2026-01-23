@@ -237,14 +237,12 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
 
             const projectData = {
                 name: newProject.name,
-                clientId: newProject.client, // Will be matched on backend
-                type: newProject.type.toUpperCase().replace('翻修', 'RENOVATION').replace('新建', 'NEW_BUILD').replace('設計', 'DESIGN').replace('裝潢', 'INTERIOR'),
-                budget: parseFloat(newProject.budget) || 0,
-                location: newProject.location,
+                customerId: newProject.client,
+                projectType: newProject.type.toUpperCase().replace('翻修', 'RENOVATION').replace('新建', 'NEW_BUILD').replace('設計', 'DESIGN').replace('裝潢', 'INTERIOR'),
+                costBudget: parseFloat(newProject.budget) || 0,
                 address: newProject.location,
                 startDate: newProject.startDate || null,
                 endDate: newProject.endDate || null,
-                status: newProject.status,
                 driveFolder: driveUrl,
             };
 
