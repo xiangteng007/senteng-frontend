@@ -231,12 +231,15 @@ export const GoogleService = {
   },
 
   // 獲取或創建「專案管理」根資料夾
+  // 專案管理的父資料夾 ID (使用者指定)
   getOrCreateProjectRoot: async () => {
-    console.log(`📁 Getting or creating '專案管理' root folder...`);
+    const PROJECT_ROOT_PARENT_ID = '16xsGbEcb-ZXcLT9HanWtuVv8LfcIApoN';
+    console.log(`📁 Getting or creating '專案管理' root folder in specified parent...`);
 
     try {
       const result = await callGASWithJSONP('get_or_create_project_root', {
-        folderName: '專案管理'
+        folderName: '專案管理',
+        parentId: PROJECT_ROOT_PARENT_ID
       });
 
       if (result.success) {
