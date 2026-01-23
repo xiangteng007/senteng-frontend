@@ -658,12 +658,16 @@ export const GoogleService = {
   // ========================================
 
   // 初始化「財務報表」資料夾
+  // 財務管理資料夾 ID (使用者指定)
   initFinanceReportFolder: async () => {
-    console.log(`📁 Initializing '財務報表' folder...`);
+    const FINANCE_FOLDER_ID = '1QlXwt1Ew8ffQGFpr-40PZ91eocOlV8Eg';
+    console.log(`📁 Initializing '財務報表' folder in specified location...`);
 
 
     try {
-      const result = await callGASWithJSONP('init_finance_folder', {});
+      const result = await callGASWithJSONP('init_finance_folder', {
+        parentId: FINANCE_FOLDER_ID
+      });
 
       if (result.success) {
         const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
