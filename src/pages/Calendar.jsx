@@ -66,7 +66,13 @@ const TAIWAN_HOLIDAYS = {
 const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newEvent, setNewEvent] = useState({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
+    const [newEvent, setNewEvent] = useState({
+        title: "", date: "", time: "10:00", endTime: "11:00", endDate: "",
+        type: "meeting", description: "", location: "",
+        allDay: false, recurrence: "none",
+        reminderType: "notification", reminderValue: 30, reminderUnit: "minutes",
+        showAs: "busy"
+    });
     const [isSaving, setIsSaving] = useState(false);
     const [showHolidays, setShowHolidays] = useState(true);
     const [showLoanReminders, setShowLoanReminders] = useState(true);
@@ -164,7 +170,13 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
             addToast(`⚠️ 行程已新增（本地），但 Google 同步失敗: ${result.error}`, 'warning');
         }
 
-        setNewEvent({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
+        setNewEvent({
+            title: "", date: "", time: "10:00", endTime: "11:00", endDate: "",
+            type: "meeting", description: "", location: "",
+            allDay: false, recurrence: "none",
+            reminderType: "notification", reminderValue: 30, reminderUnit: "minutes",
+            showAs: "busy"
+        });
         setIsAddModalOpen(false);
     };
 
@@ -372,26 +384,128 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
                     onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
                     placeholder="例：客戶會議"
                 />
+
+                {/* 全天事件 */}
+                <div className="flex items-center gap-3 py-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={newEvent.allDay || false}
+                            onChange={e => setNewEvent({
+                                ...newEvent,
+                                allDay: e.target.checked,
+                                time: e.target.checked ? '' : (newEvent.time || '10:00'),
+                                endTime: e.target.checked ? '' : (newEvent.endTime || '11:00')
+                            })}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                        />
+                        <span className="text-sm text-gray-700">全天</span>
+                    </label>
+                </div>
+
+                {/* 日期時間 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField
-                        label="日期"
+                        label="開始日期"
                         type="date"
                         value={newEvent.date}
                         onChange={e => setNewEvent({ ...newEvent, date: e.target.value })}
                     />
-                    <InputField
-                        label="時間"
-                        type="time"
-                        value={newEvent.time}
-                        onChange={e => setNewEvent({ ...newEvent, time: e.target.value })}
-                    />
+                    {!newEvent.allDay && (
+                        <InputField
+                            label="開始時間"
+                            type="time"
+                            value={newEvent.time}
+                            onChange={e => setNewEvent({ ...newEvent, time: e.target.value })}
+                        />
+                    )}
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField
+                        label="結束日期"
+                        type="date"
+                        value={newEvent.endDate || newEvent.date}
+                        onChange={e => setNewEvent({ ...newEvent, endDate: e.target.value })}
+                    />
+                    {!newEvent.allDay && (
+                        <InputField
+                            label="結束時間"
+                            type="time"
+                            value={newEvent.endTime || '11:00'}
+                            onChange={e => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                        />
+                    )}
+                </div>
+
+                {/* 重複 */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">重複</label>
+                    <select
+                        value={newEvent.recurrence || 'none'}
+                        onChange={e => setNewEvent({ ...newEvent, recurrence: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="none">不重複</option>
+                        <option value="daily">每天</option>
+                        <option value="weekly">每週</option>
+                        <option value="biweekly">每兩週</option>
+                        <option value="monthly">每月</option>
+                        <option value="yearly">每年</option>
+                    </select>
+                </div>
+
                 <LocationField
                     label="地點"
                     value={newEvent.location}
                     onChange={e => setNewEvent({ ...newEvent, location: e.target.value })}
                     placeholder="例：台北市信義區松智路1號"
                 />
+
+                {/* 提醒 */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">提醒</label>
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={newEvent.reminderType || 'notification'}
+                            onChange={e => setNewEvent({ ...newEvent, reminderType: e.target.value })}
+                            className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="notification">通知</option>
+                            <option value="email">電子郵件</option>
+                        </select>
+                        <input
+                            type="number"
+                            min="1"
+                            value={newEvent.reminderValue || 30}
+                            onChange={e => setNewEvent({ ...newEvent, reminderValue: parseInt(e.target.value) })}
+                            className="w-16 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <select
+                            value={newEvent.reminderUnit || 'minutes'}
+                            onChange={e => setNewEvent({ ...newEvent, reminderUnit: e.target.value })}
+                            className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="minutes">分鐘前</option>
+                            <option value="hours">小時前</option>
+                            <option value="days">天前</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* 忙碌狀態 */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">顯示狀態</label>
+                    <select
+                        value={newEvent.showAs || 'busy'}
+                        onChange={e => setNewEvent({ ...newEvent, showAs: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="busy">忙碌</option>
+                        <option value="free">有空</option>
+                    </select>
+                </div>
+
                 <InputField
                     label="描述"
                     value={newEvent.description}
