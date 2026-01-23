@@ -776,10 +776,15 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                     if (!newTx.amount || Number(newTx.amount) <= 0) {
                         return addToast('請填寫有效金額', 'error');
                     }
+                    // Handle custom vendor/client input
+                    const vendorValue = newTx.vendor === '__other__'
+                        ? (newTx.vendorCustom || '')
+                        : newTx.vendor;
                     const tx = {
                         id: `tx-${Date.now()}`,
                         projectId: activeProject.id,
                         ...newTx,
+                        vendor: vendorValue,
                         amount: Number(newTx.amount),
                         createdAt: new Date().toISOString()
                     };
@@ -863,14 +868,42 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject: pro
                             placeholder="例：購買水泥 20 包"
                         />
 
-                        {/* 廠商 + 發票號碼 */}
+                        {/* 廠商/客戶 + 發票號碼 */}
                         <div className="grid grid-cols-2 gap-4">
-                            <InputField
-                                label="廠商/客戶"
-                                value={newTx.vendor}
-                                onChange={e => setNewTx({ ...newTx, vendor: e.target.value })}
-                                placeholder="例：建材行"
-                            />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    {newTx.type === '支出' ? '廠商' : '客戶'}
+                                </label>
+                                <select
+                                    value={newTx.vendor}
+                                    onChange={e => setNewTx({ ...newTx, vendor: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="">-- 請選擇 --</option>
+                                    {newTx.type === '支出' ? (
+                                        (allVendors || []).map(v => (
+                                            <option key={v.id} value={v.name}>
+                                                {v.name}{v.contactPerson ? ` (${v.contactPerson})` : ''}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        (allClients || []).map(c => (
+                                            <option key={c.id} value={c.name}>
+                                                {c.name}{c.contact ? ` (${c.contact})` : ''}
+                                            </option>
+                                        ))
+                                    )}
+                                    <option value="__other__">📝 手動輸入...</option>
+                                </select>
+                                {newTx.vendor === '__other__' && (
+                                    <input
+                                        type="text"
+                                        placeholder={newTx.type === '支出' ? '輸入廠商名稱' : '輸入客戶名稱'}
+                                        onChange={e => setNewTx({ ...newTx, vendorCustom: e.target.value })}
+                                        className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                )}
+                            </div>
                             <InputField
                                 label="發票號碼"
                                 value={newTx.invoiceNo}
