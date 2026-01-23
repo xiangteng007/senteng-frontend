@@ -37,7 +37,18 @@ class ApiService {
                 throw new Error(error.message || `HTTP ${response.status}`);
             }
 
-            return response.json();
+            // Handle empty responses (e.g., 204 No Content or empty 200)
+            const contentLength = response.headers.get('content-length');
+            if (response.status === 204 || contentLength === '0') {
+                return { success: true };
+            }
+
+            // Try to parse JSON, return empty success if no content
+            const text = await response.text();
+            if (!text) {
+                return { success: true };
+            }
+            return JSON.parse(text);
         } catch (error) {
             console.error(`API Error [${endpoint}]:`, error);
             throw error;
