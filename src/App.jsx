@@ -834,7 +834,7 @@ const App = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
       case 'clients': return <ClientsPage data={clients} allProjects={MOCK_DATA.projects || []} addToast={addToast} onUpdateClients={setClients} />;
-      case 'projects': return <ProjectsPage data={MOCK_DATA} />;
+      case 'projects': return <ProjectsPage data={MOCK_DATA} allClients={clients} addToast={addToast} />;
       case 'events': return <CalendarPage addToast={addToast} />;
       case 'quotations': return <QuotationsPage addToast={addToast} projects={projects} clients={clients} />;
       case 'contracts': return <Contracts />;
