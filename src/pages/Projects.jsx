@@ -235,10 +235,17 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
                 }
             }
 
+            // Map frontend type to backend enum: INTERIOR, ARCHITECTURE, CONSTRUCTION, RENOVATION
+            const typeMap = {
+                '翻修': 'RENOVATION',
+                '新建': 'CONSTRUCTION',
+                '設計': 'INTERIOR',
+                '裝潢': 'INTERIOR'
+            };
             const projectData = {
                 name: newProject.name,
                 customerId: newProject.client,
-                projectType: newProject.type.toUpperCase().replace('翻修', 'RENOVATION').replace('新建', 'NEW_BUILD').replace('設計', 'DESIGN').replace('裝潢', 'INTERIOR'),
+                projectType: typeMap[newProject.type] || 'INTERIOR',
                 costBudget: parseFloat(newProject.budget) || 0,
                 address: newProject.location,
                 startDate: newProject.startDate || null,
