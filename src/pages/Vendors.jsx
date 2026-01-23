@@ -33,6 +33,29 @@ const CATEGORY_CONFIG = {
     '其他': { icon: Tag, color: 'gray' },
 };
 
+// 前端分類到後端 enum 的映射
+const categoryToVendorType = (category) => {
+    const mapping = {
+        '工程工班': 'SUBCONTRACTOR',
+        '建材供應': 'SUPPLIER',
+        '設備廠商': 'SUPPLIER',
+        '顧問': 'CONSULTANT',
+        '其他': 'SUPPLIER',
+    };
+    return mapping[category] || 'SUPPLIER';
+};
+
+// 前端狀態到後端 enum 的映射
+const statusToVendorStatus = (status) => {
+    const mapping = {
+        '長期合作': 'ACTIVE',
+        '合作中': 'ACTIVE',
+        '觀察中': 'INACTIVE',
+        '黑名單': 'BLACKLISTED',
+    };
+    return mapping[status] || 'ACTIVE';
+};
+
 // 星星評分組件
 const StarRating = ({ rating, onChange, readonly = false }) => {
     const stars = [1, 2, 3, 4, 5];
@@ -221,7 +244,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                 // Update existing vendor - can include more fields
                 const updateData = {
                     name: currentVendor.name,
-                    vendorType: currentVendor.category || currentVendor.vendorType,
+                    vendorType: categoryToVendorType(currentVendor.category || currentVendor.vendorType),
                     contactPerson: currentVendor.contactPerson,
                     phone: currentVendor.phone,
                     email: currentVendor.email || undefined, // Don't send empty string
@@ -230,7 +253,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                     taxId: currentVendor.taxId,
                     bankAccount: currentVendor.bankAccount,
                     rating: parseFloat(currentVendor.rating) || 5,
-                    status: currentVendor.status,
+                    status: statusToVendorStatus(currentVendor.status),
                     tags: tagsArray,
                     reviews: currentVendor.reviews || [],
                     notes: currentVendor.tradeType, // Store tradeType as notes temporarily
@@ -248,7 +271,7 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                 // Create new vendor - only CreateVendorDto fields allowed
                 const createData = {
                     name: currentVendor.name,
-                    vendorType: currentVendor.category || undefined,
+                    vendorType: currentVendor.category ? categoryToVendorType(currentVendor.category) : undefined,
                     contactPerson: currentVendor.contactPerson || undefined,
                     phone: currentVendor.phone || undefined,
                     email: currentVendor.email || undefined, // Must be valid email or undefined
