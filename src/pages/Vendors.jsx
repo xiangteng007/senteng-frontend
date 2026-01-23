@@ -214,39 +214,57 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                 ? currentVendor.tags.split(',').map(t => t.trim()).filter(t => t !== "")
                 : currentVendor.tags || [];
 
-            const vendorData = {
-                name: currentVendor.name,
-                category: currentVendor.category,
-                tradeType: currentVendor.tradeType,
-                contactPerson: currentVendor.contactPerson,
-                phone: currentVendor.phone,
-                email: currentVendor.email,
-                lineId: currentVendor.lineId,
-                address: currentVendor.address,
-                taxId: currentVendor.taxId,
-                bankAccount: currentVendor.bankAccount,
-                rating: parseFloat(currentVendor.rating) || 5,
-                status: currentVendor.status,
-                tags: tagsArray,
-                driveFolder: currentVendor.driveFolder,
-                reviews: currentVendor.reviews || [],
-            };
-
             let savedVendor;
             let driveResult = null;
 
             if (currentVendor.id) {
-                // Update existing vendor
-                savedVendor = await vendorsApi.update(currentVendor.id, vendorData);
+                // Update existing vendor - can include more fields
+                const updateData = {
+                    name: currentVendor.name,
+                    vendorType: currentVendor.category || currentVendor.vendorType,
+                    contactPerson: currentVendor.contactPerson,
+                    phone: currentVendor.phone,
+                    email: currentVendor.email || undefined, // Don't send empty string
+                    lineId: currentVendor.lineId,
+                    address: currentVendor.address,
+                    taxId: currentVendor.taxId,
+                    bankAccount: currentVendor.bankAccount,
+                    rating: parseFloat(currentVendor.rating) || 5,
+                    status: currentVendor.status,
+                    tags: tagsArray,
+                    reviews: currentVendor.reviews || [],
+                    notes: currentVendor.tradeType, // Store tradeType as notes temporarily
+                };
+                // Remove undefined/empty fields
+                Object.keys(updateData).forEach(key =>
+                    updateData[key] === undefined && delete updateData[key]
+                );
+                savedVendor = await vendorsApi.update(currentVendor.id, updateData);
                 addToast("廠商資料已更新！", 'success');
             } else {
                 // Create Drive folder first (optional)
                 driveResult = await GoogleService.createVendorFolder(currentVendor.name);
-                if (driveResult.success) {
-                    vendorData.driveFolder = driveResult.url;
-                }
-                // Create new vendor via API
-                savedVendor = await vendorsApi.create(vendorData);
+
+                // Create new vendor - only CreateVendorDto fields allowed
+                const createData = {
+                    name: currentVendor.name,
+                    vendorType: currentVendor.category || undefined,
+                    contactPerson: currentVendor.contactPerson || undefined,
+                    phone: currentVendor.phone || undefined,
+                    email: currentVendor.email || undefined, // Must be valid email or undefined
+                    lineId: currentVendor.lineId || undefined,
+                    address: currentVendor.address || undefined,
+                    taxId: currentVendor.taxId || undefined,
+                    bankAccount: currentVendor.bankAccount || undefined,
+                    tags: tagsArray.length > 0 ? tagsArray : undefined,
+                    driveFolder: driveResult?.success ? driveResult.url : undefined,
+                    notes: currentVendor.tradeType || undefined, // Store tradeType as notes
+                };
+                // Remove undefined fields
+                Object.keys(createData).forEach(key =>
+                    createData[key] === undefined && delete createData[key]
+                );
+                savedVendor = await vendorsApi.create(createData);
                 addToast("新廠商已建立！", 'success', {
                     action: driveResult?.url ? { label: '開啟 Drive', onClick: () => window.open(driveResult.url, '_blank') } : null
                 });
