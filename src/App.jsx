@@ -834,7 +834,23 @@ const App = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard data={MOCK_DATA} />;
       case 'clients': return <ClientsPage data={clients} allProjects={MOCK_DATA.projects || []} addToast={addToast} onUpdateClients={setClients} />;
-      case 'projects': return <ProjectsPage data={MOCK_DATA} allClients={clients} addToast={addToast} />;
+      case 'projects': return <ProjectsPage
+        data={{ ...MOCK_DATA, projects }}
+        allClients={clients}
+        addToast={addToast}
+        onUpdateProject={(updatedProject) => {
+          setProjects(prev => {
+            const exists = prev.find(p => p.id === updatedProject.id);
+            if (exists) {
+              return prev.map(p => p.id === updatedProject.id ? updatedProject : p);
+            }
+            return [updatedProject, ...prev];
+          });
+        }}
+        onDeleteProject={(projectId) => {
+          setProjects(prev => prev.filter(p => p.id !== projectId));
+        }}
+      />;
       case 'events': return <CalendarPage addToast={addToast} />;
       case 'quotations': return <QuotationsPage addToast={addToast} projects={projects} clients={clients} />;
       case 'contracts': return <Contracts />;
