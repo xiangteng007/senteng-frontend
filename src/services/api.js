@@ -100,6 +100,11 @@ export const clientsApi = {
     create: (data) => api.post('/clients', data),
     update: (id, data) => api.patch(`/clients/${id}`, data),
     delete: (id) => api.delete(`/clients/${id}`),
+    // Contacts
+    getContacts: (clientId) => api.get(`/clients/${clientId}/contacts`),
+    addContact: (clientId, data) => api.post(`/clients/${clientId}/contacts`, data),
+    updateContact: (clientId, contactId, data) => api.patch(`/clients/${clientId}/contacts/${contactId}`, data),
+    removeContact: (clientId, contactId) => api.delete(`/clients/${clientId}/contacts/${contactId}`),
 };
 
 // ===== Customers API (New unified platform) =====
