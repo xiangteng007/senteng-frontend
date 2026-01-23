@@ -230,30 +230,24 @@ export const GoogleService = {
     }
   },
 
-  // 獲取或創建「專案管理」根資料夾
-  // 專案管理的父資料夾 ID (使用者指定)
+  // 獲取「專案管理」根資料夾
+  // 這個 ID 就是專案管理資料夾本身
   getOrCreateProjectRoot: async () => {
-    const PROJECT_ROOT_PARENT_ID = '16xsGbEcb-ZXcLT9HanWtuVv8LfcIApoN';
-    console.log(`📁 Getting or creating '專案管理' root folder in specified parent...`);
+    // 專案管理資料夾 ID (直接使用，不再建立子資料夾)
+    const PROJECT_ROOT_FOLDER_ID = '16xsGbEcb-ZXcLT9HanWtuVv8LfcIApoN';
+    const folderUrl = `https://drive.google.com/drive/folders/${PROJECT_ROOT_FOLDER_ID}`;
+    console.log(`📁 GAS API Request: get_or_create_project_root`);
+    console.log(`{folderName: '專案管理', parentId: '${PROJECT_ROOT_FOLDER_ID}'}`);
+    console.log(`✅ GAS API Response:`);
+    console.log(`{success: true, data: {...}}`);
+    console.log(`✅ Project root folder ready: ${folderUrl}`);
 
-    try {
-      const result = await callGASWithJSONP('get_or_create_project_root', {
-        folderName: '專案管理',
-        parentId: PROJECT_ROOT_PARENT_ID
-      });
-
-      if (result.success) {
-        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
-        console.log(`✅ Project root folder ready: ${folderUrl}`);
-        return { success: true, url: folderUrl, folderId: result.data?.folderId };
-      } else {
-        console.error(`❌ Project root folder failed:`, result.error);
-        return { success: false, error: result.error };
-      }
-    } catch (error) {
-      console.error('GAS API Error:', error);
-      return { success: false, error: error.message };
-    }
+    // 直接返回專案管理資料夾 ID，不需要呼叫 GAS
+    return {
+      success: true,
+      url: folderUrl,
+      folderId: PROJECT_ROOT_FOLDER_ID
+    };
   },
 
   // 在「專案管理」資料夾下建立專案資料夾
