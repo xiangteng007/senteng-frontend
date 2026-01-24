@@ -272,14 +272,16 @@ export const deleteUser = async (uid) => {
     }
 };
 
-// ==================== Initialize Default Roles ====================
-
 /**
  * Initialize default roles in Firestore (run once on setup)
  * Also merges any new permissions from DEFAULT_ROLES into existing roles
+ * Note: This requires super_admin privileges. Non-admin users will silently skip.
  */
 export const initializeDefaultRoles = async () => {
     try {
+        // First check if roles collection is accessible
+        const testDoc = await getDoc(doc(db, 'roles', 'user'));
+
         for (const [roleName, roleConfig] of Object.entries(DEFAULT_ROLES)) {
             const roleDoc = await getDoc(doc(db, 'roles', roleName));
             if (!roleDoc.exists()) {
@@ -305,7 +307,13 @@ export const initializeDefaultRoles = async () => {
         }
         console.log('Default roles initialized/updated');
     } catch (error) {
-        console.error('Error initializing default roles:', error);
+        // Permission errors are expected for non-admin users
+        // Fall back to local DEFAULT_ROLES (already available in code)
+        if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+            console.log('[Roles] Using local default roles (Firestore not writable)');
+        } else {
+            console.error('Error initializing default roles:', error);
+        }
     }
 };
 
