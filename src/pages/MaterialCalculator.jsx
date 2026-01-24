@@ -135,6 +135,62 @@ const REBAR_USAGE_BY_COMPONENT = {
     ],
 };
 
+// 構件鋼筋配筋率參考值 (kg/m³ 或 kg/m²)
+const COMPONENT_REBAR_RATES = {
+    column: [
+        { label: '一般柱', value: 120, desc: '主筋+箍筋' },
+        { label: '框架柱', value: 150, desc: '高配筋' },
+    ],
+    beam: [
+        { label: '一般大梁', value: 85, desc: '主筋+箍筋' },
+        { label: '框架梁', value: 100, desc: '高配筋' },
+    ],
+    slab: [
+        { label: '12cm 樓板', thickness: 12, value: 13, desc: '單層雙向' },
+        { label: '15cm 樓板', thickness: 15, value: 17, desc: '單層雙向' },
+        { label: '18cm 加厚板', thickness: 18, value: 25, desc: '雙層雙向' },
+    ],
+    wall: [
+        { label: '15cm 牆', thickness: 15, value: 23, desc: '主筋@20' },
+        { label: '18cm 牆', thickness: 18, value: 29, desc: '主筋@15' },
+        { label: '20cm 牆', thickness: 20, value: 34, desc: '雙層主筋' },
+        { label: '25cm 牆', thickness: 25, value: 47, desc: '雙層+加強' },
+        { label: '30cm 牆', thickness: 30, value: 58, desc: '雙層+密箍' },
+    ],
+    parapet: [
+        { label: '輕量配筋', value: 18, desc: '單層' },
+        { label: '標準配筋', value: 22, desc: '雙層' },
+        { label: '加強配筋', value: 25, desc: '密配' },
+    ],
+    groundBeam: [
+        { label: '一般地樑', value: 90, desc: '標準' },
+        { label: '加強地樑', value: 110, desc: '框架' },
+    ],
+    foundation: [
+        { label: '獨立基腳', value: 80, desc: '單柱基礎' },
+        { label: '聯合基腳', value: 85, desc: '多柱基礎' },
+        { label: '筏式基礎', value: 100, desc: '全面基礎' },
+    ],
+};
+
+// 女兒牆預設高度選項
+const PARAPET_HEIGHTS = [
+    { value: 0.6, label: '60 cm (矮牆)' },
+    { value: 0.9, label: '90 cm (標準)' },
+    { value: 1.2, label: '120 cm (高欄)' },
+];
+
+// 構件類型定義
+const COMPONENT_TYPES = [
+    { id: 'column', label: '柱子', icon: '🏛️' },
+    { id: 'beam', label: '樑', icon: '📏' },
+    { id: 'slab', label: '樓板', icon: '⬜' },
+    { id: 'wall', label: '牆體', icon: '🧱' },
+    { id: 'parapet', label: '女兒牆', icon: '🏚️' },
+    { id: 'groundBeam', label: '地樑', icon: '⛏️' },
+    { id: 'foundation', label: '基礎', icon: '🏗️' },
+];
+
 // ============================================
 // 工具函數
 // ============================================
@@ -353,6 +409,476 @@ const CostInput = ({ label, quantity, unit, unitLabel, vendors = [], onChange, p
 };
 
 
+// 0️⃣ 構件計算器 - 結構部位詳細計算 (模板+鋼筋)
+const ComponentCalculator = ({ onAddRecord, vendors = [] }) => {
+    const [componentType, setComponentType] = useState('column');
+    const [wastage, setWastage] = useState(10);
+    const [useCustomWastage, setUseCustomWastage] = useState(false);
+
+    // 柱子狀態
+    const [columnRows, setColumnRows] = useState([{ id: 1, name: '', width: '', depth: '', height: '', count: '1', rebarType: 0 }]);
+    // 樑狀態
+    const [beamRows, setBeamRows] = useState([{ id: 1, name: '', width: '', height: '', length: '', count: '1', rebarType: 0 }]);
+    // 樓板狀態
+    const [slabRows, setSlabRows] = useState([{ id: 1, name: '', length: '', width: '', thickness: '15', rebarType: 1 }]);
+    // 牆體狀態
+    const [wallRows, setWallRows] = useState([{ id: 1, name: '', length: '', height: '', thickness: '20', rebarType: 2 }]);
+    // 女兒牆狀態
+    const [parapetRows, setParapetRows] = useState([{ id: 1, name: '', perimeter: '', height: '0.9', thickness: '15', rebarType: 1 }]);
+    // 地樑狀態
+    const [groundBeamRows, setGroundBeamRows] = useState([{ id: 1, name: '', width: '', depth: '', length: '', count: '1', rebarType: 0 }]);
+    // 基礎狀態
+    const [foundationRows, setFoundationRows] = useState([{ id: 1, name: '', length: '', width: '', depth: '', count: '1', foundationType: 0 }]);
+
+    const currentWastage = useCustomWastage ? wastage : 10;
+
+    // 計算函數
+    const calculateColumn = (row) => {
+        const w = parseFloat(row.width) / 100 || 0; // cm to m
+        const d = parseFloat(row.depth) / 100 || 0;
+        const h = parseFloat(row.height) || 0;
+        const n = parseFloat(row.count) || 1;
+        const rebarRate = COMPONENT_REBAR_RATES.column[row.rebarType]?.value || 120;
+
+        const formwork = 2 * (w + d) * h * n;
+        const concrete = w * d * h * n;
+        const rebar = concrete * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    const calculateBeam = (row) => {
+        const w = parseFloat(row.width) / 100 || 0;
+        const h = parseFloat(row.height) / 100 || 0;
+        const l = parseFloat(row.length) || 0;
+        const n = parseFloat(row.count) || 1;
+        const rebarRate = COMPONENT_REBAR_RATES.beam[row.rebarType]?.value || 85;
+
+        const formwork = (w + 2 * h) * l * n; // 底模+兩側模
+        const concrete = w * h * l * n;
+        const rebar = concrete * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    const calculateSlab = (row) => {
+        const l = parseFloat(row.length) || 0;
+        const w = parseFloat(row.width) || 0;
+        const t = parseFloat(row.thickness) / 100 || 0.15;
+        const rebarRate = COMPONENT_REBAR_RATES.slab[row.rebarType]?.value || 17;
+
+        const area = l * w;
+        const formwork = area * 1.1; // 含側模係數
+        const concrete = area * t;
+        const rebar = area * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    const calculateWall = (row) => {
+        const l = parseFloat(row.length) || 0;
+        const h = parseFloat(row.height) || 0;
+        const t = parseFloat(row.thickness) / 100 || 0.2;
+        const rebarRate = COMPONENT_REBAR_RATES.wall[row.rebarType]?.value || 34;
+
+        const area = l * h;
+        const formwork = 2 * area; // 雙面
+        const concrete = area * t;
+        const rebar = area * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    const calculateParapet = (row) => {
+        const p = parseFloat(row.perimeter) || 0;
+        const h = parseFloat(row.height) || 0.9;
+        const t = parseFloat(row.thickness) / 100 || 0.15;
+        const rebarRate = COMPONENT_REBAR_RATES.parapet[row.rebarType]?.value || 22;
+
+        const area = p * h;
+        const formwork = 2 * area; // 內外雙面
+        const concrete = area * t;
+        const rebar = area * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    const calculateGroundBeam = (row) => {
+        const w = parseFloat(row.width) / 100 || 0;
+        const d = parseFloat(row.depth) / 100 || 0;
+        const l = parseFloat(row.length) || 0;
+        const n = parseFloat(row.count) || 1;
+        const rebarRate = COMPONENT_REBAR_RATES.groundBeam[row.rebarType]?.value || 90;
+
+        const formwork = (w + 2 * d) * l * n; // 底模+兩側 (無頂)
+        const concrete = w * d * l * n;
+        const rebar = concrete * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    const calculateFoundation = (row) => {
+        const l = parseFloat(row.length) || 0;
+        const w = parseFloat(row.width) || 0;
+        const d = parseFloat(row.depth) || 0;
+        const n = parseFloat(row.count) || 1;
+        const rebarRate = COMPONENT_REBAR_RATES.foundation[row.foundationType]?.value || 80;
+
+        const perimeter = 2 * (l + w);
+        const formwork = perimeter * d * n; // 周長 × 深度
+        const concrete = l * w * d * n;
+        const rebar = concrete * rebarRate;
+        return { formwork, concrete, rebar };
+    };
+
+    // 列操作通用函數
+    const addRow = (rows, setRows, template) => {
+        const newId = Math.max(...rows.map(r => r.id), 0) + 1;
+        setRows([...rows, { ...template, id: newId }]);
+    };
+    const removeRow = (rows, setRows, id) => {
+        if (rows.length <= 1) return;
+        setRows(rows.filter(r => r.id !== id));
+    };
+    const updateRow = (rows, setRows, id, field, value) => {
+        setRows(rows.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
+    // 計算結果
+    const calculateResults = () => {
+        let rows, calcFn;
+        switch (componentType) {
+            case 'column': rows = columnRows; calcFn = calculateColumn; break;
+            case 'beam': rows = beamRows; calcFn = calculateBeam; break;
+            case 'slab': rows = slabRows; calcFn = calculateSlab; break;
+            case 'wall': rows = wallRows; calcFn = calculateWall; break;
+            case 'parapet': rows = parapetRows; calcFn = calculateParapet; break;
+            case 'groundBeam': rows = groundBeamRows; calcFn = calculateGroundBeam; break;
+            case 'foundation': rows = foundationRows; calcFn = calculateFoundation; break;
+            default: return { formwork: 0, concrete: 0, rebar: 0 };
+        }
+        return rows.reduce((acc, row) => {
+            const r = calcFn(row);
+            return { formwork: acc.formwork + r.formwork, concrete: acc.concrete + r.concrete, rebar: acc.rebar + r.rebar };
+        }, { formwork: 0, concrete: 0, rebar: 0 });
+    };
+
+    const results = calculateResults();
+    const formworkWithWastage = applyWastage(results.formwork, currentWastage);
+    const rebarWithWastage = applyWastage(results.rebar, currentWastage);
+
+    // 渲染輸入表單
+    const renderInputForm = () => {
+        const commonInputClass = "w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+
+        switch (componentType) {
+            case 'column':
+                return columnRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(columnRows, setColumnRows, row.id, 'name', e.target.value)} placeholder={`柱 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">寬度 (cm)</label>
+                                <input type="number" value={row.width} onChange={e => updateRow(columnRows, setColumnRows, row.id, 'width', e.target.value)} placeholder="40" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">深度 (cm)</label>
+                                <input type="number" value={row.depth} onChange={e => updateRow(columnRows, setColumnRows, row.id, 'depth', e.target.value)} placeholder="40" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">高度 (m)</label>
+                                <input type="number" value={row.height} onChange={e => updateRow(columnRows, setColumnRows, row.id, 'height', e.target.value)} placeholder="3" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-3 sm:col-span-1">
+                                <label className="block text-xs text-gray-500 mb-1">數量</label>
+                                <input type="number" value={row.count} onChange={e => updateRow(columnRows, setColumnRows, row.id, 'count', e.target.value)} placeholder="1" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-6 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">配筋</label>
+                                <select value={row.rebarType} onChange={e => updateRow(columnRows, setColumnRows, row.id, 'rebarType', parseInt(e.target.value))} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.column.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-3 sm:col-span-1 flex justify-end">
+                                <button onClick={() => removeRow(columnRows, setColumnRows, row.id)} disabled={columnRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            case 'beam':
+                return beamRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(beamRows, setBeamRows, row.id, 'name', e.target.value)} placeholder={`樑 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">寬度 (cm)</label>
+                                <input type="number" value={row.width} onChange={e => updateRow(beamRows, setBeamRows, row.id, 'width', e.target.value)} placeholder="30" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">梁高 (cm)</label>
+                                <input type="number" value={row.height} onChange={e => updateRow(beamRows, setBeamRows, row.id, 'height', e.target.value)} placeholder="60" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">長度 (m)</label>
+                                <input type="number" value={row.length} onChange={e => updateRow(beamRows, setBeamRows, row.id, 'length', e.target.value)} placeholder="6" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-3 sm:col-span-1">
+                                <label className="block text-xs text-gray-500 mb-1">數量</label>
+                                <input type="number" value={row.count} onChange={e => updateRow(beamRows, setBeamRows, row.id, 'count', e.target.value)} placeholder="1" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-6 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">配筋</label>
+                                <select value={row.rebarType} onChange={e => updateRow(beamRows, setBeamRows, row.id, 'rebarType', parseInt(e.target.value))} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.beam.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-3 sm:col-span-1 flex justify-end">
+                                <button onClick={() => removeRow(beamRows, setBeamRows, row.id)} disabled={beamRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            case 'slab':
+                return slabRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(slabRows, setSlabRows, row.id, 'name', e.target.value)} placeholder={`樓板 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">長度 (m)</label>
+                                <input type="number" value={row.length} onChange={e => updateRow(slabRows, setSlabRows, row.id, 'length', e.target.value)} placeholder="10" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">寬度 (m)</label>
+                                <input type="number" value={row.width} onChange={e => updateRow(slabRows, setSlabRows, row.id, 'width', e.target.value)} placeholder="8" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-3">
+                                <label className="block text-xs text-gray-500 mb-1">厚度/配筋</label>
+                                <select value={row.rebarType} onChange={e => { updateRow(slabRows, setSlabRows, row.id, 'rebarType', parseInt(e.target.value)); updateRow(slabRows, setSlabRows, row.id, 'thickness', COMPONENT_REBAR_RATES.slab[parseInt(e.target.value)]?.thickness || 15); }} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.slab.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-9 sm:col-span-2"></div>
+                            <div className="col-span-3 sm:col-span-1 flex justify-end">
+                                <button onClick={() => removeRow(slabRows, setSlabRows, row.id)} disabled={slabRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            case 'wall':
+                return wallRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(wallRows, setWallRows, row.id, 'name', e.target.value)} placeholder={`牆 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">長度 (m)</label>
+                                <input type="number" value={row.length} onChange={e => updateRow(wallRows, setWallRows, row.id, 'length', e.target.value)} placeholder="6" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">高度 (m)</label>
+                                <input type="number" value={row.height} onChange={e => updateRow(wallRows, setWallRows, row.id, 'height', e.target.value)} placeholder="3" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-3">
+                                <label className="block text-xs text-gray-500 mb-1">厚度/配筋</label>
+                                <select value={row.rebarType} onChange={e => { updateRow(wallRows, setWallRows, row.id, 'rebarType', parseInt(e.target.value)); updateRow(wallRows, setWallRows, row.id, 'thickness', COMPONENT_REBAR_RATES.wall[parseInt(e.target.value)]?.thickness || 20); }} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.wall.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-9 sm:col-span-2"></div>
+                            <div className="col-span-3 sm:col-span-1 flex justify-end">
+                                <button onClick={() => removeRow(wallRows, setWallRows, row.id)} disabled={wallRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            case 'parapet':
+                return parapetRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(parapetRows, setParapetRows, row.id, 'name', e.target.value)} placeholder={`女兒牆 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">周長 (m)</label>
+                                <input type="number" value={row.perimeter} onChange={e => updateRow(parapetRows, setParapetRows, row.id, 'perimeter', e.target.value)} placeholder="50" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">高度</label>
+                                <select value={row.height} onChange={e => updateRow(parapetRows, setParapetRows, row.id, 'height', e.target.value)} className={commonInputClass + " bg-white"}>
+                                    {PARAPET_HEIGHTS.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">厚度 (cm)</label>
+                                <input type="number" value={row.thickness} onChange={e => updateRow(parapetRows, setParapetRows, row.id, 'thickness', e.target.value)} placeholder="15" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-6 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">配筋</label>
+                                <select value={row.rebarType} onChange={e => updateRow(parapetRows, setParapetRows, row.id, 'rebarType', parseInt(e.target.value))} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.parapet.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-6 sm:col-span-2 flex justify-end">
+                                <button onClick={() => removeRow(parapetRows, setParapetRows, row.id)} disabled={parapetRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            case 'groundBeam':
+                return groundBeamRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(groundBeamRows, setGroundBeamRows, row.id, 'name', e.target.value)} placeholder={`地樑 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">寬度 (cm)</label>
+                                <input type="number" value={row.width} onChange={e => updateRow(groundBeamRows, setGroundBeamRows, row.id, 'width', e.target.value)} placeholder="40" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">深度 (cm)</label>
+                                <input type="number" value={row.depth} onChange={e => updateRow(groundBeamRows, setGroundBeamRows, row.id, 'depth', e.target.value)} placeholder="60" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">長度 (m)</label>
+                                <input type="number" value={row.length} onChange={e => updateRow(groundBeamRows, setGroundBeamRows, row.id, 'length', e.target.value)} placeholder="8" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-3 sm:col-span-1">
+                                <label className="block text-xs text-gray-500 mb-1">數量</label>
+                                <input type="number" value={row.count} onChange={e => updateRow(groundBeamRows, setGroundBeamRows, row.id, 'count', e.target.value)} placeholder="1" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-6 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">配筋</label>
+                                <select value={row.rebarType} onChange={e => updateRow(groundBeamRows, setGroundBeamRows, row.id, 'rebarType', parseInt(e.target.value))} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.groundBeam.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-3 sm:col-span-1 flex justify-end">
+                                <button onClick={() => removeRow(groundBeamRows, setGroundBeamRows, row.id)} disabled={groundBeamRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            case 'foundation':
+                return foundationRows.map((row, idx) => (
+                    <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                <input type="text" value={row.name} onChange={e => updateRow(foundationRows, setFoundationRows, row.id, 'name', e.target.value)} placeholder={`基礎 ${idx + 1}`} className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">長度 (m)</label>
+                                <input type="number" value={row.length} onChange={e => updateRow(foundationRows, setFoundationRows, row.id, 'length', e.target.value)} placeholder="2" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">寬度 (m)</label>
+                                <input type="number" value={row.width} onChange={e => updateRow(foundationRows, setFoundationRows, row.id, 'width', e.target.value)} placeholder="2" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-4 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">深度 (m)</label>
+                                <input type="number" value={row.depth} onChange={e => updateRow(foundationRows, setFoundationRows, row.id, 'depth', e.target.value)} placeholder="0.5" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-3 sm:col-span-1">
+                                <label className="block text-xs text-gray-500 mb-1">數量</label>
+                                <input type="number" value={row.count} onChange={e => updateRow(foundationRows, setFoundationRows, row.id, 'count', e.target.value)} placeholder="1" className={commonInputClass} />
+                            </div>
+                            <div className="col-span-6 sm:col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">基礎類型</label>
+                                <select value={row.foundationType} onChange={e => updateRow(foundationRows, setFoundationRows, row.id, 'foundationType', parseInt(e.target.value))} className={commonInputClass + " bg-white"}>
+                                    {COMPONENT_REBAR_RATES.foundation.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-3 sm:col-span-1 flex justify-end">
+                                <button onClick={() => removeRow(foundationRows, setFoundationRows, row.id)} disabled={foundationRows.length <= 1} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ));
+            default:
+                return null;
+        }
+    };
+
+    const getAddRowHandler = () => {
+        const templates = {
+            column: { name: '', width: '', depth: '', height: '', count: '1', rebarType: 0 },
+            beam: { name: '', width: '', height: '', length: '', count: '1', rebarType: 0 },
+            slab: { name: '', length: '', width: '', thickness: '15', rebarType: 1 },
+            wall: { name: '', length: '', height: '', thickness: '20', rebarType: 2 },
+            parapet: { name: '', perimeter: '', height: '0.9', thickness: '15', rebarType: 1 },
+            groundBeam: { name: '', width: '', depth: '', length: '', count: '1', rebarType: 0 },
+            foundation: { name: '', length: '', width: '', depth: '', count: '1', foundationType: 0 },
+        };
+        const setters = { column: [columnRows, setColumnRows], beam: [beamRows, setBeamRows], slab: [slabRows, setSlabRows], wall: [wallRows, setWallRows], parapet: [parapetRows, setParapetRows], groundBeam: [groundBeamRows, setGroundBeamRows], foundation: [foundationRows, setFoundationRows] };
+        return () => addRow(setters[componentType][0], setters[componentType][1], templates[componentType]);
+    };
+
+    const componentLabel = COMPONENT_TYPES.find(c => c.id === componentType)?.label || '構件';
+
+    return (
+        <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
+            {/* 構件類型選擇 */}
+            <div className="flex gap-2 flex-wrap border-b border-gray-100 pb-3">
+                {COMPONENT_TYPES.map(c => (
+                    <button
+                        key={c.id}
+                        onClick={() => setComponentType(c.id)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-all flex items-center gap-1 ${componentType === c.id ? 'bg-orange-100 text-orange-700 font-medium' : 'text-gray-500 hover:bg-gray-100'}`}
+                    >
+                        <span>{c.icon}</span> {c.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* 公式說明 */}
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Info size={16} />
+                {componentType === 'column' && '公式: 模板 = 2×(寬+深)×高×數量, 鋼筋 = 體積×配筋率'}
+                {componentType === 'beam' && '公式: 模板 = (底寬+2×梁高)×長度, 鋼筋 = 體積×配筋率'}
+                {componentType === 'slab' && '公式: 模板 = 面積×1.1, 鋼筋 = 面積×配筋率'}
+                {componentType === 'wall' && '公式: 模板 = 2×面積 (雙面), 鋼筋 = 面積×配筋率'}
+                {componentType === 'parapet' && '公式: 模板 = 2×周長×高度, 鋼筋 = 面積×配筋率'}
+                {componentType === 'groundBeam' && '公式: 模板 = (底寬+2×深)×長度, 鋼筋 = 體積×配筋率'}
+                {componentType === 'foundation' && '公式: 模板 = 周長×深度, 鋼筋 = 體積×配筋率'}
+            </div>
+
+            {/* 輸入表單 */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {renderInputForm()}
+            </div>
+
+            {/* 新增按鈕 */}
+            <button onClick={getAddRowHandler()} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm">
+                <Plus size={16} /> 新增{componentLabel}
+            </button>
+
+            {/* 損耗率控制 */}
+            <WastageControl wastage={wastage} setWastage={setWastage} defaultValue={10} useCustom={useCustomWastage} setUseCustom={setUseCustomWastage} />
+
+            {/* 結果顯示 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ResultDisplay label="模板面積" value={results.formwork} unit="m²" wastageValue={formworkWithWastage} subType="模板" onAddRecord={onAddRecord} />
+                <ResultDisplay label="鋼筋重量" value={results.rebar} unit="kg" wastageValue={rebarWithWastage} subType="鋼筋" onAddRecord={onAddRecord} />
+            </div>
+
+            {/* 混凝土體積 (附加資訊) */}
+            {results.concrete > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                    <span className="font-medium">混凝土體積:</span> {formatNumber(results.concrete, 3)} m³
+                </div>
+            )}
+        </div>
+    );
+};
+
 // 1️⃣ 結構工程計算器 (支援多列輸入)
 const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
     const [calcType, setCalcType] = useState('concrete');
@@ -456,6 +982,7 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                     { id: 'concrete', label: '混凝土用量' },
                     { id: 'rebar', label: '鋼筋重量' },
                     { id: 'formwork', label: '模板面積' },
+                    { id: 'component', label: '構件計算' },
                 ].map(item => (
                     <button
                         key={item.id}
@@ -1097,6 +1624,11 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                         placeholder={{ spec: '例：清水模板' }}
                     />
                 </div>
+            )}
+
+            {/* 構件計算器 */}
+            {calcType === 'component' && (
+                <ComponentCalculator onAddRecord={onAddRecord} vendors={vendors} />
             )}
         </div>
     );
