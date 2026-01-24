@@ -200,6 +200,64 @@ const STAIR_TYPES = [
 ];
 
 // ============================================
+// 構件常用規格預設 (台灣標準)
+// ============================================
+const COMPONENT_PRESETS = {
+    column: [
+        { id: '40x40x300', label: '40×40 (透天厝)', width: 40, depth: 40, height: 300, rebarRate: 120 },
+        { id: '50x50x300', label: '50×50 (5F公寓)', width: 50, depth: 50, height: 300, rebarRate: 130 },
+        { id: '60x60x350', label: '60×60 (電梯大樓)', width: 60, depth: 60, height: 350, rebarRate: 140 },
+        { id: '70x70x350', label: '70×70 (10F+高樓)', width: 70, depth: 70, height: 350, rebarRate: 150 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    beam: [
+        { id: '25x50x600', label: '25×50 (小梁)', width: 25, depth: 50, length: 600, rebarRate: 85 },
+        { id: '30x60x600', label: '30×60 (主梁)', width: 30, depth: 60, length: 600, rebarRate: 100 },
+        { id: '40x70x800', label: '40×70 (大樓主梁)', width: 40, depth: 70, length: 800, rebarRate: 110 },
+        { id: '50x80x1000', label: '50×80 (大跨距)', width: 50, depth: 80, length: 1000, rebarRate: 120 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    slab: [
+        { id: '12cm_4x4', label: '12cm 4×4m (小房間)', thickness: 12, length: 400, width: 400, perimeter: 1600 },
+        { id: '15cm_6x4', label: '15cm 6×4m (一般房間)', thickness: 15, length: 600, width: 400, perimeter: 2000 },
+        { id: '18cm_8x5', label: '18cm 8×5m (客廳)', thickness: 18, length: 800, width: 500, perimeter: 2600 },
+        { id: '20cm_10x6', label: '20cm 10×6m (大廳)', thickness: 20, length: 1000, width: 600, perimeter: 3200 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    wall: [
+        { id: '15x600x300', label: '15cm (隔間牆)', thickness: 15, length: 600, height: 300 },
+        { id: '20x600x300', label: '20cm (承重牆)', thickness: 20, length: 600, height: 300 },
+        { id: '25x600x350', label: '25cm (剪力牆)', thickness: 25, length: 600, height: 350 },
+        { id: '30x600x350', label: '30cm (核心筒)', thickness: 30, length: 600, height: 350 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    parapet: [
+        { id: '15x100x100', label: '15cm×100cm (低矮型)', thickness: 15, length: 1000, height: 100 },
+        { id: '15x100x120', label: '15cm×120cm (標準)', thickness: 15, length: 1000, height: 120 },
+        { id: '20x100x150', label: '20cm×150cm (加高型)', thickness: 20, length: 1000, height: 150 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    groundBeam: [
+        { id: '30x60x600', label: '30×60 (一般)', width: 30, depth: 60, length: 600, rebarRate: 90 },
+        { id: '40x80x800', label: '40×80 (中型)', width: 40, depth: 80, length: 800, rebarRate: 100 },
+        { id: '50x100x1000', label: '50×100 (大型)', width: 50, depth: 100, length: 1000, rebarRate: 110 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    foundation: [
+        { id: '150x150x60', label: '獨立基腳 1.5×1.5m', width: 150, depth: 150, height: 60, rebarRate: 80 },
+        { id: '200x200x80', label: '獨立基腳 2×2m', width: 200, depth: 200, height: 80, rebarRate: 85 },
+        { id: '300x150x80', label: '聯合基腳 3×1.5m', width: 300, depth: 150, height: 80, rebarRate: 90 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+    stairs: [
+        { id: 'single_90x20', label: '單跑 90cm寬 20級', width: 90, steps: 20, stepHeight: 17.5, stepDepth: 28, thickness: 15, stairType: 'single' },
+        { id: 'double_100x16', label: '雙跑 100cm寬 16級', width: 100, steps: 16, stepHeight: 17.5, stepDepth: 28, thickness: 15, stairType: 'double', landingDepth: 100 },
+        { id: 'lshape_100x18', label: 'L型 100cm寬 18級', width: 100, steps: 18, stepHeight: 17.5, stepDepth: 28, thickness: 15, stairType: 'lShape', landingDepth: 100 },
+        { id: 'custom', label: '🔧 自訂尺寸', custom: true },
+    ],
+};
+
+// ============================================
 // 工具函數
 // ============================================
 const formatNumber = (num, decimals = 2) => {
@@ -386,6 +444,9 @@ const StructuralMaterialCalculator = () => {
     const [newComponent, setNewComponent] = useState({
         type: 'column',
         name: '',
+        presetId: '',  // 預設規格ID
+        concreteGrade: 'c280',  // 該構件混凝土強度
+        rebarGrade: 'SD420W',   // 該構件鋼筋等級
         width: '',
         depth: '',
         height: '',
@@ -617,36 +678,6 @@ const StructuralMaterialCalculator = () => {
                 </div>
             </div>
 
-            {/* 材料規格選擇 */}
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">混凝土強度</label>
-                        <select
-                            value={concreteGrade}
-                            onChange={e => handleConcreteGradeChange(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-orange-500"
-                        >
-                            {CONCRETE_GRADES.map(g => (
-                                <option key={g.id} value={g.id}>{g.label} - {g.usage}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">鋼筋等級</label>
-                        <select
-                            value={rebarGrade}
-                            onChange={e => setRebarGrade(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-orange-500"
-                        >
-                            {REBAR_GRADES.map(g => (
-                                <option key={g.id} value={g.id}>{g.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
             {/* 構件清單 */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
@@ -837,6 +868,7 @@ const StructuralMaterialCalculator = () => {
                                                     setNewComponent(prev => ({
                                                         ...prev,
                                                         type: t.id,
+                                                        presetId: '',  // 重置預設規格選擇
                                                         rebarLayer: defaultLayer || prev.rebarLayer,
                                                         rebarRate: defaultRate
                                                     }));
@@ -851,6 +883,71 @@ const StructuralMaterialCalculator = () => {
                                 </div>
                             </div>
 
+                            {/* 混凝土強度 + 鋼筋等級 (並排) */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">混凝土強度</label>
+                                    <select
+                                        value={newComponent.concreteGrade}
+                                        onChange={e => setNewComponent(prev => ({ ...prev, concreteGrade: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
+                                    >
+                                        {CONCRETE_GRADES.map(g => (
+                                            <option key={g.id} value={g.id}>{g.strength} kgf/cm²</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">鋼筋等級</label>
+                                    <select
+                                        value={newComponent.rebarGrade}
+                                        onChange={e => setNewComponent(prev => ({ ...prev, rebarGrade: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
+                                    >
+                                        {REBAR_GRADES.map(g => (
+                                            <option key={g.id} value={g.id}>{g.id}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* 常用規格預設 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">常用規格</label>
+                                <select
+                                    value={newComponent.presetId}
+                                    onChange={e => {
+                                        const presetId = e.target.value;
+                                        const presets = COMPONENT_PRESETS[newComponent.type] || [];
+                                        const preset = presets.find(p => p.id === presetId);
+
+                                        if (preset && !preset.custom) {
+                                            // 自動填入預設值
+                                            setNewComponent(prev => ({
+                                                ...prev,
+                                                presetId,
+                                                width: preset.width || prev.width,
+                                                depth: preset.depth || prev.depth,
+                                                height: preset.height || prev.height,
+                                                length: preset.length || prev.length,
+                                                thickness: preset.thickness || prev.thickness,
+                                                perimeter: preset.perimeter || prev.perimeter,
+                                                rebarRate: preset.rebarRate || prev.rebarRate,
+                                                stairType: preset.stairType || prev.stairType,
+                                            }));
+                                        } else {
+                                            setNewComponent(prev => ({ ...prev, presetId }));
+                                        }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white"
+                                >
+                                    <option value="">-- 選擇規格或自訂 --</option>
+                                    {(COMPONENT_PRESETS[newComponent.type] || []).map(p => (
+                                        <option key={p.id} value={p.id}>{p.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {/* 名稱 */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">名稱 (選填)</label>
@@ -863,8 +960,8 @@ const StructuralMaterialCalculator = () => {
                                 />
                             </div>
 
-                            {/* 尺寸參數 */}
-                            {renderComponentForm()}
+                            {/* 尺寸參數 - 選擇自訂時顯示所有欄位 */}
+                            {(newComponent.presetId === 'custom' || newComponent.presetId === '') && renderComponentForm()}
 
                             {/* 配筋選擇 - 依構件類型顯示不同選項 */}
                             <div>
