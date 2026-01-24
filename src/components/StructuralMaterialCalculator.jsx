@@ -173,28 +173,43 @@ const calculateComponent = (type, params) => {
             break;
         }
         case 'stairs': {
-            // 樓梯計算: 寬度(m), 階數, 階高(cm), 踏寬(cm), 斜板厚(cm)
+            // 樓梯計算: 寬度, 階數, 階高, 踏寬, 斜板厚, 轉台數, 轉台深度
             const stairWidth = (width || 120) / 100;  // 樓梯寬度
-            const steps = count || 12;  // 階數
+            const steps = count || 12;  // 階數 (總階數，含轉台前後)
             const stepHeight = (height || 17) / 100;  // 階高
             const stepDepth = (depth || 28) / 100;  // 踏寬
             const slabThickness = (thickness || 15) / 100;  // 斜板厚
+            const landingCount = parseInt(perimeter) || 0;  // 轉台數量 (借用perimeter欄位)
+            const landingDepth = (length || 120) / 100;  // 轉台深度 (借用length欄位)
 
-            // 計算斜長
-            const totalRise = steps * stepHeight;
-            const totalRun = steps * stepDepth;
+            // 計算斜長 (扣除轉台的階段)
+            const stepsPerFlight = landingCount > 0 ? Math.floor(steps / (landingCount + 1)) : steps;
+            const totalRise = stepsPerFlight * stepHeight;
+            const totalRun = stepsPerFlight * stepDepth;
             const slopeLength = Math.sqrt(totalRise * totalRise + totalRun * totalRun);
+            const flightCount = landingCount + 1;  // 梯段數
 
-            // 模板: 梯底 + 踏步立板 + 梯側
-            const bottomFormwork = slopeLength * stairWidth;  // 梯底
+            // 梯段模板: (梯底 + 踏步立板 + 梯側) × 梯段數
+            const bottomFormwork = slopeLength * stairWidth * flightCount;  // 梯底
             const stepFormwork = steps * stepHeight * stairWidth;  // 踏步立板
-            const sideFormwork = slopeLength * slabThickness * 2;  // 兩側
-            formwork = bottomFormwork + stepFormwork + sideFormwork;
+            const sideFormwork = slopeLength * slabThickness * 2 * flightCount;  // 兩側
 
-            // 混凝土: 斜板體積 + 踏步體積
-            const slabVolume = slopeLength * stairWidth * slabThickness;
-            const stepVolume = steps * stepHeight * stepDepth * stairWidth * 0.5;  // 三角形
-            concrete = slabVolume + stepVolume;
+            // 轉台模板: 底板 + 四周側邊
+            const landingFormwork = landingCount * (
+                stairWidth * landingDepth +  // 底板
+                2 * (stairWidth + landingDepth) * slabThickness  // 四周側邊
+            );
+
+            formwork = bottomFormwork + stepFormwork + sideFormwork + landingFormwork;
+
+            // 梯段混凝土: (斜板體積 + 踏步體積) × 梯段數
+            const slabVolume = slopeLength * stairWidth * slabThickness * flightCount;
+            const stepVolume = steps * stepHeight * stepDepth * stairWidth * 0.5;  // 踏步三角形
+
+            // 轉台混凝土
+            const landingConcrete = landingCount * stairWidth * landingDepth * slabThickness;
+
+            concrete = slabVolume + stepVolume + landingConcrete;
 
             rebar = concrete * (rebarRate || 85);
             break;
@@ -372,27 +387,27 @@ const StructuralMaterialCalculator = () => {
             parapet: ['perimeter', 'height', 'thickness'],
             groundBeam: ['width', 'depth', 'length', 'count'],
             foundation: ['length', 'width', 'depth', 'count'],
-            stairs: ['width', 'count', 'height', 'depth', 'thickness'],  // 寬度, 階數, 階高, 踏寬, 斜板厚
+            stairs: ['width', 'count', 'height', 'depth', 'thickness', 'perimeter', 'length'],  // 寬度, 階數, 階高, 踏寬, 斜板厚, 轉台數, 轉台深
         };
 
         const labels = {
             width: { column: '寬度 (cm)', beam: '寬度 (cm)', slab: '寬度 (m)', wall: '', groundBeam: '寬度 (cm)', foundation: '長度 (m)', stairs: '樓梯寬 (cm)' },
             depth: { column: '深度 (cm)', groundBeam: '深度 (cm)', foundation: '寬度 (m)', stairs: '踏寬 (cm)' },
             height: { column: '高度 (m)', beam: '樑高 (cm)', wall: '高度 (m)', parapet: '高度 (m)', stairs: '階高 (cm)' },
-            length: { beam: '長度 (m)', slab: '長度 (m)', wall: '長度 (m)', groundBeam: '長度 (m)' },
-            count: { default: '數量', stairs: '階數' },
+            length: { beam: '長度 (m)', slab: '長度 (m)', wall: '長度 (m)', groundBeam: '長度 (m)', stairs: '轉台深 (cm)' },
+            count: { default: '數量', stairs: '總階數' },
             thickness: { slab: '厚度 (cm)', wall: '厚度 (cm)', parapet: '厚度 (cm)', stairs: '斜板厚 (cm)' },
-            perimeter: { parapet: '周長 (m)' },
+            perimeter: { parapet: '周長 (m)', stairs: '轉台數' },
         };
 
         const placeholder = {
             width: { column: '40', beam: '30', slab: '8', groundBeam: '40', foundation: '2', stairs: '120' },
             depth: { column: '40', groundBeam: '60', foundation: '2', stairs: '28' },
             height: { column: '3', beam: '60', wall: '3', parapet: '0.9', stairs: '17' },
-            length: { beam: '6', slab: '10', wall: '6', groundBeam: '8' },
-            count: { default: '1', stairs: '12' },
+            length: { beam: '6', slab: '10', wall: '6', groundBeam: '8', stairs: '120' },
+            count: { default: '1', stairs: '20' },
             thickness: { slab: '15', wall: '20', parapet: '15', stairs: '15' },
-            perimeter: { parapet: '50' },
+            perimeter: { parapet: '50', stairs: '1' },
         };
 
         return (
