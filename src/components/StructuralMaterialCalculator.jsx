@@ -46,20 +46,40 @@ const COMPONENT_TYPES = [
     { id: 'beam', label: '樑', icon: '📏', unit: '支' },
     { id: 'slab', label: '樓板', icon: '⬜', unit: '塊' },
     { id: 'wall', label: '牆體', icon: '🧱', unit: '面' },
-    { id: 'parapet', label: '女兒牆', icon: '🏚️', unit: '圈' },
+    { id: 'parapet', label: '女兒牆', icon: '🏘️', unit: '圈' },
     { id: 'groundBeam', label: '地樑', icon: '⛏️', unit: '支' },
     { id: 'foundation', label: '基礎', icon: '🏗️', unit: '座' },
+    { id: 'stairs', label: '樓梯', icon: '🪜', unit: '座' },
 ];
 
-// 配筋率參考值
+// 配筋率參考值 (含單層/雙層配筋選項)
 const REBAR_RATES = {
     column: { normal: 120, frame: 150 },
     beam: { normal: 85, frame: 100 },
-    slab: { 12: 13, 15: 17, 18: 25 },
-    wall: { 15: 23, 18: 29, 20: 34, 25: 47, 30: 58 },
+    // 樓板: 依厚度與配筋層數
+    slab: {
+        '12_single': { label: '12cm 單層雙向', value: 13, desc: '單層底筋' },
+        '15_single': { label: '15cm 單層雙向', value: 17, desc: '單層底筋' },
+        '15_double': { label: '15cm 雙層雙向', value: 22, desc: '上下層筋' },
+        '18_double': { label: '18cm 雙層雙向', value: 28, desc: '上下層筋' },
+        '20_double': { label: '20cm 雙層雙向', value: 32, desc: '大跨距' },
+    },
+    // 牆體: 依厚度與配筋層數
+    wall: {
+        '15_single': { label: '15cm 單層', value: 23, desc: '單側配筋' },
+        '18_single': { label: '18cm 單層', value: 29, desc: '單側配筋' },
+        '20_double': { label: '20cm 雙層', value: 38, desc: '雙側配筋' },
+        '25_double': { label: '25cm 雙層', value: 52, desc: '雙側配筋' },
+        '30_double': { label: '30cm 雙層', value: 65, desc: '雙側配筋' },
+    },
     parapet: { light: 18, normal: 22, heavy: 25 },
     groundBeam: { normal: 90, frame: 110 },
     foundation: { isolated: 80, combined: 85, mat: 100 },
+    // 樓梯: 框架式/板式
+    stairs: {
+        plate: { label: '板式樓梯', value: 80, desc: '斤度較低' },
+        frame: { label: '框架式樓梯', value: 95, desc: '框式結構' },
+    },
 };
 
 // ============================================
@@ -152,6 +172,33 @@ const calculateComponent = (type, params) => {
             rebar = concrete * (rebarRate || 80);
             break;
         }
+        case 'stairs': {
+            // 樓梯計算: 寬度(m), 階數, 階高(cm), 踏寬(cm), 斜板厚(cm)
+            const stairWidth = (width || 120) / 100;  // 樓梯寬度
+            const steps = count || 12;  // 階數
+            const stepHeight = (height || 17) / 100;  // 階高
+            const stepDepth = (depth || 28) / 100;  // 踏寬
+            const slabThickness = (thickness || 15) / 100;  // 斜板厚
+
+            // 計算斜長
+            const totalRise = steps * stepHeight;
+            const totalRun = steps * stepDepth;
+            const slopeLength = Math.sqrt(totalRise * totalRise + totalRun * totalRun);
+
+            // 模板: 梯底 + 踏步立板 + 梯側
+            const bottomFormwork = slopeLength * stairWidth;  // 梯底
+            const stepFormwork = steps * stepHeight * stairWidth;  // 踏步立板
+            const sideFormwork = slopeLength * slabThickness * 2;  // 兩側
+            formwork = bottomFormwork + stepFormwork + sideFormwork;
+
+            // 混凝土: 斜板體積 + 踏步體積
+            const slabVolume = slopeLength * stairWidth * slabThickness;
+            const stepVolume = steps * stepHeight * stepDepth * stairWidth * 0.5;  // 三角形
+            concrete = slabVolume + stepVolume;
+
+            rebar = concrete * (rebarRate || 85);
+            break;
+        }
     }
 
     return { formwork, concrete, rebar };
@@ -184,6 +231,7 @@ const StructuralMaterialCalculator = () => {
         thickness: '15',
         perimeter: '',
         rebarRate: 120,
+        rebarLayer: '15_single',  // 單層/雙層配筋
     });
 
     // 單價設定
@@ -296,6 +344,7 @@ const StructuralMaterialCalculator = () => {
             thickness: '15',
             perimeter: '',
             rebarRate: 120,
+            rebarLayer: '15_single',
         });
     };
 
@@ -323,25 +372,26 @@ const StructuralMaterialCalculator = () => {
             parapet: ['perimeter', 'height', 'thickness'],
             groundBeam: ['width', 'depth', 'length', 'count'],
             foundation: ['length', 'width', 'depth', 'count'],
+            stairs: ['width', 'count', 'height', 'depth', 'thickness'],  // 寬度, 階數, 階高, 踏寬, 斜板厚
         };
 
         const labels = {
-            width: { column: '寬度 (cm)', beam: '寬度 (cm)', slab: '寬度 (m)', wall: '', groundBeam: '寬度 (cm)', foundation: '長度 (m)' },
-            depth: { column: '深度 (cm)', groundBeam: '深度 (cm)', foundation: '寬度 (m)' },
-            height: { column: '高度 (m)', beam: '梁高 (cm)', wall: '高度 (m)', parapet: '高度 (m)' },
+            width: { column: '寬度 (cm)', beam: '寬度 (cm)', slab: '寬度 (m)', wall: '', groundBeam: '寬度 (cm)', foundation: '長度 (m)', stairs: '樓梯寬 (cm)' },
+            depth: { column: '深度 (cm)', groundBeam: '深度 (cm)', foundation: '寬度 (m)', stairs: '踏寬 (cm)' },
+            height: { column: '高度 (m)', beam: '樑高 (cm)', wall: '高度 (m)', parapet: '高度 (m)', stairs: '階高 (cm)' },
             length: { beam: '長度 (m)', slab: '長度 (m)', wall: '長度 (m)', groundBeam: '長度 (m)' },
-            count: { default: '數量' },
-            thickness: { slab: '厚度 (cm)', wall: '厚度 (cm)', parapet: '厚度 (cm)' },
+            count: { default: '數量', stairs: '階數' },
+            thickness: { slab: '厚度 (cm)', wall: '厚度 (cm)', parapet: '厚度 (cm)', stairs: '斜板厚 (cm)' },
             perimeter: { parapet: '周長 (m)' },
         };
 
         const placeholder = {
-            width: { column: '40', beam: '30', slab: '8', groundBeam: '40', foundation: '2' },
-            depth: { column: '40', groundBeam: '60', foundation: '2' },
-            height: { column: '3', beam: '60', wall: '3', parapet: '0.9' },
+            width: { column: '40', beam: '30', slab: '8', groundBeam: '40', foundation: '2', stairs: '120' },
+            depth: { column: '40', groundBeam: '60', foundation: '2', stairs: '28' },
+            height: { column: '3', beam: '60', wall: '3', parapet: '0.9', stairs: '17' },
             length: { beam: '6', slab: '10', wall: '6', groundBeam: '8' },
-            count: { default: '1' },
-            thickness: { slab: '15', wall: '20', parapet: '15' },
+            count: { default: '1', stairs: '12' },
+            thickness: { slab: '15', wall: '20', parapet: '15', stairs: '15' },
             perimeter: { parapet: '50' },
         };
 
@@ -605,15 +655,36 @@ const StructuralMaterialCalculator = () => {
                             {/* 尺寸參數 */}
                             {renderComponentForm()}
 
-                            {/* 配筋率選擇 */}
+                            {/* 配筋選擇 - 依構件類型顯示不同選項 */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">配筋率 (kg/m³ 或 kg/m²)</label>
-                                <input
-                                    type="number"
-                                    value={newComponent.rebarRate}
-                                    onChange={e => setNewComponent(prev => ({ ...prev, rebarRate: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg"
-                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    配筋方式 {(newComponent.type === 'slab' || newComponent.type === 'wall') && '(單層/雙層)'}
+                                </label>
+                                {['slab', 'wall', 'stairs'].includes(newComponent.type) ? (
+                                    <select
+                                        value={newComponent.rebarLayer}
+                                        onChange={e => {
+                                            const layer = e.target.value;
+                                            const rate = REBAR_RATES[newComponent.type]?.[layer]?.value || 20;
+                                            setNewComponent(prev => ({ ...prev, rebarLayer: layer, rebarRate: rate }));
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white"
+                                    >
+                                        {Object.entries(REBAR_RATES[newComponent.type] || {}).map(([key, opt]) => (
+                                            <option key={key} value={key}>
+                                                {opt.label} ({opt.value} kg/m²) - {opt.desc}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <input
+                                        type="number"
+                                        value={newComponent.rebarRate}
+                                        onChange={e => setNewComponent(prev => ({ ...prev, rebarRate: e.target.value }))}
+                                        placeholder="配筋率 (kg/m³)"
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg"
+                                    />
+                                )}
                             </div>
                         </div>
 
