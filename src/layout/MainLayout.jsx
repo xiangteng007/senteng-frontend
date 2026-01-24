@@ -230,17 +230,10 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
     // 根據權限過濾群組和項目
     const visibleGroups = useMemo(() => {
         return MENU_GROUPS
-            .filter(group => {
-                // 管理員專用群組
-                if (group.adminOnly && role !== 'super_admin') {
-                    return false;
-                }
-                return true;
-            })
             .map(group => {
-                // 過濾群組內的項目
+                // 過濾群組內的項目 - 純粹基於 allowedPages（RBAC gating）
                 const visibleItems = group.items
-                    .filter(itemId => allowedPages?.includes(itemId) || (itemId === 'user-management' && role === 'super_admin'))
+                    .filter(itemId => allowedPages?.includes(itemId))
                     .map(itemId => ALL_MENU_ITEMS[itemId])
                     .filter(Boolean);
 
@@ -250,7 +243,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children, addToast }) => {
                 };
             })
             .filter(group => group.visibleItems.length > 0);
-    }, [allowedPages, role]);
+    }, [allowedPages]);
 
     // 檢查是否有即將到來的行程
     useEffect(() => {

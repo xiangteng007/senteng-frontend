@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
     const [backendAuthenticated, setBackendAuthenticated] = useState(false);
 
-    // Exchange Firebase user for backend JWT
+    // Exchange Firebase user for backend JWT and fetch permissions
     const exchangeForBackendToken = async (firebaseUser) => {
         if (!firebaseUser) {
             api.clearToken();
@@ -41,6 +41,25 @@ export const AuthProvider = ({ children }) => {
                 api.setToken(response.access_token);
                 setBackendAuthenticated(true);
                 console.log('✅ Backend JWT obtained successfully');
+
+                // Fetch permissions from backend (this is the authoritative source for RBAC)
+                try {
+                    const permissionsResponse = await api.get('/auth/permissions');
+                    if (permissionsResponse) {
+                        console.log('✅ Permissions fetched:', permissionsResponse);
+                        // Merge backend permissions into firebaseUser object
+                        firebaseUser.allowedPages = permissionsResponse.pages || [];
+                        firebaseUser.actions = permissionsResponse.actions || {};
+                        firebaseUser.roleLevel = permissionsResponse.roleLevel || 1;
+                        firebaseUser.role = permissionsResponse.role || firebaseUser.role || 'user';
+                    }
+                } catch (permErr) {
+                    console.warn('⚠️ Failed to fetch permissions:', permErr);
+                    // Set default permissions for the role level
+                    firebaseUser.allowedPages = ['dashboard'];
+                    firebaseUser.actions = {};
+                }
+
                 return response;
             }
         } catch (err) {

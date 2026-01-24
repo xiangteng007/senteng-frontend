@@ -6,6 +6,7 @@ import { GoogleService } from './services/GoogleService';
 import { ToastContainer } from './components/common/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useApiData } from './services/useApiData';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import LoginPage from './pages/LoginPage';
 import UserManagement from './pages/UserManagement';
 
@@ -269,6 +270,7 @@ const AppContent = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <OfflineIndicator />
     </MainLayout>
   );
 };
