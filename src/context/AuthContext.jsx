@@ -54,9 +54,18 @@ export const AuthProvider = ({ children }) => {
                         firebaseUser.role = permissionsResponse.role || firebaseUser.role || 'user';
                     }
                 } catch (permErr) {
-                    console.warn('⚠️ Failed to fetch permissions:', permErr);
-                    // Set default permissions for the role level
-                    firebaseUser.allowedPages = ['dashboard'];
+                    console.warn('⚠️ Failed to fetch permissions, using default pages:', permErr);
+                    // Set comprehensive default permissions to prevent empty sidebar
+                    // This allows users to access all basic features when permission API fails
+                    firebaseUser.allowedPages = [
+                        'dashboard', 'schedule', 'projects', 'quotations', 'payments',
+                        'contracts', 'profit', 'cost-entries', 'clients', 'finance',
+                        'vendors', 'inventory', 'materials', 'invoice', 'unit', 'cost', 'calc'
+                    ];
+                    // Admin pages only for admin roles
+                    if (firebaseUser.role === 'admin' || firebaseUser.role === 'super_admin') {
+                        firebaseUser.allowedPages.push('user-management', 'integrations');
+                    }
                     firebaseUser.actions = {};
                 }
 
