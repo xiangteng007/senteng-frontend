@@ -75,12 +75,22 @@ const REBAR_RATES = {
     parapet: { light: 18, normal: 22, heavy: 25 },
     groundBeam: { normal: 90, frame: 110 },
     foundation: { isolated: 80, combined: 85, mat: 100 },
-    // 樓梯: 框架式/板式
+    // 樓梯: 板式/框架式
     stairs: {
-        plate: { label: '板式樓梯', value: 80, desc: '斤度較低' },
+        plate: { label: '板式樓梯', value: 80, desc: '斜板式' },
         frame: { label: '框架式樓梯', value: 95, desc: '框式結構' },
     },
 };
+
+// ============================================
+// 樓梯類型定義
+// ============================================
+const STAIR_TYPES = [
+    { id: 'single', label: '單跑樓梯 (直梯)', flights: 1, landings: 0, desc: '無轉折，直接連接兩層' },
+    { id: 'double', label: '雙跑樓梯 (折返)', flights: 2, landings: 1, desc: '180°轉折，平行雙梯段' },
+    { id: 'lShape', label: 'L型樓梯 (七字型)', flights: 2, landings: 1, desc: '90°轉折，沿牆配置' },
+    { id: 'uShape', label: 'U型樓梯', flights: 3, landings: 2, desc: '雙90°轉折，三梯段' },
+];
 
 // ============================================
 // 工具函數
@@ -173,41 +183,51 @@ const calculateComponent = (type, params) => {
             break;
         }
         case 'stairs': {
-            // 樓梯計算: 寬度, 階數, 階高, 踏寬, 斜板厚, 轉台數, 轉台深度
-            const stairWidth = (width || 120) / 100;  // 樓梯寬度
-            const steps = count || 12;  // 階數 (總階數，含轉台前後)
-            const stepHeight = (height || 17) / 100;  // 階高
-            const stepDepth = (depth || 28) / 100;  // 踏寬
-            const slabThickness = (thickness || 15) / 100;  // 斜板厚
-            const landingCount = parseInt(perimeter) || 0;  // 轉台數量 (借用perimeter欄位)
-            const landingDepth = (length || 120) / 100;  // 轉台深度 (借用length欄位)
+            // 樓梯計算: 類型, 寬度, 階數, 階高, 踏寬, 斜板厚, 轉台深度
+            const stairWidth = (width || 120) / 100;  // 樓梯寬度(m)
+            const steps = count || 12;  // 總階數
+            const stepHeight = (height || 17) / 100;  // 階高(m)
+            const stepDepth = (depth || 28) / 100;  // 踏寬(m)
+            const slabThickness = (thickness || 15) / 100;  // 斜板厚(m)
+            const landingDepth = (length || 120) / 100;  // 轉台深度(m)
 
-            // 計算斜長 (扣除轉台的階段)
-            const stepsPerFlight = landingCount > 0 ? Math.floor(steps / (landingCount + 1)) : steps;
-            const totalRise = stepsPerFlight * stepHeight;
-            const totalRun = stepsPerFlight * stepDepth;
-            const slopeLength = Math.sqrt(totalRise * totalRise + totalRun * totalRun);
-            const flightCount = landingCount + 1;  // 梯段數
+            // 依樓梯類型取得梯段數和轉台數
+            const stairTypeId = perimeter || 'single';  // 借用perimeter存放樓梯類型
+            const stairTypeConfig = STAIR_TYPES.find(t => t.id === stairTypeId) || STAIR_TYPES[0];
+            const flightCount = stairTypeConfig.flights;
+            const landingCount = stairTypeConfig.landings;
 
-            // 梯段模板: (梯底 + 踏步立板 + 梯側) × 梯段數
+            // 計算每梯段階數和斜長
+            const stepsPerFlight = Math.ceil(steps / flightCount);
+            const flightRise = stepsPerFlight * stepHeight;
+            const flightRun = stepsPerFlight * stepDepth;
+            const slopeLength = Math.sqrt(flightRise * flightRise + flightRun * flightRun);
+
+            // 梯段模板: (梯底 + 梯側) × 梯段數 + 踏步立板
             const bottomFormwork = slopeLength * stairWidth * flightCount;  // 梯底
             const stepFormwork = steps * stepHeight * stairWidth;  // 踏步立板
             const sideFormwork = slopeLength * slabThickness * 2 * flightCount;  // 兩側
 
-            // 轉台模板: 底板 + 四周側邊
+            // 轉台模板: 底板 + 側邊 (L型轉台為方形)
+            const landingArea = stairTypeId === 'lShape'
+                ? stairWidth * stairWidth  // L型: 方形轉角
+                : stairWidth * landingDepth;  // 其他: 矩形
+            const landingPerimeter = stairTypeId === 'lShape'
+                ? 4 * stairWidth
+                : 2 * (stairWidth + landingDepth);
             const landingFormwork = landingCount * (
-                stairWidth * landingDepth +  // 底板
-                2 * (stairWidth + landingDepth) * slabThickness  // 四周側邊
+                landingArea +  // 底板
+                landingPerimeter * slabThickness  // 側邊
             );
 
             formwork = bottomFormwork + stepFormwork + sideFormwork + landingFormwork;
 
-            // 梯段混凝土: (斜板體積 + 踏步體積) × 梯段數
+            // 梯段混凝土: 斜板體積 + 踏步體積
             const slabVolume = slopeLength * stairWidth * slabThickness * flightCount;
-            const stepVolume = steps * stepHeight * stepDepth * stairWidth * 0.5;  // 踏步三角形
+            const stepVolume = steps * stepHeight * stepDepth * stairWidth * 0.5;
 
             // 轉台混凝土
-            const landingConcrete = landingCount * stairWidth * landingDepth * slabThickness;
+            const landingConcrete = landingCount * landingArea * slabThickness;
 
             concrete = slabVolume + stepVolume + landingConcrete;
 
@@ -397,7 +417,7 @@ const StructuralMaterialCalculator = () => {
             length: { beam: '長度 (m)', slab: '長度 (m)', wall: '長度 (m)', groundBeam: '長度 (m)', stairs: '轉台深 (cm)' },
             count: { default: '數量', stairs: '總階數' },
             thickness: { slab: '厚度 (cm)', wall: '厚度 (cm)', parapet: '厚度 (cm)', stairs: '斜板厚 (cm)' },
-            perimeter: { parapet: '周長 (m)', stairs: '轉台數' },
+            perimeter: { parapet: '周長 (m)', stairs: '樓梯類型' },
         };
 
         const placeholder = {
@@ -412,20 +432,45 @@ const StructuralMaterialCalculator = () => {
 
         return (
             <div className="grid grid-cols-2 gap-3">
-                {fields[type]?.map(field => (
-                    <div key={field}>
-                        <label className="block text-xs text-gray-500 mb-1">
-                            {labels[field]?.[type] || labels[field]?.default || field}
-                        </label>
-                        <input
-                            type="number"
-                            value={newComponent[field]}
-                            onChange={e => setNewComponent(prev => ({ ...prev, [field]: e.target.value }))}
-                            placeholder={placeholder[field]?.[type] || placeholder[field]?.default || ''}
-                            className={inputClass}
-                        />
-                    </div>
-                ))}
+                {fields[type]?.map(field => {
+                    // 樓梯類型下拉選單 (借用perimeter欄位)
+                    if (type === 'stairs' && field === 'perimeter') {
+                        return (
+                            <div key={field} className="col-span-2">
+                                <label className="block text-xs text-gray-500 mb-1">樓梯類型</label>
+                                <select
+                                    value={newComponent.perimeter || 'single'}
+                                    onChange={e => setNewComponent(prev => ({ ...prev, perimeter: e.target.value }))}
+                                    className={inputClass + ' bg-white'}
+                                >
+                                    {STAIR_TYPES.map(st => (
+                                        <option key={st.id} value={st.id}>
+                                            {st.label} - {st.desc}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        );
+                    }
+                    // 單跑樓梯不需要轉台深
+                    if (type === 'stairs' && field === 'length' && (newComponent.perimeter === 'single' || !newComponent.perimeter)) {
+                        return null;
+                    }
+                    return (
+                        <div key={field}>
+                            <label className="block text-xs text-gray-500 mb-1">
+                                {labels[field]?.[type] || labels[field]?.default || field}
+                            </label>
+                            <input
+                                type="number"
+                                value={newComponent[field]}
+                                onChange={e => setNewComponent(prev => ({ ...prev, [field]: e.target.value }))}
+                                placeholder={placeholder[field]?.[type] || placeholder[field]?.default || ''}
+                                className={inputClass}
+                            />
+                        </div>
+                    );
+                })}
             </div>
         );
     };
