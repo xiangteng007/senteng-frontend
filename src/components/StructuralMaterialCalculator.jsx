@@ -52,33 +52,139 @@ const COMPONENT_TYPES = [
     { id: 'stairs', label: '樓梯', icon: '🪜', unit: '座' },
 ];
 
-// 配筋率參考值 (含單層/雙層配筋選項)
+// 配筋率參考值 (含鋼筋#號規格、工法說明、法規條文)
 const REBAR_RATES = {
     column: { normal: 120, frame: 150 },
     beam: { normal: 85, frame: 100 },
     // 樓板: 依厚度與配筋層數
     slab: {
-        '12_single': { label: '12cm 單層雙向', value: 13, desc: '單層底筋' },
-        '15_single': { label: '15cm 單層雙向', value: 17, desc: '單層底筋' },
-        '15_double': { label: '15cm 雙層雙向', value: 22, desc: '上下層筋' },
-        '18_double': { label: '18cm 雙層雙向', value: 28, desc: '上下層筋' },
-        '20_double': { label: '20cm 雙層雙向', value: 32, desc: '大跨距' },
+        '12_single': {
+            label: '12cm 單層 (#3@20雙向)',
+            value: 13,
+            desc: '單層底筋',
+            specs: '主筋#3@20cm雙向，保護層2cm',
+            method: '單層配筋適用於短跨距小載重樓板，底筋於跨中承受正彎矩',
+            materials: '樓板厚12cm，鋼筋#3@20cm雙向配置，混凝土保護層2cm',
+            regulations: ['建築技術規則構造編：RC樓板最小厚度10cm', '鋼筋間距不得大於板厚3倍且不超過45cm']
+        },
+        '15_single': {
+            label: '15cm 單層 (#3@15雙向)',
+            value: 17,
+            desc: '單層底筋',
+            specs: '主筋#3@15cm雙向，保護層2cm',
+            method: '單層配筋適用於一般住宅樓板，底筋於跨中承受正彎矩',
+            materials: '樓板厚15cm，鋼筋#3@15cm雙向配置，混凝土保護層2cm',
+            regulations: ['建築技術規則構造編：RC樓板最小厚度10cm', '鋼筋間距不得大於板厚3倍且不超過45cm']
+        },
+        '15_double': {
+            label: '15cm 雙層 (#4@20上下)',
+            value: 22,
+            desc: '上下層筋',
+            specs: '上下層#4@20cm雙向，保護層2cm',
+            method: '雙層配筋適用於連續板或較大載重，上層筋於支撐處承受負彎矩',
+            materials: '樓板厚15cm，上下層#4@20cm雙向，混凝土保護層2cm',
+            regulations: ['建築技術規則構造編：連續板筋需延伸至支撐', '上層筋長度≥跨度1/4']
+        },
+        '18_double': {
+            label: '18cm 雙層 (#4@15上下)',
+            value: 28,
+            desc: '上下層筋',
+            specs: '上下層#4@15cm雙向，保護層2.5cm',
+            method: '較厚雙層配筋適用於商業空間或較大載重需求',
+            materials: '樓板厚18cm，上下層#4@15cm雙向配置',
+            regulations: ['活載重≥300kgf/m²時建議雙層配筋', '保護層依暴露條件調整']
+        },
+        '20_double': {
+            label: '20cm 雙層 (#5@15上下)',
+            value: 32,
+            desc: '大跨距',
+            specs: '上下層#5@15cm雙向，保護層3cm',
+            method: '大跨距樓板需較厚板厚與較大鋼筋號數抵抗撓度',
+            materials: '樓板厚20cm，上下層#5@15cm雙向，保護層3cm',
+            regulations: ['跨深比L/h應符合ACI規範限制', '撓度控制δ≤L/240']
+        },
     },
     // 牆體: 依厚度與配筋層數
     wall: {
-        '15_single': { label: '15cm 單層', value: 23, desc: '單側配筋' },
-        '18_single': { label: '18cm 單層', value: 29, desc: '單側配筋' },
-        '20_double': { label: '20cm 雙層', value: 38, desc: '雙側配筋' },
-        '25_double': { label: '25cm 雙層', value: 52, desc: '雙側配筋' },
-        '30_double': { label: '30cm 雙層', value: 65, desc: '雙側配筋' },
+        '15_single': {
+            label: '15cm 單層 (#3@20)',
+            value: 23,
+            desc: '單側配筋',
+            specs: '單側#3@20cm垂直+水平，保護層3cm',
+            method: '單層配筋適用於一般隔間牆或非承重牆體',
+            materials: '牆厚15cm，#3@20cm垂直與水平配筋',
+            regulations: ['建築技術規則：RC牆最小厚度10cm', '豎向筋間距≤牆厚3倍且≤45cm']
+        },
+        '18_single': {
+            label: '18cm 單層 (#4@20)',
+            value: 29,
+            desc: '單側配筋',
+            specs: '單側#4@20cm垂直+水平，保護層3cm',
+            method: '單層配筋適用於低樓層或輕載承重牆',
+            materials: '牆厚18cm，#4@20cm垂直與水平配筋',
+            regulations: ['承重牆需滿足軸力與彎矩需求', '牆端需設置邊緣構件']
+        },
+        '20_double': {
+            label: '20cm 雙層 (#4@15雙側)',
+            value: 38,
+            desc: '雙側配筋',
+            specs: '雙側#4@15cm垂直+水平，保護層3cm',
+            method: '雙層配筋適用於剪力牆或較高樓層承重牆體',
+            materials: '牆厚20cm，雙側#4@15cm配置，搭接長度40d',
+            regulations: ['耐震設計規範：剪力牆配筋率≥0.25%', '邊界構件需設繫筋#3@10cm']
+        },
+        '25_double': {
+            label: '25cm 雙層 (#4@12雙側)',
+            value: 52,
+            desc: '雙側配筋',
+            specs: '雙側#4@12cm垂直+水平，保護層3cm',
+            method: '較厚雙層配筋適用於高樓層剪力牆系統',
+            materials: '牆厚25cm，雙側#4@12cm配置',
+            regulations: ['耐震設計規範：特殊剪力牆ρ≥0.25%', '繫筋間距≤min(6db, 150mm)']
+        },
+        '30_double': {
+            label: '30cm 雙層 (#5@12雙側)',
+            value: 65,
+            desc: '雙側配筋',
+            specs: '雙側#5@12cm垂直+水平，保護層4cm',
+            method: '重型剪力牆適用於高層建築或核心筒',
+            materials: '牆厚30cm，雙側#5@12cm配置，搭接長度50d',
+            regulations: ['高層建築剪力牆需進行非線性分析', '邊界區箍筋需加密配置']
+        },
     },
     parapet: { light: 18, normal: 22, heavy: 25 },
     groundBeam: { normal: 90, frame: 110 },
     foundation: { isolated: 80, combined: 85, mat: 100 },
-    // 樓梯: 板式/框架式
+    // 樓梯: 板式/框架式 (含詳細法規條文)
     stairs: {
-        plate: { label: '板式樓梯', value: 80, desc: '斜板式' },
-        frame: { label: '框架式樓梯', value: 95, desc: '框式結構' },
+        plate: {
+            label: '板式樓梯 (#4@15主筋)',
+            value: 80,
+            desc: '斜板式結構',
+            specs: '主筋#4@12-15cm，分布筋#3@20cm',
+            method: '板式樓梯由斜放之RC板直接支承踏步，結構簡單，適用於一般住宅。梯段板作為一塊斜置的板，主筋沿梯段方向配置，分布筋垂直於主筋方向。',
+            materials: '斜板厚12-18cm，主筋#4@12-15cm沿梯段方向，分布筋#3@20cm，保護層2cm，轉台處需加強錨定',
+            regulations: [
+                '【建築技術規則§33】一般建築：淨寬≥75cm，級高≤20cm，級深≥21cm',
+                '【建築技術規則§33】學校/醫院：淨寬≥140cm，級高≤18cm，級深≥26cm',
+                '【混凝土規範】踏步鋼筋每級不得少於2根#3，分布筋間距≤25cm',
+                '【構造規定】樓梯高度每4m內應設置平台，平台深度≥樓梯寬度'
+            ]
+        },
+        frame: {
+            label: '框架式樓梯 (#5梯梁主筋)',
+            value: 95,
+            desc: '梁板式結構',
+            specs: '梯梁#5-#6主筋，箍筋#3@15cm，踏步#3@20cm',
+            method: '框架式樓梯(梁板式)設有梯梁支承踏步板，荷載由踏步板傳遞至梯梁，再由梯梁傳遞至平台梁或支座。適用於大跨距或重載場所，抗震性能較佳。',
+            materials: '梯梁寬20cm×深40cm以上，主筋#5-#6共4根，箍筋#3@15cm，踏步板厚8-10cm，踏步板筋#3@20cm',
+            regulations: [
+                '【建築技術規則§33】一般建築：淨寬≥75cm，級高≤20cm，級深≥21cm',
+                '【建築技術規則§33】居室>200m²：淨寬≥120cm，級高≤20cm，級深≥24cm',
+                '【耐震設計】框架結構樓梯需考慮與主體結構之交互作用',
+                '【構造規定】梯梁與柱連接處需設置加強鋼筋，轉台與柱牆交界需補強'
+            ]
+        },
     },
 };
 
@@ -710,16 +816,38 @@ const StructuralMaterialCalculator = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">構件類型</label>
                                 <div className="grid grid-cols-4 gap-2">
-                                    {COMPONENT_TYPES.map(t => (
-                                        <button
-                                            key={t.id}
-                                            onClick={() => setNewComponent(prev => ({ ...prev, type: t.id }))}
-                                            className={`p-2 rounded-lg text-center transition-all ${newComponent.type === t.id ? 'bg-orange-100 border-2 border-orange-500' : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'}`}
-                                        >
-                                            <span className="text-xl block">{t.icon}</span>
-                                            <span className="text-xs">{t.label}</span>
-                                        </button>
-                                    ))}
+                                    {COMPONENT_TYPES.map(t => {
+                                        // 每種構件類型的預設配筋方式
+                                        const defaultRebarLayers = {
+                                            column: null,
+                                            beam: null,
+                                            slab: '15_single',
+                                            wall: '20_double',
+                                            parapet: null,
+                                            groundBeam: null,
+                                            foundation: null,
+                                            stairs: 'plate',
+                                        };
+                                        return (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => {
+                                                    const defaultLayer = defaultRebarLayers[t.id];
+                                                    const defaultRate = defaultLayer && REBAR_RATES[t.id]?.[defaultLayer]?.value || 120;
+                                                    setNewComponent(prev => ({
+                                                        ...prev,
+                                                        type: t.id,
+                                                        rebarLayer: defaultLayer || prev.rebarLayer,
+                                                        rebarRate: defaultRate
+                                                    }));
+                                                }}
+                                                className={`p-2 rounded-lg text-center transition-all ${newComponent.type === t.id ? 'bg-orange-100 border-2 border-orange-500' : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'}`}
+                                            >
+                                                <span className="text-xl block">{t.icon}</span>
+                                                <span className="text-xs">{t.label}</span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -768,6 +896,42 @@ const StructuralMaterialCalculator = () => {
                                         className="w-full px-3 py-2 border border-gray-200 rounded-lg"
                                     />
                                 )}
+
+                                {/* 工法說明區塊 - 當選擇有詳細資訊的配筋方式時顯示 */}
+                                {['slab', 'wall', 'stairs'].includes(newComponent.type) && newComponent.rebarLayer &&
+                                    REBAR_RATES[newComponent.type]?.[newComponent.rebarLayer]?.method && (
+                                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm space-y-2">
+                                            {/* 工法說明 */}
+                                            <div>
+                                                <span className="font-medium text-blue-700">📐 工法說明：</span>
+                                                <p className="text-gray-700 mt-1">
+                                                    {REBAR_RATES[newComponent.type][newComponent.rebarLayer].method}
+                                                </p>
+                                            </div>
+
+                                            {/* 材料規格 */}
+                                            {REBAR_RATES[newComponent.type][newComponent.rebarLayer].materials && (
+                                                <div>
+                                                    <span className="font-medium text-blue-700">🔩 材料規格：</span>
+                                                    <p className="text-gray-700 mt-1">
+                                                        {REBAR_RATES[newComponent.type][newComponent.rebarLayer].materials}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* 法規條文 */}
+                                            {REBAR_RATES[newComponent.type][newComponent.rebarLayer].regulations && (
+                                                <div>
+                                                    <span className="font-medium text-blue-700">📖 法規規定：</span>
+                                                    <ul className="mt-1 text-gray-700 list-disc list-inside space-y-0.5">
+                                                        {REBAR_RATES[newComponent.type][newComponent.rebarLayer].regulations.map((reg, idx) => (
+                                                            <li key={idx} className="text-xs">{reg}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                             </div>
                         </div>
 
