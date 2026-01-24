@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
+import StructuralMaterialCalculator from '../components/StructuralMaterialCalculator';
 
 // ============================================
 // 計算公式與常數定義
@@ -3138,6 +3139,7 @@ export const MaterialCalculator = ({ addToast, vendors = [] }) => {
         { id: 'tile', icon: Grid3X3, label: '磁磚工程' },
         { id: 'finish', icon: Paintbrush, label: '塗料工程' },
         { id: 'estimate', icon: BarChart3, label: '建築概估' },
+        { id: 'integrated', icon: Calculator, label: '材料統計' },
     ];
 
     // 新增計算記錄
@@ -3214,6 +3216,7 @@ export const MaterialCalculator = ({ addToast, vendors = [] }) => {
             case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('磁磚工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('塗料工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w, c) => addRecord('建築概估', s, l, v, u, w, c)} />;
+            case 'integrated': return <StructuralMaterialCalculator />;
             default: return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
         }
     };
