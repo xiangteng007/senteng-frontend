@@ -465,8 +465,10 @@ const ComponentCalculator = ({ onAddRecord, vendors = [] }) => {
         const t = parseFloat(row.thickness) / 100 || 0.15;
         const rebarRate = COMPONENT_REBAR_RATES.slab[row.rebarType]?.value || 17;
 
-        const area = l * w;
-        const formwork = area * 1.1; // 含側模係數
+        const area = l * w;  // 底面積
+        const perimeter = 2 * (l + w);  // 周長
+        const edgeFormwork = perimeter * t;  // 側邊模板
+        const formwork = area + edgeFormwork;  // 底模 + 側模
         const concrete = area * t;
         const rebar = area * rebarRate;
         return { formwork, concrete, rebar };
@@ -843,7 +845,7 @@ const ComponentCalculator = ({ onAddRecord, vendors = [] }) => {
                 <Info size={16} />
                 {componentType === 'column' && '公式: 模板 = 2×(寬+深)×高×數量, 鋼筋 = 體積×配筋率'}
                 {componentType === 'beam' && '公式: 模板 = (底寬+2×梁高)×長度, 鋼筋 = 體積×配筋率'}
-                {componentType === 'slab' && '公式: 模板 = 面積×1.1, 鋼筋 = 面積×配筋率'}
+                {componentType === 'slab' && '公式: 模板 = 底面積+側邊(周長×厚度), 鋼筋 = 面積×配筋率'}
                 {componentType === 'wall' && '公式: 模板 = 2×面積 (雙面), 鋼筋 = 面積×配筋率'}
                 {componentType === 'parapet' && '公式: 模板 = 2×周長×高度, 鋼筋 = 面積×配筋率'}
                 {componentType === 'groundBeam' && '公式: 模板 = (底寬+2×深)×長度, 鋼筋 = 體積×配筋率'}
