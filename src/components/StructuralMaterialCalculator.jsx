@@ -54,8 +54,116 @@ const COMPONENT_TYPES = [
 
 // 配筋率參考值 (含鋼筋#號規格、工法說明、法規條文)
 const REBAR_RATES = {
-    column: { normal: 120, frame: 150 },
-    beam: { normal: 85, frame: 100 },
+    // 柱子: 依建築類型與樓層
+    column: {
+        residential: {
+            label: '透天住宅 (#6主筋 8根)',
+            value: 120,
+            desc: '3-4F住宅',
+            specs: '40×40cm，主筋8-#6，箍筋#3@15cm',
+            method: '透天住宅柱採用較小斷面，主筋8根#6對稱配置，箍筋#3@15cm，柱頂柱底加密區箍筋@10cm。',
+            materials: '柱寬40cm、深40cm，主筋SD420W #6共8根，箍筋SD280W #3@15cm，保護層4cm',
+            regulations: [
+                '【建築技術規則構造編§401】柱最小尺寸25cm，短邊≥長邊1/4',
+                '【耐震規範】主筋比ρ=1%~6%，最少4根主筋',
+                '【箍筋規定】箍筋間距≤min(柱寬/2, 15cm)，加密區≤10cm'
+            ]
+        },
+        apartment: {
+            label: '公寓大樓 (#7主筋 12根)',
+            value: 140,
+            desc: '5-7F公寓',
+            specs: '50×50cm，主筋12-#7，箍筋#3@12cm',
+            method: '公寓大樓柱採用中型斷面，主筋12根#7三面對稱配置，箍筋#3@12cm含繫筋。',
+            materials: '柱寬50cm、深50cm，主筋SD420W #7共12根，箍筋SD280W #3@12cm+繫筋，保護層4cm',
+            regulations: [
+                '【建築技術規則構造編§401】柱最小尺寸應考慮軸壓比限制',
+                '【耐震規範】中度韌性：軸壓比≤0.3fc\'Ag',
+                '【箍筋規定】箍筋需設繫筋，每隔一根主筋設置'
+            ]
+        },
+        highrise: {
+            label: '高層大樓 (#8主筋 16根)',
+            value: 160,
+            desc: '8F+高樓',
+            specs: '60×60cm，主筋16-#8，箍筋#4@10cm',
+            method: '高層建築柱需較大斷面與配筋量，主筋16根#8四面對稱配置，雙箍筋#4@10cm加繫筋。',
+            materials: '柱寬60cm、深60cm，主筋SD420W #8共16根，箍筋SD420W #4@10cm雙箍+繫筋，保護層5cm',
+            regulations: [
+                '【建築技術規則構造編】高層建築柱需進行二階效應分析',
+                '【耐震規範】高韌性：軸壓比≤0.25fc\'Ag，主筋比≥1.5%',
+                '【箍筋規定】塑鉸區箍筋體積比≥0.12fc\'/fyh'
+            ]
+        },
+        ductile: {
+            label: '韌性抗震 (#9主筋 20根)',
+            value: 180,
+            desc: '特殊韌性',
+            specs: '70×70cm，主筋20-#9，箍筋#4@8cm',
+            method: '特殊抗震柱用於高層或重要建築，主筋20根#9大量配置，密箍筋#4@8cm確保韌性。',
+            materials: '柱寬70cm、深70cm，主筋SD420W #9共20根，箍筋SD420W #4@8cm密箍+繫筋，保護層5cm',
+            regulations: [
+                '【耐震設計規範】特殊抗彎矩構架柱需滿足強柱弱梁',
+                '【ACI 318】Mn柱≥1.2ΣMn梁，確保塑鉸形成於梁',
+                '【圍束規定】塑鉸區箍筋需提供足夠圍束'
+            ]
+        },
+    },
+    // 樑: 依跨度與載重
+    beam: {
+        secondary: {
+            label: '次樑/小樑 (#5主筋)',
+            value: 85,
+            desc: '短跨輕載',
+            specs: '25×50cm，上2-#5下3-#5，箍筋#3@20cm',
+            method: '次樑用於分擔樓板載重傳遞至主樑，配筋較少，上筋2根#5於支撐處，下筋3根#5於跨中。',
+            materials: '樑寬25cm、深50cm，上層SD420W 2-#5，下層SD420W 3-#5，箍筋SD280W #3@20cm，保護層4cm',
+            regulations: [
+                '【建築技術規則】樑最小寬度20cm，最小深度25cm',
+                '【配筋規定】最小配筋率ρmin=14.1/fy或1.4/fy取大值',
+                '【箍筋規定】全長箍筋間距≤d/2且≤60cm'
+            ]
+        },
+        main: {
+            label: '主樑 (#6主筋)',
+            value: 100,
+            desc: '標準載重',
+            specs: '30×60cm，上3-#6下4-#6，箍筋#3@15cm',
+            method: '主樑承載樓板與次樑傳來之載重，上筋3根#6於支撐處抵抗負彎矩，下筋4根#6於跨中抵抗正彎矩。',
+            materials: '樑寬30cm、深60cm，上層SD420W 3-#6，下層SD420W 4-#6，箍筋SD280W #3@15cm，保護層4cm',
+            regulations: [
+                '【建築技術規則構造編】主樑應能承受設計載重',
+                '【耐震規範】梁端塑鉸區箍筋需加密至2倍梁深範圍',
+                '【配筋規定】梁端上筋不得少於下筋之1/2'
+            ]
+        },
+        heavy: {
+            label: '大跨距樑 (#7主筋)',
+            value: 120,
+            desc: '大跨重載',
+            specs: '40×70cm，上4-#7下5-#7，箍筋#4@12cm',
+            method: '大跨距樑用於無柱空間，需較大斷面與配筋抵抗撓度，上筋4根#7，下筋5根#7雙排配置。',
+            materials: '樑寬40cm、深70cm，上層SD420W 4-#7，下層SD420W 5-#7，箍筋SD420W #4@12cm，保護層5cm',
+            regulations: [
+                '【ACI 318】跨深比限制：簡支樑L/h≤16，連續樑L/h≤21',
+                '【撓度控制】使用載重下撓度δ≤L/240',
+                '【裂縫控制】fs·dc^(1/3)·A^(1/3)≤限值'
+            ]
+        },
+        transfer: {
+            label: '轉換樑 (#8主筋)',
+            value: 150,
+            desc: '轉換層',
+            specs: '50×100cm，上6-#8下8-#8，箍筋#4@10cm',
+            method: '轉換樑承載上部多根柱傳來之集中載重，需大斷面與重配筋，主筋多排配置，密箍筋抗剪。',
+            materials: '樑寬50cm、深100cm，上層SD420W 6-#8雙排，下層SD420W 8-#8雙排，箍筋SD420W #4@10cm，保護層5cm',
+            regulations: [
+                '【轉換層規定】轉換樑需進行非線性分析',
+                '【剪力設計】Vu≤φVn，箍筋需滿足剪力需求',
+                '【施工規定】混凝土強度≥280kgf/cm²，分層澆置'
+            ]
+        },
+    },
     // 樓板: 依厚度與配筋層數
     slab: {
         '12_single': {
@@ -152,9 +260,171 @@ const REBAR_RATES = {
             regulations: ['高層建築剪力牆需進行非線性分析', '邊界區箍筋需加密配置']
         },
     },
-    parapet: { light: 18, normal: 22, heavy: 25 },
-    groundBeam: { normal: 90, frame: 110 },
-    foundation: { isolated: 80, combined: 85, mat: 100 },
+    // 女兒牆: 依高度與風壓
+    parapet: {
+        light: {
+            label: '輕型女兒牆 (#3@25)',
+            value: 18,
+            desc: '高度<100cm',
+            specs: '厚15cm，高80-100cm，#3@25cm雙向',
+            method: '輕型女兒牆用於低矮簡易建築，採單層配筋#3@25cm雙向，需與樓板鋼筋錨固。',
+            materials: '女兒牆厚15cm、高100cm，鋼筋SD280W #3@25cm雙向單層配置，保護層3cm',
+            regulations: [
+                '【建築技術規則§38】欄杆扶手高度≥110cm（屋頂）',
+                '【結構規定】女兒牆需與結構體錨定，錨筋伸入樓板≥40d',
+                '【防水規定】女兒牆頂需設壓頂收邊，防止雨水滲入'
+            ]
+        },
+        standard: {
+            label: '標準女兒牆 (#3@20)',
+            value: 22,
+            desc: '高度100-120cm',
+            specs: '厚15cm，高100-120cm，#3@20cm雙向',
+            method: '標準女兒牆適用於一般建築，採單層配筋#3@20cm雙向，豎筋錨入樓板，橫筋環繞。',
+            materials: '女兒牆厚15cm、高120cm，鋼筋SD280W #3@20cm雙向單層配置，保護層3cm',
+            regulations: [
+                '【建築技術規則§38】屋頂周邊女兒牆高度≥110cm',
+                '【耐風設計】需檢核風力作用下之穩定性',
+                '【施工規定】女兒牆與柱相接處需設置連接筋'
+            ]
+        },
+        heavy: {
+            label: '加強女兒牆 (#4@15)',
+            value: 28,
+            desc: '高度>120cm或風壓區',
+            specs: '厚20cm，高120-150cm，#4@15cm雙向',
+            method: '加強型女兒牆用於高風壓區或較高女兒牆，採雙層配筋或加大號數#4@15cm，增設扶壁柱。',
+            materials: '女兒牆厚20cm、高150cm，鋼筋SD420W #4@15cm雙向單層配置，保護層4cm',
+            regulations: [
+                '【耐風設計規範】基本風速V10≥30m/s區域需加強設計',
+                '【構造規定】高度>120cm時建議設置扶壁柱@2-3m',
+                '【防墜規定】透空率限制及開口尺寸規定'
+            ]
+        },
+        reinforced: {
+            label: '雙層加強 (#4@12雙側)',
+            value: 35,
+            desc: '高層建築/強風區',
+            specs: '厚25cm，高150cm，#4@12cm雙側',
+            method: '高層建築女兒牆因風壓大，需採雙層配筋#4@12cm，並與結構柱整體設計，設置壓頂梁。',
+            materials: '女兒牆厚25cm、高150cm，鋼筋SD420W #4@12cm雙側配置，壓頂梁20×25cm，保護層4cm',
+            regulations: [
+                '【高層建築規範】20F以上女兒牆需進行風力詳細分析',
+                '【構造規定】需設壓頂梁整合，扶壁柱@1.5-2m',
+                '【安全規定】必要時設置不鏽鋼欄杆加強'
+            ]
+        },
+    },
+    // 地樑: 依基礎類型與載重
+    groundBeam: {
+        light: {
+            label: '輕型地樑 (#5主筋)',
+            value: 90,
+            desc: '透天基礎連接',
+            specs: '30×60cm，上下各3-#5，箍筋#3@20cm',
+            method: '輕型地樑連接獨立基腳，傳遞水平力並防止基礎不均勻沉陷，主筋#5上下對稱配置。',
+            materials: '地樑寬30cm、深60cm，上下各SD420W 3-#5，箍筋SD280W #3@20cm，保護層5cm（接觸土壤）',
+            regulations: [
+                '【建築技術規則構造編】基礎間應以地樑連接',
+                '【配筋規定】地樑最小寬度≥柱寬，深度≥40cm',
+                '【保護層】接觸土壤面保護層≥5cm'
+            ]
+        },
+        normal: {
+            label: '標準地樑 (#6主筋)',
+            value: 110,
+            desc: '公寓基礎連接',
+            specs: '40×80cm，上下各4-#6，箍筋#3@15cm',
+            method: '標準地樑適用於一般公寓大樓基礎連接，較大斷面承載上部結構傳來之軸力與彎矩。',
+            materials: '地樑寬40cm、深80cm，上下各SD420W 4-#6，箍筋SD280W #3@15cm，保護層5cm',
+            regulations: [
+                '【基礎工程規範】地樑需能傳遞水平力至各基腳',
+                '【耐震規定】地樑鋼筋需與柱筋及基腳筋妥善錨定',
+                '【施工規定】地樑底層需鋪設PC層≥5cm'
+            ]
+        },
+        heavy: {
+            label: '加強地樑 (#7主筋)',
+            value: 130,
+            desc: '大型基礎連接',
+            specs: '50×100cm，上下各5-#7，箍筋#4@12cm',
+            method: '加強地樑用於高層或大跨距建築基礎，斷面與配筋量大，可承受較大不平衡彎矩。',
+            materials: '地樑寬50cm、深100cm，上下各SD420W 5-#7，箍筋SD420W #4@12cm，保護層5cm',
+            regulations: [
+                '【高層建築規範】地樑需考慮地震時之軸力變化',
+                '【剪力設計】剪力筋需滿足Vu≤φVn',
+                '【錨定規定】主筋伸入基腳長度≥50d'
+            ]
+        },
+        grade: {
+            label: '筏基地梁 (#8主筋)',
+            value: 150,
+            desc: '筏式基礎加勁',
+            specs: '60×120cm，上下各6-#8，箍筋#4@10cm',
+            method: '筏式基礎上之加勁地梁，提供基礎板額外剛度，承載柱傳來之集中載重。',
+            materials: '地樑寬60cm、深120cm，上下各SD420W 6-#8雙排，箍筋SD420W #4@10cm，保護層6cm',
+            regulations: [
+                '【筏基規範】加勁梁需與筏板整體設計',
+                '【構造規定】梁寬≥板厚，梁深≥2倍板厚',
+                '【施工規定】筏基需整體一次澆置，不設施工縫'
+            ]
+        },
+    },
+    // 基礎: 依類型與載重
+    foundation: {
+        isolated: {
+            label: '獨立基腳 (#4@20雙向)',
+            value: 80,
+            desc: '單柱承載',
+            specs: '150×150×60cm，#4@20cm雙向底筋',
+            method: '獨立基腳傳遞單根柱載重至地盤，底筋雙向配置抵抗底部彎矩，柱筋錨入基腳。',
+            materials: '基腳150×150cm、厚60cm，底筋SD420W #4@20cm雙向，保護層7cm（底部）',
+            regulations: [
+                '【建築技術規則構造編】基礎需坐落於承載層',
+                '【承載設計】qa≤容許承載力，沉陷量≤容許值',
+                '【錨定規定】柱主筋伸入基腳≥40d，需設彎鉤'
+            ]
+        },
+        spread: {
+            label: '擴展基腳 (#5@15雙向)',
+            value: 90,
+            desc: '加大單柱承載',
+            specs: '200×200×80cm，#5@15cm雙向底筋',
+            method: '擴展基腳為加大版獨立基腳，用於較大柱載或較低地耐力，底筋加密配置。',
+            materials: '基腳200×200cm、厚80cm，底筋SD420W #5@15cm雙向，保護層7cm',
+            regulations: [
+                '【基礎規範】基腳尺寸需滿足承載力與抗傾覆',
+                '【配筋規定】底筋延伸至基腳邊緣並設彎鉤',
+                '【施工規定】基腳底需設PC層≥10cm'
+            ]
+        },
+        combined: {
+            label: '聯合基腳 (#5@12雙向)',
+            value: 100,
+            desc: '雙柱共用',
+            specs: '300×150×80cm，#5@12cm雙向上下層',
+            method: '聯合基腳連接相鄰兩柱，承載偏心載重，上下雙層配筋抵抗正負彎矩。',
+            materials: '基腳300×150cm、厚80cm，上下層SD420W #5@12cm雙向配置，保護層7cm',
+            regulations: [
+                '【基礎規範】聯合基腳需檢核偏心與傾覆',
+                '【配筋規定】上層筋抵抗柱間負彎矩',
+                '【地樑規定】建議設地樑連接增加整體性'
+            ]
+        },
+        mat: {
+            label: '筏式基礎 (#5@10上下)',
+            value: 120,
+            desc: '整體基礎板',
+            specs: '整體板厚60-100cm，#5@10cm上下雙向',
+            method: '筏式基礎將所有柱載重分散至整個底板，適用於軟弱地盤或高地下水位，雙層雙向配筋。',
+            materials: '筏基板厚80cm，上下層SD420W #5@10cm雙向配置，加勁梁另計，保護層7cm',
+            regulations: [
+                '【筏基規範】需進行沉陷與差異沉陷分析',
+                '【配筋規定】最小配筋率0.18%雙向',
+                '【施工規定】需設置適當分區澆置計畫，控制水化熱'
+            ]
+        },
+    },
     // 樓梯: 板式/框架式 (含詳細法規條文)
     stairs: {
         plate: {
@@ -238,9 +508,13 @@ const COMPONENT_PRESETS = {
         { id: 'custom', label: '🔧 自訂尺寸', custom: true },
     ],
     groundBeam: [
+        { id: '25x50x500', label: '25×50 (迷你)', width: 25, depth: 50, length: 500, rebarRate: 85 },
         { id: '30x60x600', label: '30×60 (一般)', width: 30, depth: 60, length: 600, rebarRate: 90 },
+        { id: '35x70x700', label: '35×70 (透天加強)', width: 35, depth: 70, length: 700, rebarRate: 95 },
         { id: '40x80x800', label: '40×80 (中型)', width: 40, depth: 80, length: 800, rebarRate: 100 },
+        { id: '45x90x900', label: '45×90 (公寓)', width: 45, depth: 90, length: 900, rebarRate: 105 },
         { id: '50x100x1000', label: '50×100 (大型)', width: 50, depth: 100, length: 1000, rebarRate: 110 },
+        { id: '60x120x1200', label: '60×120 (筏基)', width: 60, depth: 120, length: 1200, rebarRate: 130 },
         { id: 'custom', label: '🔧 自訂尺寸', custom: true },
     ],
     foundation: [
@@ -850,13 +1124,13 @@ const StructuralMaterialCalculator = () => {
                                     {COMPONENT_TYPES.map(t => {
                                         // 每種構件類型的預設配筋方式
                                         const defaultRebarLayers = {
-                                            column: null,
-                                            beam: null,
+                                            column: 'apartment',
+                                            beam: 'main',
                                             slab: '15_single',
                                             wall: '20_double',
-                                            parapet: null,
-                                            groundBeam: null,
-                                            foundation: null,
+                                            parapet: 'standard',
+                                            groundBeam: 'normal',
+                                            foundation: 'isolated',
                                             stairs: 'plate',
                                         };
                                         return (
@@ -966,36 +1240,30 @@ const StructuralMaterialCalculator = () => {
                             {/* 配筋選擇 - 依構件類型顯示不同選項 */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    配筋方式 {(newComponent.type === 'slab' || newComponent.type === 'wall') && '(單層/雙層)'}
+                                    配筋方式
                                 </label>
-                                {['slab', 'wall', 'stairs'].includes(newComponent.type) ? (
-                                    <select
-                                        value={newComponent.rebarLayer}
-                                        onChange={e => {
-                                            const layer = e.target.value;
-                                            const rate = REBAR_RATES[newComponent.type]?.[layer]?.value || 20;
-                                            setNewComponent(prev => ({ ...prev, rebarLayer: layer, rebarRate: rate }));
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white"
-                                    >
-                                        {Object.entries(REBAR_RATES[newComponent.type] || {}).map(([key, opt]) => (
+                                <select
+                                    value={newComponent.rebarLayer}
+                                    onChange={e => {
+                                        const layer = e.target.value;
+                                        const rate = REBAR_RATES[newComponent.type]?.[layer]?.value || 100;
+                                        setNewComponent(prev => ({ ...prev, rebarLayer: layer, rebarRate: rate }));
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white"
+                                >
+                                    {Object.entries(REBAR_RATES[newComponent.type] || {}).map(([key, opt]) => {
+                                        // 依構件類型顯示不同單位
+                                        const unit = ['slab', 'wall', 'parapet'].includes(newComponent.type) ? 'kg/m²' : 'kg/m³';
+                                        return (
                                             <option key={key} value={key}>
-                                                {opt.label} ({opt.value} kg/m²) - {opt.desc}
+                                                {opt.label} ({opt.value} {unit}) - {opt.desc}
                                             </option>
-                                        ))}
-                                    </select>
-                                ) : (
-                                    <input
-                                        type="number"
-                                        value={newComponent.rebarRate}
-                                        onChange={e => setNewComponent(prev => ({ ...prev, rebarRate: e.target.value }))}
-                                        placeholder="配筋率 (kg/m³)"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg"
-                                    />
-                                )}
+                                        );
+                                    })}
+                                </select>
 
                                 {/* 工法說明區塊 - 當選擇有詳細資訊的配筋方式時顯示 */}
-                                {['slab', 'wall', 'stairs'].includes(newComponent.type) && newComponent.rebarLayer &&
+                                {newComponent.rebarLayer &&
                                     REBAR_RATES[newComponent.type]?.[newComponent.rebarLayer]?.method && (
                                         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm space-y-2">
                                             {/* 工法說明 */}

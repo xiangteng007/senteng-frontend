@@ -65,34 +65,70 @@ const PLASTER_RATIOS = {
 // 牆壁厚度選項
 const WALL_THICKNESS_OPTIONS = [
     { value: 'all', label: '全部厚度' },
+    { value: 8, label: '8 cm (鋼構)' },
+    { value: 10, label: '10 cm (鋼構)' },
     { value: 15, label: '15 cm' },
     { value: 18, label: '18 cm' },
     { value: 20, label: '20 cm' },
     { value: 24, label: '24 cm (1B磚)' },
     { value: 25, label: '25 cm' },
     { value: 30, label: '30 cm' },
+    { value: 35, label: '35 cm (地下室)' },
+    { value: 40, label: '40 cm (深地下室)' },
 ];
 
 // 建築類型概估指標 (擴充版 - 含牆壁厚度與加強磚造)
 const BUILDING_TYPES = [
-    // RC 鋼筋混凝土結構
-    { label: '多層砌體住宅', rebar: 30, concrete: 0.315, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 20 },
-    { label: '多層框架結構', rebar: 40, concrete: 0.34, formwork: 2.2, sand: 0.55, structure: 'RC', wallThickness: 20 },
-    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35, formwork: 2.3, sand: 0.6, structure: 'RC', wallThickness: 20 },
-    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36, formwork: 2.4, sand: 0.65, structure: 'RC', wallThickness: 25 },
-    { label: '高層 (30F)', rebar: 70, concrete: 0.445, formwork: 2.6, sand: 0.75, structure: 'RC', wallThickness: 30 },
-    { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 18 },
-    { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC', wallThickness: 18 },
-    { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC', wallThickness: 25 },
-    { label: 'RC透天 (2-3F)', rebar: 35, concrete: 0.28, formwork: 1.8, sand: 0.48, structure: 'RC', wallThickness: 15 },
-    { label: 'RC透天 (4-5F)', rebar: 42, concrete: 0.32, formwork: 2.0, sand: 0.52, structure: 'RC', wallThickness: 18 },
-    { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC', wallThickness: 15 },
-    { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC', wallThickness: 30 },
-    // RB 加強磚造結構
-    { label: '透天厝 (3F)', rebar: 18, concrete: 0.18, formwork: 1.2, sand: 0.65, structure: 'RB', wallThickness: 24 },
-    { label: '農舍/倉庫', rebar: 15, concrete: 0.15, formwork: 1.0, sand: 0.6, structure: 'RB', wallThickness: 24 },
-    { label: '加強磚造公寓', rebar: 20, concrete: 0.20, formwork: 1.4, sand: 0.7, structure: 'RB', wallThickness: 24 },
+    // ========== RC 鋼筋混凝土結構 ==========
+    // 透天住宅類 (鋼筋: 100-112 kg/m², 混凝土: 0.73-0.82 m³/m²)
+    { label: 'RC透天 (1-2F)', rebar: 95, concrete: 0.70, formwork: 2.0, sand: 0.08, structure: 'RC', wallThickness: 15 },
+    { label: 'RC透天 (3F)', rebar: 100, concrete: 0.73, formwork: 2.1, sand: 0.09, structure: 'RC', wallThickness: 18 },
+    { label: 'RC透天 (4-5F)', rebar: 108, concrete: 0.78, formwork: 2.2, sand: 0.10, structure: 'RC', wallThickness: 20 },
+    { label: '別墅/Villa', rebar: 105, concrete: 0.75, formwork: 2.1, sand: 0.09, structure: 'RC', wallThickness: 18 },
+
+    // 公寓類 (鋼筋: 121-136 kg/m², 混凝土: 0.76-0.91 m³/m²)
+    { label: '公寓 (5-6F)', rebar: 121, concrete: 0.78, formwork: 2.3, sand: 0.10, structure: 'RC', wallThickness: 20 },
+    { label: '公寓 (7-8F)', rebar: 128, concrete: 0.82, formwork: 2.4, sand: 0.11, structure: 'RC', wallThickness: 20 },
+    { label: '電梯大樓 (9-11F)', rebar: 135, concrete: 0.85, formwork: 2.5, sand: 0.12, structure: 'RC', wallThickness: 25 },
+
+    // 高層建築 (鋼筋: 91-130 kg/m², 混凝土: 0.38-0.50 m³/m²)
+    { label: '小高層 (12-15F)', rebar: 95, concrete: 0.40, formwork: 2.4, sand: 0.10, structure: 'RC', wallThickness: 25 },
+    { label: '高層 (16-20F)', rebar: 105, concrete: 0.42, formwork: 2.5, sand: 0.11, structure: 'RC', wallThickness: 25 },
+    { label: '高層 (21-30F)', rebar: 115, concrete: 0.45, formwork: 2.6, sand: 0.12, structure: 'RC', wallThickness: 30 },
+
+    // 特殊用途
+    { label: '辦公大樓 (RC)', rebar: 110, concrete: 0.42, formwork: 2.5, sand: 0.10, structure: 'RC', wallThickness: 25 },
+    { label: '學校/公共建築', rebar: 100, concrete: 0.40, formwork: 2.4, sand: 0.10, structure: 'RC', wallThickness: 20 },
+    { label: '醫院', rebar: 120, concrete: 0.45, formwork: 2.6, sand: 0.12, structure: 'RC', wallThickness: 25 },
+    { label: '工廠/倉庫 (RC)', rebar: 75, concrete: 0.35, formwork: 1.8, sand: 0.08, structure: 'RC', wallThickness: 18 },
+
+    // 地下室 (高配筋、高混凝土用量)
+    { label: '地下室 (1層)', rebar: 150, concrete: 0.55, formwork: 3.2, sand: 0.15, structure: 'RC', wallThickness: 30 },
+    { label: '地下室 (2層)', rebar: 175, concrete: 0.65, formwork: 3.5, sand: 0.18, structure: 'RC', wallThickness: 35 },
+    { label: '地下室 (3層+)', rebar: 200, concrete: 0.75, formwork: 4.0, sand: 0.20, structure: 'RC', wallThickness: 40 },
+
+    // ========== SRC 鋼骨鋼筋混凝土結構 ==========
+    // SRC結構鋼筋+鋼骨用量較高 (約 130-260 kg/m²)
+    { label: 'SRC中高層 (10-15F)', rebar: 140, concrete: 0.42, formwork: 2.5, sand: 0.11, structure: 'SRC', wallThickness: 25 },
+    { label: 'SRC高層 (16-25F)', rebar: 180, concrete: 0.48, formwork: 2.8, sand: 0.13, structure: 'SRC', wallThickness: 30 },
+    { label: 'SRC超高層 (26F+)', rebar: 220, concrete: 0.52, formwork: 3.0, sand: 0.14, structure: 'SRC', wallThickness: 35 },
+    { label: 'SRC辦公大樓', rebar: 160, concrete: 0.45, formwork: 2.6, sand: 0.12, structure: 'SRC', wallThickness: 25 },
+
+    // ========== SC 鋼骨結構 ==========
+    // 鋼構主要用鋼骨，鋼筋較少 (主要用於樓板)
+    { label: '鋼構廠房', rebar: 35, concrete: 0.18, formwork: 1.2, sand: 0.05, structure: 'SC', wallThickness: 10 },
+    { label: '鋼構辦公大樓', rebar: 50, concrete: 0.25, formwork: 1.5, sand: 0.07, structure: 'SC', wallThickness: 15 },
+    { label: '鋼構高層 (20F+)', rebar: 65, concrete: 0.30, formwork: 1.8, sand: 0.08, structure: 'SC', wallThickness: 20 },
+    { label: '鋼構倉庫', rebar: 25, concrete: 0.15, formwork: 1.0, sand: 0.04, structure: 'SC', wallThickness: 8 },
+
+    // ========== RB 加強磚造結構 ==========
+    // 加強磚造鋼筋較少，但砂用量較高 (砌磚用)
+    { label: '加強磚造透天 (2F)', rebar: 25, concrete: 0.20, formwork: 1.2, sand: 0.45, structure: 'RB', wallThickness: 24 },
+    { label: '加強磚造透天 (3F)', rebar: 30, concrete: 0.25, formwork: 1.4, sand: 0.50, structure: 'RB', wallThickness: 24 },
+    { label: '加強磚造公寓', rebar: 35, concrete: 0.28, formwork: 1.5, sand: 0.55, structure: 'RB', wallThickness: 24 },
+    { label: '農舍/倉庫 (磚造)', rebar: 20, concrete: 0.18, formwork: 1.0, sand: 0.40, structure: 'RB', wallThickness: 24 },
 ];
+
 
 // 鋼筋規格表 (含工程常用號數)
 const REBAR_SPECS = [
@@ -2984,6 +3020,15 @@ const BuildingEstimator = ({ onAddRecord }) => {
     const [buildingType, setBuildingType] = useState(1);
     const [floorArea, setFloorArea] = useState('');
     const [wallThicknessFilter, setWallThicknessFilter] = useState('all');
+    const [plasterRatio, setPlasterRatio] = useState('1:3'); // 抹灰配比
+
+    // 抹灰砂漿配比選項 (水泥:砂 體積比)
+    const PLASTER_MIX_RATIOS = [
+        { value: '1:2', label: '1:2 (粉光層)', cementRate: 0.33, sandRate: 0.67, cementKg: 650, sandKg: 800, desc: '細緻粉光面層用' },
+        { value: '1:2.5', label: '1:2.5 (精抹)', cementRate: 0.29, sandRate: 0.71, cementKg: 550, sandKg: 850, desc: '精緻抹灰' },
+        { value: '1:3', label: '1:3 (一般打底)', cementRate: 0.25, sandRate: 0.75, cementKg: 450, sandKg: 950, desc: '一般抹灰打底' },
+        { value: '1:4', label: '1:4 (粗底)', cementRate: 0.20, sandRate: 0.80, cementKg: 350, sandKg: 1000, desc: '粗底打底用' },
+    ];
 
     // 根據牆壁厚度篩選建築類型
     const filteredTypes = BUILDING_TYPES.map((t, i) => ({ ...t, originalIndex: i }))
@@ -2994,10 +3039,22 @@ const BuildingEstimator = ({ onAddRecord }) => {
     const validSelectedIndex = selectedIndex >= 0 ? buildingType : (filteredTypes[0]?.originalIndex ?? 0);
     const selected = BUILDING_TYPES[validSelectedIndex];
 
-    const totalRebar = (parseFloat(floorArea) || 0) * selected.rebar;
-    const totalConcrete = (parseFloat(floorArea) || 0) * selected.concrete;
-    const totalFormwork = (parseFloat(floorArea) || 0) * selected.formwork;
-    const totalSand = (parseFloat(floorArea) || 0) * selected.sand;
+    // 計算總量
+    const area = parseFloat(floorArea) || 0;
+    const totalRebar = area * selected.rebar;
+    const totalConcrete = area * selected.concrete;
+    const totalFormwork = area * selected.formwork;
+    const totalMortarVolume = area * selected.sand;  // 抹灰砂漿總體積 (m³)
+
+    // 取得選中的配比
+    const selectedRatio = PLASTER_MIX_RATIOS.find(r => r.value === plasterRatio) || PLASTER_MIX_RATIOS[2];
+
+    // 根據配比計算水泥和砂用量
+    // 水泥用量 = 砂漿體積 × 水泥密度(約1500kg/m³) × 水泥體積比例
+    // 砂用量 = 砂漿體積 × 砂密度(約1500kg/m³) × 砂體積比例
+    const totalCement = totalMortarVolume * selectedRatio.cementKg;  // kg
+    const totalSand = totalMortarVolume * selectedRatio.sandKg;      // kg
+    const totalSandVolume = totalMortarVolume * selectedRatio.sandRate;  // m³ (方便訂購)
 
     // 當篩選改變時，自動選擇篩選後的第一個類型
     const handleWallThicknessChange = (value) => {
@@ -3024,7 +3081,7 @@ const BuildingEstimator = ({ onAddRecord }) => {
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <SelectField
                         label="牆壁厚度篩選"
                         value={wallThicknessFilter}
@@ -3038,28 +3095,69 @@ const BuildingEstimator = ({ onAddRecord }) => {
                         options={filteredTypes.map((t) => ({ value: t.originalIndex, label: `${t.label} (${t.structure})` }))}
                     />
                     <InputField label="總樓地板面積" value={floorArea} onChange={setFloorArea} unit="m²" placeholder="0" />
+                    <SelectField
+                        label="抹灰配比 (水泥:砂)"
+                        value={plasterRatio}
+                        onChange={setPlasterRatio}
+                        options={PLASTER_MIX_RATIOS.map(r => ({ value: r.value, label: r.label }))}
+                    />
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-3 text-sm">
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-gray-600">
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-gray-600">
                         <span>結構: <strong className="text-gray-800">{selected.structure}</strong></span>
                         <span>牆厚: <strong className="text-gray-800">{selected.wallThickness} cm</strong></span>
                         <span>鋼筋: {selected.rebar} kg/m²</span>
                         <span>混凝土: {selected.concrete} m³/m²</span>
                         <span>模板: {selected.formwork} m²/m²</span>
+                        <span>砂漿: {selected.sand} m³/m²</span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* 主要結構材料 */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <ResultDisplay label="鋼筋總量" value={totalRebar} unit="kg" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
                     <ResultDisplay label="混凝土總量" value={totalConcrete} unit="m³" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
                     <ResultDisplay label="模板總量" value={totalFormwork} unit="m²" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
-                    <ResultDisplay label="砂用量" value={totalSand} unit="m³" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
+                </div>
+
+                {/* 抹灰砂漿拆分 */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-amber-700 font-medium">🧱 抹灰砂漿用量 ({plasterRatio} 配比)</span>
+                        <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">{selectedRatio.desc}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-white rounded-lg p-3 border border-amber-200">
+                            <div className="text-xs text-gray-500">砂漿總體積</div>
+                            <div className="text-lg font-bold text-amber-700">{formatNumber(totalMortarVolume, 2)} <span className="text-sm font-normal">m³</span></div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 border border-amber-200">
+                            <div className="text-xs text-gray-500">水泥用量</div>
+                            <div className="text-lg font-bold text-blue-600">{formatNumber(totalCement, 0)} <span className="text-sm font-normal">kg</span></div>
+                            <div className="text-xs text-gray-400">約 {formatNumber(totalCement / 50, 1)} 包 (50kg/包)</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 border border-amber-200">
+                            <div className="text-xs text-gray-500">砂用量 (重量)</div>
+                            <div className="text-lg font-bold text-amber-600">{formatNumber(totalSand, 0)} <span className="text-sm font-normal">kg</span></div>
+                            <div className="text-xs text-gray-400">約 {formatNumber(totalSand / 1000, 2)} 噸</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 border border-amber-200">
+                            <div className="text-xs text-gray-500">砂用量 (體積)</div>
+                            <div className="text-lg font-bold text-amber-600">{formatNumber(totalSandVolume, 2)} <span className="text-sm font-normal">m³</span></div>
+                            <div className="text-xs text-gray-400">訂購用</div>
+                        </div>
+                    </div>
+                    <div className="mt-3 text-xs text-amber-600 flex flex-wrap gap-4">
+                        <span>• 配比 {plasterRatio} = 水泥{Math.round(selectedRatio.cementRate * 100)}% : 砂{Math.round(selectedRatio.sandRate * 100)}%</span>
+                        <span>• 每m³砂漿約需水泥 {selectedRatio.cementKg} kg、砂 {selectedRatio.sandKg} kg</span>
+                    </div>
                 </div>
 
                 <div className="text-xs text-gray-500">
                     鋼筋約 <strong>{formatNumber(totalRebar / 1000, 1)}</strong> 噸 |
-                    混凝土約 <strong>{formatNumber(totalConcrete)}</strong> 立方公尺
+                    混凝土約 <strong>{formatNumber(totalConcrete)}</strong> 立方公尺 |
+                    水泥約 <strong>{formatNumber(totalCement / 50, 0)}</strong> 包
                 </div>
             </div>
 
@@ -3083,7 +3181,7 @@ const BuildingEstimator = ({ onAddRecord }) => {
                                 <th className="text-right py-2 px-2">鋼筋(kg/m²)</th>
                                 <th className="text-right py-2 px-2">混凝土(m³/m²)</th>
                                 <th className="text-right py-2 px-2">模板(m²/m²)</th>
-                                <th className="text-right py-2 px-2">砂(m³/m²)</th>
+                                <th className="text-right py-2 px-2">砂漿(m³/m²)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -3104,7 +3202,7 @@ const BuildingEstimator = ({ onAddRecord }) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="mt-3 text-xs text-gray-500 flex items-center gap-4">
+                <div className="mt-3 text-xs text-gray-500 flex flex-wrap items-center gap-4">
                     <span className="flex items-center gap-1">
                         <span className="w-3 h-3 bg-amber-100 rounded"></span>
                         RB = 加強磚造
