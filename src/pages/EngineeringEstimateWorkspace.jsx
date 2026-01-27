@@ -399,11 +399,17 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
     const handleSyncRegulations = async () => {
         if (isSyncingRegulations) return;
 
+        const API_BASE = import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app/api/v1';
+        const token = localStorage.getItem('auth_token');
+
         setIsSyncingRegulations(true);
         try {
-            const response = await fetch('/api/v1/regulations/sync', {
+            const response = await fetch(`${API_BASE}/regulations/sync`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
             });
             const data = await response.json();
             setRegulationSyncStatus(data);
@@ -411,7 +417,9 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
 
             // 輪詢狀態
             const pollStatus = async () => {
-                const statusRes = await fetch('/api/v1/regulations/sync/status');
+                const statusRes = await fetch(`${API_BASE}/regulations/sync/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const status = await statusRes.json();
                 setRegulationSyncStatus(status);
 
@@ -433,6 +441,7 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
             setIsSyncingRegulations(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-gray-50">
