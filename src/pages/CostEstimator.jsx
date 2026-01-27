@@ -42,7 +42,7 @@ const DEFAULT_MATERIALS = {
     ],
     // ===== 營建工程 - 泥作工程 =====
     '泥作材料': [
-        { id: 141, name: '水泥', spec: '50kg/包', unit: '包', suggestedPrice: 185, price: 185, note: '台泥/亞泥', regulation: 'CNS 61：卜特蘭水泥規範' },
+        { id: 141, name: '水泥', spec: '40kg/包', unit: '包', suggestedPrice: 185, price: 185, note: '台泥/亞泥 (2023年起業界標準)', regulation: 'CNS 61：卜特蘭水泥規範' },
         { id: 142, name: '河砂 (細砂)', spec: '粉光用', unit: '立方', suggestedPrice: 1400, price: 1400, note: '過篩', regulation: 'CNS 1240：混凝土用細粒料' },
         { id: 143, name: '河砂 (粗砂)', spec: '打底用', unit: '立方', suggestedPrice: 1200, price: 1200, note: '未過篩', regulation: 'CNS 1240：混凝土用粒料' },
         { id: 144, name: '紅磚', spec: '230x110x60mm', unit: '塊', suggestedPrice: 7.5, price: 7.5, note: '128塊/m² (1B牆)', regulation: 'CNS 382：普通磚規範' },
