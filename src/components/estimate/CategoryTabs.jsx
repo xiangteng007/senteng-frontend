@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Building2, Home, Layers, Hammer, Grid3X3, Paintbrush, Mountain } from 'lucide-react';
+import { Building2, Home, Layers, Hammer, Grid3X3, Paintbrush, Mountain, Calculator } from 'lucide-react';
 
 // ============================================
 // 分類定義
@@ -24,6 +24,12 @@ export const CATEGORY_L1 = [
         label: '室內裝潢',
         icon: Home,
         desc: '油漆、木作、泥作、水電'
+    },
+    {
+        id: 'calculator',
+        label: '計算器',
+        icon: Calculator,
+        desc: '材料計算、構件計算'
     },
 ];
 
@@ -47,6 +53,13 @@ export const CATEGORY_L2 = {
         { id: 'electrical', label: '水電', icon: Grid3X3 },
         { id: 'flooring', label: '地板', icon: Layers },
         { id: 'glass', label: '玻璃', icon: Grid3X3 },
+    ],
+    calculator: [
+        { id: 'structure', label: '結構工程', icon: Layers },
+        { id: 'masonry', label: '泥作工程', icon: Hammer },
+        { id: 'tile', label: '磁磚工程', icon: Grid3X3 },
+        { id: 'finish', label: '裝修工程', icon: Paintbrush },
+        { id: 'estimate', label: '建築概估', icon: Mountain },
     ],
 };
 

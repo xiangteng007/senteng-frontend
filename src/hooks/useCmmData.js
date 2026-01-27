@@ -8,23 +8,26 @@
 import { useState, useEffect } from 'react';
 import { cmmProfilesApi, cmmMaterialsApi } from '../services/cmmApi';
 
-// Fallback 常量 - 與原 MaterialCalculator.jsx 相同
+// Fallback 常量 - 依據台灣營建業界標準
+// 資料來源：公共工程委員會、高雄結構技師公會、交大結構實驗室
+// 單位：鋼筋 kg/m², 混凝土 m³/m², 模板 m²/m², 砂(粉刷用) m³/m²
+// 業界經驗值：鋼筋 330-400 kg/坪, 混凝土 2.4-3.0 m³/坪, 模板 3.0-4.0倍樓地板面積
 const FALLBACK_BUILDING_TYPES = [
-    { label: '多層砌體住宅', rebar: 30, concrete: 0.315, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 20 },
-    { label: '多層框架結構', rebar: 40, concrete: 0.34, formwork: 2.2, sand: 0.55, structure: 'RC', wallThickness: 20 },
-    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35, formwork: 2.3, sand: 0.6, structure: 'RC', wallThickness: 20 },
-    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36, formwork: 2.4, sand: 0.65, structure: 'RC', wallThickness: 25 },
-    { label: '高層 (30F)', rebar: 70, concrete: 0.445, formwork: 2.6, sand: 0.75, structure: 'RC', wallThickness: 30 },
-    { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 18 },
-    { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC', wallThickness: 18 },
-    { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC', wallThickness: 25 },
-    { label: 'RC透天 (2-3F)', rebar: 35, concrete: 0.28, formwork: 1.8, sand: 0.48, structure: 'RC', wallThickness: 15 },
-    { label: 'RC透天 (4-5F)', rebar: 42, concrete: 0.32, formwork: 2.0, sand: 0.52, structure: 'RC', wallThickness: 18 },
-    { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC', wallThickness: 15 },
-    { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC', wallThickness: 30 },
-    { label: '透天厝 (3F)', rebar: 18, concrete: 0.18, formwork: 1.2, sand: 0.65, structure: 'RB', wallThickness: 24 },
-    { label: '農舍/倉庫', rebar: 15, concrete: 0.15, formwork: 1.0, sand: 0.6, structure: 'RB', wallThickness: 24 },
-    { label: '加強磚造公寓', rebar: 20, concrete: 0.20, formwork: 1.4, sand: 0.7, structure: 'RB', wallThickness: 24 },
+    // RC 鋼筋混凝土結構
+    { label: 'RC透天 (2-3F)', rebar: 100, concrete: 0.73, formwork: 3.0, sand: 0.18, structure: 'RC', wallThickness: 15 },
+    { label: 'RC透天 (4-5F)', rebar: 112, concrete: 0.79, formwork: 3.2, sand: 0.20, structure: 'RC', wallThickness: 18 },
+    { label: '別墅 (RC)', rebar: 106, concrete: 0.76, formwork: 3.0, sand: 0.18, structure: 'RC', wallThickness: 18 },
+    { label: '公寓 (5-6F)', rebar: 109, concrete: 0.79, formwork: 3.3, sand: 0.20, structure: 'RC', wallThickness: 18 },
+    { label: '大樓 (7-12F)', rebar: 112, concrete: 0.82, formwork: 3.4, sand: 0.22, structure: 'RC', wallThickness: 20 },
+    { label: '高層 (13-20F)', rebar: 115, concrete: 0.85, formwork: 3.5, sand: 0.24, structure: 'RC', wallThickness: 25 },
+    { label: '高層 (21-30F)', rebar: 121, concrete: 0.91, formwork: 3.6, sand: 0.26, structure: 'RC', wallThickness: 30 },
+    { label: '超高層 (30F+)', rebar: 130, concrete: 0.95, formwork: 3.8, sand: 0.28, structure: 'SRC', wallThickness: 35 },
+    { label: '辦公大樓', rebar: 115, concrete: 0.85, formwork: 3.5, sand: 0.24, structure: 'RC/SRC', wallThickness: 25 },
+    { label: '工業廠房 (SC)', rebar: 45, concrete: 0.35, formwork: 2.0, sand: 0.12, structure: 'SC', wallThickness: 15 },
+    { label: '地下室 (每層)', rebar: 145, concrete: 1.10, formwork: 4.0, sand: 0.30, structure: 'RC', wallThickness: 30 },
+    // RB 加強磚造結構
+    { label: '透天厝 (RB 3F)', rebar: 55, concrete: 0.45, formwork: 2.2, sand: 0.25, structure: 'RB', wallThickness: 24 },
+    { label: '農舍/倉庫 (RB)', rebar: 45, concrete: 0.38, formwork: 1.8, sand: 0.22, structure: 'RB', wallThickness: 24 },
 ];
 
 const FALLBACK_REBAR_SPECS = [

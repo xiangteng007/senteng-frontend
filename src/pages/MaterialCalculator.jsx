@@ -73,25 +73,26 @@ const WALL_THICKNESS_OPTIONS = [
     { value: 30, label: '30 cm' },
 ];
 
-// 建築類型概估指標 (擴充版 - 含牆壁厚度與加強磚造)
+// 建築類型概估指標 (依據台灣營建業界標準)
+// 資料來源：公共工程委員會、高雄結構技師公會、交大結構實驗室
+// 單位：鋼筋 kg/m², 混凝土 m³/m², 模板 m²/m², 砂(粉刷用) m³/m²
+// 業界經驗值：鋼筋 330-400 kg/坪, 混凝土 2.4-3.0 m³/坪, 模板 3.0-4.0倍樓地板面積
 const BUILDING_TYPES = [
     // RC 鋼筋混凝土結構
-    { label: '多層砌體住宅', rebar: 30, concrete: 0.315, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 20 },
-    { label: '多層框架結構', rebar: 40, concrete: 0.34, formwork: 2.2, sand: 0.55, structure: 'RC', wallThickness: 20 },
-    { label: '小高層 (11-12F)', rebar: 51, concrete: 0.35, formwork: 2.3, sand: 0.6, structure: 'RC', wallThickness: 20 },
-    { label: '高層 (17-18F)', rebar: 57, concrete: 0.36, formwork: 2.4, sand: 0.65, structure: 'RC', wallThickness: 25 },
-    { label: '高層 (30F)', rebar: 70, concrete: 0.445, formwork: 2.6, sand: 0.75, structure: 'RC', wallThickness: 30 },
-    { label: '別墅', rebar: 40, concrete: 0.33, formwork: 2.0, sand: 0.5, structure: 'RC', wallThickness: 18 },
-    { label: '公寓 (5-6F)', rebar: 38, concrete: 0.32, formwork: 2.1, sand: 0.52, structure: 'RC', wallThickness: 18 },
-    { label: '辦公大樓', rebar: 55, concrete: 0.38, formwork: 2.5, sand: 0.68, structure: 'RC/SRC', wallThickness: 25 },
-    { label: 'RC透天 (2-3F)', rebar: 35, concrete: 0.28, formwork: 1.8, sand: 0.48, structure: 'RC', wallThickness: 15 },
-    { label: 'RC透天 (4-5F)', rebar: 42, concrete: 0.32, formwork: 2.0, sand: 0.52, structure: 'RC', wallThickness: 18 },
-    { label: '工業廠房', rebar: 25, concrete: 0.25, formwork: 1.5, sand: 0.4, structure: 'SC', wallThickness: 15 },
-    { label: '地下室 (1層)', rebar: 80, concrete: 0.5, formwork: 3.0, sand: 0.85, structure: 'RC', wallThickness: 30 },
+    { label: 'RC透天 (2-3F)', rebar: 100, concrete: 0.73, formwork: 3.0, sand: 0.18, structure: 'RC', wallThickness: 15 },
+    { label: 'RC透天 (4-5F)', rebar: 112, concrete: 0.79, formwork: 3.2, sand: 0.20, structure: 'RC', wallThickness: 18 },
+    { label: '別墅 (RC)', rebar: 106, concrete: 0.76, formwork: 3.0, sand: 0.18, structure: 'RC', wallThickness: 18 },
+    { label: '公寓 (5-6F)', rebar: 109, concrete: 0.79, formwork: 3.3, sand: 0.20, structure: 'RC', wallThickness: 18 },
+    { label: '大樓 (7-12F)', rebar: 112, concrete: 0.82, formwork: 3.4, sand: 0.22, structure: 'RC', wallThickness: 20 },
+    { label: '高層 (13-20F)', rebar: 115, concrete: 0.85, formwork: 3.5, sand: 0.24, structure: 'RC', wallThickness: 25 },
+    { label: '高層 (21-30F)', rebar: 121, concrete: 0.91, formwork: 3.6, sand: 0.26, structure: 'RC', wallThickness: 30 },
+    { label: '超高層 (30F+)', rebar: 130, concrete: 0.95, formwork: 3.8, sand: 0.28, structure: 'SRC', wallThickness: 35 },
+    { label: '辦公大樓', rebar: 115, concrete: 0.85, formwork: 3.5, sand: 0.24, structure: 'RC/SRC', wallThickness: 25 },
+    { label: '工業廠房 (SC)', rebar: 45, concrete: 0.35, formwork: 2.0, sand: 0.12, structure: 'SC', wallThickness: 15 },
+    { label: '地下室 (每層)', rebar: 145, concrete: 1.10, formwork: 4.0, sand: 0.30, structure: 'RC', wallThickness: 30 },
     // RB 加強磚造結構
-    { label: '透天厝 (3F)', rebar: 18, concrete: 0.18, formwork: 1.2, sand: 0.65, structure: 'RB', wallThickness: 24 },
-    { label: '農舍/倉庫', rebar: 15, concrete: 0.15, formwork: 1.0, sand: 0.6, structure: 'RB', wallThickness: 24 },
-    { label: '加強磚造公寓', rebar: 20, concrete: 0.20, formwork: 1.4, sand: 0.7, structure: 'RB', wallThickness: 24 },
+    { label: '透天厝 (RB 3F)', rebar: 55, concrete: 0.45, formwork: 2.2, sand: 0.25, structure: 'RB', wallThickness: 24 },
+    { label: '農舍/倉庫 (RB)', rebar: 45, concrete: 0.38, formwork: 1.8, sand: 0.22, structure: 'RB', wallThickness: 24 },
 ];
 
 // 鋼筋規格表 (含工程常用號數)
@@ -195,6 +196,199 @@ const FLOOR_THICKNESS_PRESETS = [
     { value: 'custom', label: '自訂厚度', thickness: 0, desc: '' },
 ];
 
+// 構件配筋率 (kg/m³ 混凝土) - 用於快速估算模式
+// 資料來源：台灣營建業界標準經驗值
+const REBAR_RATIO_BY_COMPONENT = {
+    column: { light: 100, standard: 120, heavy: 150, label: '柱' },
+    beam: { light: 80, standard: 100, heavy: 130, label: '梁' },
+    floor: { light: 60, standard: 75, heavy: 90, label: '樓板' },
+    wall: { light: 60, standard: 70, heavy: 85, label: '牆' },
+    parapet: { light: 50, standard: 60, heavy: 75, label: '女兒牆' },
+    groundbeam: { light: 90, standard: 110, heavy: 140, label: '地梁' },
+    foundation: { light: 80, standard: 100, heavy: 130, label: '基礎' },
+};
+
+// ============================================
+// 精確配筋計算常量 (CNS 560 標準)
+// ============================================
+
+// 鋼筋號數與單位重量
+const REBAR_SIZES = [
+    { value: '#3', label: '#3 (D10)', diameter: 10, unitWeight: 0.560 },
+    { value: '#4', label: '#4 (D13)', diameter: 13, unitWeight: 0.995 },
+    { value: '#5', label: '#5 (D16)', diameter: 16, unitWeight: 1.56 },
+    { value: '#6', label: '#6 (D19)', diameter: 19, unitWeight: 2.25 },
+    { value: '#7', label: '#7 (D22)', diameter: 22, unitWeight: 3.04 },
+    { value: '#8', label: '#8 (D25)', diameter: 25, unitWeight: 3.98 },
+];
+
+// 鋼筋間距選項 (mm)
+const REBAR_SPACING_OPTIONS = [
+    { value: 100, label: '@100mm (密)' },
+    { value: 150, label: '@150mm' },
+    { value: 200, label: '@200mm (標準)' },
+    { value: 250, label: '@250mm' },
+    { value: 300, label: '@300mm (疏)' },
+];
+
+// 配筋層數選項
+const REBAR_LAYER_OPTIONS = [
+    { value: 'single', label: '單層配筋', multiplier: 1 },
+    { value: 'double', label: '雙層配筋', multiplier: 2 },
+];
+
+// 混凝土規格 (抗壓強度 kgf/cm²)
+const CONCRETE_GRADES = [
+    { value: 140, label: "fc'140", desc: '墊層/填充' },
+    { value: 175, label: "fc'175", desc: '輕載結構' },
+    { value: 210, label: "fc'210", desc: '一般結構 (預設)' },
+    { value: 245, label: "fc'245", desc: '中跨度梁柱' },
+    { value: 280, label: "fc'280", desc: '高層建築' },
+    { value: 315, label: "fc'315", desc: '預力構件' },
+    { value: 350, label: "fc'350", desc: '特殊結構' },
+];
+
+// 柱子主筋根數選項
+const COLUMN_MAIN_BAR_COUNT = [
+    { value: 4, label: '4根' },
+    { value: 6, label: '6根' },
+    { value: 8, label: '8根' },
+    { value: 10, label: '10根' },
+    { value: 12, label: '12根' },
+    { value: 16, label: '16根' },
+];
+
+// ============================================
+// 法規參照與實務常用配置
+// ============================================
+
+// 法規參照 (建築技術規則)
+const REGULATION_REFS = {
+    floor: {
+        code: '建技規§401',
+        title: '樓板設計',
+        rules: [
+            '樓板最小厚度不得小於 10cm',
+            '雙向板最小厚度 h ≥ L/36',
+            '鋼筋間距不得大於板厚 3 倍或 45cm',
+        ],
+    },
+    wall: {
+        code: '建技規§409',
+        title: '剪力牆設計',
+        rules: [
+            '牆厚不得小於 15cm',
+            '雙向配筋，水平及垂直筋比 ≥ 0.0025',
+            '鋼筋間距不得大於 45cm',
+        ],
+    },
+    column: {
+        code: '建技規§407',
+        title: '柱設計',
+        rules: [
+            '主筋比 1% ~ 8%',
+            '主筋不得少於 4 根',
+            '箍筋間距 ≤ 柱最小尺寸或 d/2',
+        ],
+    },
+    beam: {
+        code: '建技規§406',
+        title: '梁設計',
+        rules: [
+            '梁深 h ≥ 淨跨/16',
+            '拉筋比 ≥ 0.004',
+            '箍筋間距 ≤ d/2 或 60cm',
+        ],
+    },
+    groundbeam: {
+        code: '建技規§406',
+        title: '地梁設計',
+        rules: [
+            '地梁深度 ≥ 淨跨/12',
+            '主筋搭接長度 ≥ 40db',
+            '箍筋需延伸至基礎內',
+        ],
+    },
+    foundation: {
+        code: '建技規§415',
+        title: '基礎設計',
+        rules: [
+            '最小配筋率 ≥ 0.0018',
+            '保護層厚度 ≥ 7.5cm (接地)',
+            '素混凝土墊層厚度 ≥ 5cm',
+        ],
+    },
+    parapet: {
+        code: '建技規§410',
+        title: '女兒牆設計',
+        rules: [
+            '高度超過 1.2m 需設計配筋',
+            '配筋同牆體規定',
+            '頂部需設壓頂梁或壓樑',
+        ],
+    },
+};
+
+// 地梁預設配置 (含配筋)
+const GROUNDBEAM_PRESETS_REBAR = {
+    'GB1': { topBar: '#5', topCount: 2, bottomBar: '#5', bottomCount: 3, stirrup: '#3', stirrupSpacing: 200, desc: '透天1-2F' },
+    'GB2': { topBar: '#5', topCount: 3, bottomBar: '#5', bottomCount: 4, stirrup: '#3', stirrupSpacing: 150, desc: '透天3-4F' },
+    'GB3': { topBar: '#6', topCount: 3, bottomBar: '#6', bottomCount: 4, stirrup: '#4', stirrupSpacing: 150, desc: '公寓5F' },
+    'GB4': { topBar: '#6', topCount: 4, bottomBar: '#6', bottomCount: 5, stirrup: '#4', stirrupSpacing: 125, desc: '高層建築' },
+    'GB5': { topBar: '#7', topCount: 4, bottomBar: '#7', bottomCount: 6, stirrup: '#4', stirrupSpacing: 100, desc: '重載結構' },
+    'custom': null,
+};
+
+// 柱子預設配置 (含配筋)
+const COLUMN_PRESETS_REBAR = {
+    'C1': { mainBar: '#5', mainCount: 4, stirrup: '#3', stirrupSpacing: 200, desc: '透天RC' },
+    'C2': { mainBar: '#5', mainCount: 8, stirrup: '#3', stirrupSpacing: 150, desc: '住宅公寓' },
+    'C3': { mainBar: '#6', mainCount: 8, stirrup: '#4', stirrupSpacing: 150, desc: '商辦大樓' },
+    'C4': { mainBar: '#6', mainCount: 12, stirrup: '#4', stirrupSpacing: 125, desc: '高層/地下室' },
+    'C5': { mainBar: '#6', mainCount: 10, stirrup: '#4', stirrupSpacing: 150, desc: '特殊配置' },
+    'C6': { mainBar: '#7', mainCount: 12, stirrup: '#4', stirrupSpacing: 125, desc: '大跨距' },
+    'R1': { mainBar: '#5', mainCount: 6, stirrup: '#3', stirrupSpacing: 150, desc: '室內裝飾' },
+    'R2': { mainBar: '#5', mainCount: 8, stirrup: '#3', stirrupSpacing: 150, desc: '標準圓柱' },
+    'R3': { mainBar: '#6', mainCount: 10, stirrup: '#4', stirrupSpacing: 150, desc: '大型圓柱' },
+    'custom': null,
+};
+
+// 梁預設配置 (含配筋)
+const BEAM_PRESETS_REBAR = {
+    'B1': { topBar: '#5', topCount: 2, bottomBar: '#5', bottomCount: 2, stirrup: '#3', stirrupSpacing: 200, desc: '次要梁' },
+    'B2': { topBar: '#6', topCount: 2, bottomBar: '#6', bottomCount: 3, stirrup: '#3', stirrupSpacing: 150, desc: '主梁' },
+    'B3': { topBar: '#6', topCount: 3, bottomBar: '#6', bottomCount: 4, stirrup: '#4', stirrupSpacing: 150, desc: '大跨距' },
+    'B4': { topBar: '#7', topCount: 3, bottomBar: '#7', bottomCount: 5, stirrup: '#4', stirrupSpacing: 125, desc: '重載/長跨' },
+    'custom': null,
+};
+
+// 樓板預設配置 (含配筋)
+const SLAB_PRESETS_REBAR = {
+    'F1': { rebarSize: '#3', spacing: 200, layer: 'single', desc: '陽台/雨遮' },
+    'F2': { rebarSize: '#4', spacing: 200, layer: 'double', desc: '一般樓板' },
+    'F3': { rebarSize: '#4', spacing: 150, layer: 'double', desc: '大跨距/重載' },
+    'F4': { rebarSize: '#5', spacing: 150, layer: 'double', desc: '廠房/倉庫' },
+    'F5': { rebarSize: '#4', spacing: 200, layer: 'double', desc: '地下室頂板' },
+    'F6': { rebarSize: '#5', spacing: 150, layer: 'double', desc: '筏式基礎' },
+    'custom': null,
+};
+
+// 模板類型選項
+const FORMWORK_TYPES = [
+    { value: 'standard', label: '普通模板', coefficient: 1.0, desc: '一般施工' },
+    { value: 'fairface', label: '清水模板', coefficient: 1.4, desc: '光滑面、高品質' },
+    { value: 'system', label: '系統模板', coefficient: 1.2, desc: '可重複使用、效率高' },
+    { value: 'steel', label: '組合鋼模', coefficient: 1.5, desc: '柱子專用、高精度' },
+];
+
+// 施工條件係數
+const CONSTRUCTION_CONDITIONS = [
+    { value: 'normal', label: '標準施工', coefficient: 1.0 },
+    { value: 'elevated', label: '高空作業', coefficient: 1.15 },
+    { value: 'confined', label: '狹窄空間', coefficient: 1.15 },
+    { value: 'complex', label: '複雜造型', coefficient: 1.25 },
+];
+
 // ============================================
 // 工具函數
 // ============================================
@@ -283,6 +477,68 @@ const WastageControl = ({ wastage, setWastage, defaultValue, useCustom, setUseCu
         {useCustom && <span className="text-xs text-gray-500">%</span>}
     </div>
 );
+
+// 法規參照顯示組件
+const RegulationReference = ({ componentType, showRules = true }) => {
+    const reg = REGULATION_REFS[componentType];
+    if (!reg) return null;
+
+    return (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">
+            <div className="flex items-center gap-2 text-blue-700 font-medium">
+                <span>📋</span>
+                <span>{reg.code} - {reg.title}</span>
+            </div>
+            {showRules && (
+                <ul className="mt-2 space-y-1 text-blue-600 ml-5">
+                    {reg.rules.map((rule, i) => (
+                        <li key={i} className="list-disc">{rule}</li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+};
+
+// 預設配筋資訊顯示組件
+const PresetRebarInfo = ({ preset, type }) => {
+    let info = null;
+    let colorClass = 'text-green-600 bg-green-50 border-green-200';
+
+    if (type === 'column' && COLUMN_PRESETS_REBAR[preset]) {
+        info = COLUMN_PRESETS_REBAR[preset];
+        return (
+            <div className={`text-xs p-2 rounded border ${colorClass}`}>
+                <strong>常用配筋:</strong> 主筋 {info.mainCount}根{info.mainBar} + 箍筋 {info.stirrup}@{info.stirrupSpacing}mm ({info.desc})
+            </div>
+        );
+    }
+    if (type === 'groundbeam' && GROUNDBEAM_PRESETS_REBAR[preset]) {
+        info = GROUNDBEAM_PRESETS_REBAR[preset];
+        return (
+            <div className={`text-xs p-2 rounded border ${colorClass}`}>
+                <strong>常用配筋:</strong> 上筋 {info.topCount}根{info.topBar} + 下筋 {info.bottomCount}根{info.bottomBar} + 箍筋 {info.stirrup}@{info.stirrupSpacing}mm ({info.desc})
+            </div>
+        );
+    }
+    if (type === 'beam' && BEAM_PRESETS_REBAR[preset]) {
+        info = BEAM_PRESETS_REBAR[preset];
+        return (
+            <div className={`text-xs p-2 rounded border ${colorClass}`}>
+                <strong>常用配筋:</strong> 上筋 {info.topCount}根{info.topBar} + 下筋 {info.bottomCount}根{info.bottomBar} + 箍筋 {info.stirrup}@{info.stirrupSpacing}mm ({info.desc})
+            </div>
+        );
+    }
+    if (type === 'slab' && SLAB_PRESETS_REBAR[preset]) {
+        info = SLAB_PRESETS_REBAR[preset];
+        return (
+            <div className={`text-xs p-2 rounded border ${colorClass}`}>
+                <strong>常用配筋:</strong> {info.rebarSize}@{info.spacing}mm {info.layer === 'double' ? '雙層' : '單層'}雙向 ({info.desc})
+            </div>
+        );
+    }
+    return null;
+};
 
 // 結果顯示組件
 const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true, onAddRecord, subType = '' }) => {
@@ -507,6 +763,140 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
     const [floorWidth, setFloorWidth] = useState('');
     const [floorCount, setFloorCount] = useState(1);
 
+    // ============================================
+    // 精確配筋計算 State
+    // ============================================
+
+    // 計算模式
+    const [useAdvancedRebar, setUseAdvancedRebar] = useState(false);
+
+    // 樓板配筋
+    const [floorRebarSize, setFloorRebarSize] = useState('#4');
+    const [floorRebarSpacing, setFloorRebarSpacing] = useState(200);
+    const [floorRebarLayer, setFloorRebarLayer] = useState('double');
+    const [floorConcreteGrade, setFloorConcreteGrade] = useState(210);
+
+    // 牆體配筋
+    const [wallRebarSize, setWallRebarSize] = useState('#4');
+    const [wallRebarSpacing, setWallRebarSpacing] = useState(200);
+    const [wallRebarLayer, setWallRebarLayer] = useState('double');
+    const [wallConcreteGrade, setWallConcreteGrade] = useState(210);
+
+    // 女兒牆配筋
+    const [parapetRebarSize, setParapetRebarSize] = useState('#4');
+    const [parapetRebarSpacing, setParapetRebarSpacing] = useState(200);
+    const [parapetRebarLayer, setParapetRebarLayer] = useState('double');
+    const [parapetConcreteGrade, setParapetConcreteGrade] = useState(210);
+
+    // 柱子配筋
+    const [columnMainBar, setColumnMainBar] = useState('#5');
+    const [columnMainBarCount, setColumnMainBarCount] = useState(8);
+    const [columnStirrup, setColumnStirrup] = useState('#3');
+    const [columnStirrupSpacing, setColumnStirrupSpacing] = useState(150);
+    const [columnConcreteGrade, setColumnConcreteGrade] = useState(210);
+
+    // 梁配筋
+    const [beamTopBar, setBeamTopBar] = useState('#5');
+    const [beamTopBarCount, setBeamTopBarCount] = useState(3);
+    const [beamBottomBar, setBeamBottomBar] = useState('#6');
+    const [beamBottomBarCount, setBeamBottomBarCount] = useState(4);
+    const [beamStirrup, setBeamStirrup] = useState('#3');
+    const [beamStirrupSpacing, setBeamStirrupSpacing] = useState(150);
+    const [beamConcreteGrade, setBeamConcreteGrade] = useState(210);
+
+    // 地梁配筋
+    const [groundbeamTopBar, setGroundbeamTopBar] = useState('#5');
+    const [groundbeamTopBarCount, setGroundbeamTopBarCount] = useState(3);
+    const [groundbeamBottomBar, setGroundbeamBottomBar] = useState('#6');
+    const [groundbeamBottomBarCount, setGroundbeamBottomBarCount] = useState(4);
+    const [groundbeamStirrup, setGroundbeamStirrup] = useState('#3');
+    const [groundbeamStirrupSpacing, setGroundbeamStirrupSpacing] = useState(150);
+    const [groundbeamConcreteGrade, setGroundbeamConcreteGrade] = useState(210);
+
+    // Phase 2: 模板進階設定
+    const [formworkType, setFormworkType] = useState('standard');
+    const [constructionCondition, setConstructionCondition] = useState('normal');
+    const [openingDeduction, setOpeningDeduction] = useState(0); // 開口扣除面積 (m²)
+
+    // Phase 3: 基礎素混凝土墊層
+    const [foundationLevelingEnabled, setFoundationLevelingEnabled] = useState(true);
+    const [foundationLevelingThickness, setFoundationLevelingThickness] = useState(10); // cm
+
+    // 法規參照顯示開關
+    const [showRegulations, setShowRegulations] = useState(true);
+
+    // 精確配筋計算函數
+    // ============================================
+
+    // 取得鋼筋單位重量 (kg/m)
+    const getRebarUnitWeight = (size) => {
+        return REBAR_SIZES.find(r => r.value === size)?.unitWeight || 0;
+    };
+
+    // 計算板類構件鋼筋 (樓板、牆、女兒牆) - 雙向配筋
+    const calculateSlabRebar = (length, width, spacing, layer, rebarSize) => {
+        if (!length || !width || length <= 0 || width <= 0) return 0;
+        const unitWeight = getRebarUnitWeight(rebarSize);
+        const layerMultiplier = layer === 'double' ? 2 : 1;
+
+        // 雙向配筋：X向 + Y向
+        const barsX = Math.ceil(width * 1000 / spacing) + 1;
+        const barsY = Math.ceil(length * 1000 / spacing) + 1;
+
+        const totalLength = (barsX * length) + (barsY * width);
+        return totalLength * unitWeight * layerMultiplier;
+    };
+
+    // 計算柱鋼筋 (主筋 + 箍筋)
+    const calculateColumnRebar = (height, count, preset, mainBarSize, mainBarCount, stirrupSize, stirrupSpacing) => {
+        if (!height || height <= 0) return 0;
+        const presetData = COLUMN_PRESETS.find(p => p.value === preset);
+        const mainWeight = getRebarUnitWeight(mainBarSize);
+        const stirrupWeight = getRebarUnitWeight(stirrupSize);
+
+        // 柱周長
+        let perimeter = 0;
+        if (presetData?.type === 'round') {
+            perimeter = Math.PI * (presetData.diameter / 100);
+        } else {
+            const width = (presetData?.width || 40) / 100;
+            const depth = (presetData?.depth || 40) / 100;
+            perimeter = (width + depth) * 2;
+        }
+
+        // 主筋重量
+        const mainRebarWeight = mainBarCount * height * mainWeight * count;
+
+        // 箍筋數量與重量
+        const stirrupCount = Math.ceil(height * 1000 / stirrupSpacing) + 1;
+        const stirrupRebarWeight = stirrupCount * perimeter * stirrupWeight * count;
+
+        return mainRebarWeight + stirrupRebarWeight;
+    };
+
+    // 計算梁鋼筋 (上筋 + 下筋 + 箍筋)
+    const calculateBeamRebar = (length, count, preset, topSize, topCount, bottomSize, bottomCount, stirrupSize, stirrupSpacing) => {
+        if (!length || length <= 0) return 0;
+        const presetData = GROUND_BEAM_PRESETS.find(p => p.value === preset);
+        const topWeight = getRebarUnitWeight(topSize);
+        const bottomWeight = getRebarUnitWeight(bottomSize);
+        const stirrupWeight = getRebarUnitWeight(stirrupSize);
+
+        const beamWidth = (presetData?.width || 35) / 100;
+        const beamHeight = (presetData?.height || 60) / 100;
+
+        // 上下主筋
+        const topRebarWeight = topCount * length * topWeight * count;
+        const bottomRebarWeight = bottomCount * length * bottomWeight * count;
+
+        // 箍筋 (周長)
+        const stirrupPerimeter = (beamWidth + beamHeight) * 2;
+        const stirrupCount = Math.ceil(length * 1000 / stirrupSpacing) + 1;
+        const stirrupRebarWeight = stirrupCount * stirrupPerimeter * stirrupWeight * count;
+
+        return topRebarWeight + bottomRebarWeight + stirrupRebarWeight;
+    };
+
     // 結構模板計算邏輯
     const getParapetFormwork = () => {
         const length = parseFloat(parapetLength) || 0;
@@ -567,6 +957,142 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
         const count = parseInt(floorCount) || 1;
         // 樓板模板 = 底模面積
         return length * width * count;
+    };
+
+    // =====================================
+    // 構件混凝土體積計算
+    // =====================================
+    const getColumnConcrete = () => {
+        const preset = COLUMN_PRESETS.find(p => p.value === columnPreset);
+        const height = parseFloat(columnHeight) || 0;
+        const count = parseInt(columnCount) || 1;
+
+        if (columnPreset === 'custom') {
+            const width = (parseFloat(columnCustomWidth) || 0) / 100;
+            const depth = (parseFloat(columnCustomDepth) || 0) / 100;
+            const diameter = (parseFloat(columnCustomDiameter) || 0) / 100;
+            if (diameter > 0) {
+                return Math.PI * Math.pow(diameter / 2, 2) * height * count;
+            }
+            return width * depth * height * count;
+        }
+
+        if (preset?.type === 'round') {
+            const diameter = (preset.diameter || 0) / 100;
+            return Math.PI * Math.pow(diameter / 2, 2) * height * count;
+        }
+
+        const width = (preset?.width || 0) / 100;
+        const depth = (preset?.depth || 0) / 100;
+        return width * depth * height * count;
+    };
+
+    const getBeamConcrete = () => {
+        const preset = GROUND_BEAM_PRESETS.find(p => p.value === beamPreset);
+        const width = beamPreset === 'custom' ? (parseFloat(beamCustomWidth) || 0) / 100 : (preset?.width || 0) / 100;
+        const height = beamPreset === 'custom' ? (parseFloat(beamCustomHeight) || 0) / 100 : (preset?.height || 0) / 100;
+        const length = parseFloat(beamLength) || 0;
+        const count = parseInt(beamCount) || 1;
+        return width * height * length * count;
+    };
+
+    const getFloorConcrete = () => {
+        const preset = FLOOR_THICKNESS_PRESETS.find(p => p.value === floorPreset);
+        const thickness = floorPreset === 'custom' ? (parseFloat(floorCustomThickness) || 0) / 100 : (preset?.thickness || 0) / 100;
+        const length = parseFloat(floorLength) || 0;
+        const width = parseFloat(floorWidth) || 0;
+        const count = parseInt(floorCount) || 1;
+        return length * width * thickness * count;
+    };
+
+    const getWallConcrete = () => {
+        const preset = WALL_THICKNESS_PRESETS.find(p => p.value === wallPreset);
+        const thickness = wallPreset === 'custom' ? (parseFloat(wallCustomThickness) || 0) / 100 : (preset?.thickness || 0) / 100;
+        const length = parseFloat(wallLength) || 0;
+        const height = parseFloat(wallHeight) || 0;
+        const count = parseInt(wallCount) || 1;
+        return length * height * thickness * count;
+    };
+
+    const getParapetConcrete = () => {
+        const thickness = parapetThickness === 'custom' ? (parseFloat(parapetCustomThickness) || 0) / 100 : parapetThickness / 100;
+        const length = parseFloat(parapetLength) || 0;
+        const height = parseFloat(parapetHeight) || 0;
+        const count = parseInt(parapetCount) || 1;
+        return length * height * thickness * count;
+    };
+
+    // =====================================
+    // 構件鋼筋重量計算 (支援快速估算與精確計算模式)
+    // =====================================
+
+    // 樓板鋼筋 - 支援精確計算
+    const getFloorRebar = () => {
+        const length = parseFloat(floorLength) || 0;
+        const width = parseFloat(floorWidth) || 0;
+        const count = parseInt(floorCount) || 1;
+
+        if (useAdvancedRebar && length > 0 && width > 0) {
+            return calculateSlabRebar(length, width, floorRebarSpacing, floorRebarLayer, floorRebarSize) * count;
+        }
+        return getFloorConcrete() * REBAR_RATIO_BY_COMPONENT.floor.standard;
+    };
+
+    // 牆體鋼筋 - 支援精確計算
+    const getWallRebar = () => {
+        const length = parseFloat(wallLength) || 0;
+        const height = parseFloat(wallHeight) || 0;
+        const count = parseInt(wallCount) || 1;
+
+        if (useAdvancedRebar && length > 0 && height > 0) {
+            return calculateSlabRebar(length, height, wallRebarSpacing, wallRebarLayer, wallRebarSize) * count;
+        }
+        return getWallConcrete() * REBAR_RATIO_BY_COMPONENT.wall.standard;
+    };
+
+    // 女兒牆鋼筋 - 支援精確計算
+    const getParapetRebar = () => {
+        const length = parseFloat(parapetLength) || 0;
+        const height = parseFloat(parapetHeight) || 0;
+        const count = parseInt(parapetCount) || 1;
+
+        if (useAdvancedRebar && length > 0 && height > 0) {
+            return calculateSlabRebar(length, height, parapetRebarSpacing, parapetRebarLayer, parapetRebarSize) * count;
+        }
+        return getParapetConcrete() * REBAR_RATIO_BY_COMPONENT.parapet.standard;
+    };
+
+    // 柱子鋼筋 - 支援精確計算
+    const getColumnRebar = () => {
+        const height = parseFloat(columnHeight) || 0;
+        const count = parseInt(columnCount) || 1;
+
+        if (useAdvancedRebar && height > 0) {
+            return calculateColumnRebar(height, count, columnPreset, columnMainBar, columnMainBarCount, columnStirrup, columnStirrupSpacing);
+        }
+        return getColumnConcrete() * REBAR_RATIO_BY_COMPONENT.column.standard;
+    };
+
+    // 梁鋼筋 - 支援精確計算
+    const getBeamRebar = () => {
+        const length = parseFloat(beamLength) || 0;
+        const count = parseInt(beamCount) || 1;
+
+        if (useAdvancedRebar && length > 0) {
+            return calculateBeamRebar(length, count, beamPreset, beamTopBar, beamTopBarCount, beamBottomBar, beamBottomBarCount, beamStirrup, beamStirrupSpacing);
+        }
+        return getBeamConcrete() * REBAR_RATIO_BY_COMPONENT.beam.standard;
+    };
+
+    // 地梁鋼筋 - 支援精確計算
+    const getGroundbeamRebar = () => {
+        const length = parseFloat(beamLength) || 0;
+        const count = parseInt(beamCount) || 1;
+
+        if (useAdvancedRebar && length > 0) {
+            return calculateBeamRebar(length, count, beamPreset, groundbeamTopBar, groundbeamTopBarCount, groundbeamBottomBar, groundbeamBottomBarCount, groundbeamStirrup, groundbeamStirrupSpacing);
+        }
+        return getBeamConcrete() * REBAR_RATIO_BY_COMPONENT.groundbeam.standard;
     };
 
     const structureFormworkResult = structureType === 'parapet' ? getParapetFormwork()
@@ -632,6 +1158,7 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
                     { id: 'concrete', label: '混凝土用量' },
                     { id: 'rebar', label: '鋼筋重量' },
                     { id: 'formwork', label: '模板面積' },
+                    { id: 'component', label: '構件計算' },
                 ].map(item => (
                     <button
                         key={item.id}
@@ -1510,6 +2037,10 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
                                             ))}
                                         </div>
                                     </div>
+                                    {/* 法規參照 */}
+                                    {showRegulations && (
+                                        <RegulationReference componentType="wall" />
+                                    )}
                                     <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
                                         <strong>公式:</strong> 長度 × 高度 × {wallDoubleSided ? '2(雙面)' : '1(單面)'} × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getWallFormwork())} m²</span>
                                     </div>
@@ -1551,11 +2082,78 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
                                             ))}
                                         </div>
                                     </div>
+                                    {/* 法規參照與常用配筋 */}
+                                    {showRegulations && (
+                                        <div className="space-y-2">
+                                            <RegulationReference componentType="floor" />
+                                            <PresetRebarInfo preset={floorPreset} type="slab" />
+                                        </div>
+                                    )}
                                     <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
                                         <strong>公式:</strong> 長度 × 寬度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getFloorFormwork())} m²</span>
                                     </div>
                                 </div>
                             )}
+
+                            {/* Phase 2: 模板進階設定 */}
+                            <details className="group">
+                                <summary className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-orange-700 transition-colors">
+                                    <span className="transform transition-transform group-open:rotate-90">▶</span>
+                                    模板進階設定
+                                    <span className="text-xs text-gray-400 font-normal">(類型、施工條件、開口扣除)</span>
+                                </summary>
+                                <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-100 space-y-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">模板類型</label>
+                                            <select
+                                                value={formworkType}
+                                                onChange={(e) => setFormworkType(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm bg-white"
+                                            >
+                                                {FORMWORK_TYPES.map(t => (
+                                                    <option key={t.value} value={t.value}>{t.label} (×{t.coefficient})</option>
+                                                ))}
+                                            </select>
+                                            <div className="text-[10px] text-gray-400 mt-1">
+                                                {FORMWORK_TYPES.find(t => t.value === formworkType)?.desc}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">施工條件</label>
+                                            <select
+                                                value={constructionCondition}
+                                                onChange={(e) => setConstructionCondition(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm bg-white"
+                                            >
+                                                {CONSTRUCTION_CONDITIONS.map(c => (
+                                                    <option key={c.value} value={c.value}>{c.label} (×{c.coefficient})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">開口扣除</label>
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    value={openingDeduction}
+                                                    onChange={(e) => setOpeningDeduction(parseFloat(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                                                    min="0"
+                                                    step="0.1"
+                                                    placeholder="0"
+                                                />
+                                                <span className="text-xs text-gray-500">m²</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* 係數摘要 */}
+                                    <div className="text-xs text-orange-700 bg-orange-100 p-2 rounded">
+                                        <strong>成本係數:</strong> 模板類型 ×{FORMWORK_TYPES.find(t => t.value === formworkType)?.coefficient || 1} × 施工條件 ×{CONSTRUCTION_CONDITIONS.find(c => c.value === constructionCondition)?.coefficient || 1} = <span className="font-bold">×{((FORMWORK_TYPES.find(t => t.value === formworkType)?.coefficient || 1) * (CONSTRUCTION_CONDITIONS.find(c => c.value === constructionCondition)?.coefficient || 1)).toFixed(2)}</span>
+                                        {openingDeduction > 0 && <span className="ml-2">| 扣除開口: -{openingDeduction} m²</span>}
+                                    </div>
+                                </div>
+                            </details>
 
                             <WastageControl
                                 wastage={formworkWastage}
@@ -1585,6 +2183,908 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
                             />
                         </>
                     )}
+                </div>
+            )}
+
+            {/* 構件計算 */}
+            {calcType === 'component' && (
+                <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
+                    <div className="font-medium text-gray-700 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full"></span>
+                        構件計算器
+                        <span className="text-xs text-gray-500 font-normal">(依構件類型計算模板面積與鋼筋用量)</span>
+                    </div>
+
+                    {/* 構件類型選擇 */}
+                    <div className="flex gap-2 flex-wrap">
+                        {[
+                            { id: 'column', label: '🏛️ 柱子', color: 'green' },
+                            { id: 'beam', label: '🔲 梁', color: 'blue' },
+                            { id: 'floor', label: '📋 樓板', color: 'cyan' },
+                            { id: 'wall', label: '🧱 牆體', color: 'purple' },
+                            { id: 'parapet', label: '🏠 女兒牆', color: 'orange' },
+                            { id: 'groundbeam', label: '📐 地梁', color: 'amber' },
+                            { id: 'foundation', label: '🔳 基礎', color: 'gray' },
+                        ].map(comp => (
+                            <button
+                                key={comp.id}
+                                onClick={() => setStructureType(comp.id)}
+                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${structureType === comp.id
+                                    ? 'bg-orange-500 text-white shadow-md'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                            >
+                                {comp.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 柱子計算 */}
+                    {structureType === 'column' && (
+                        <div className="bg-gradient-to-br from-green-50 to-white rounded-lg p-4 space-y-4 border border-green-100">
+                            <div className="font-medium text-green-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                柱子材料計算
+                                <span className="text-xs text-gray-500 font-normal">(模板 + 混凝土 + 鋼筋)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <SelectField
+                                    label="柱子規格"
+                                    value={columnPreset}
+                                    onChange={setColumnPreset}
+                                    options={COLUMN_PRESETS.map(p => ({ value: p.value, label: p.label }))}
+                                />
+                                <InputField label="柱高" value={columnHeight} onChange={setColumnHeight} unit="m" placeholder="0" />
+                                <InputField label="數量" value={columnCount} onChange={setColumnCount} unit="支" placeholder="1" />
+                            </div>
+                            {columnPreset === 'custom' && (
+                                <div className="grid grid-cols-3 gap-3">
+                                    <InputField label="柱寬" value={columnCustomWidth} onChange={setColumnCustomWidth} unit="cm" placeholder="0" />
+                                    <InputField label="柱深" value={columnCustomDepth} onChange={setColumnCustomDepth} unit="cm" placeholder="0" />
+                                    <InputField label="或圓柱直徑" value={columnCustomDiameter} onChange={setColumnCustomDiameter} unit="cm" placeholder="0" />
+                                </div>
+                            )}
+                            {/* 法規參照與常用配筋 */}
+                            {showRegulations && (
+                                <div className="space-y-2">
+                                    <RegulationReference componentType="column" />
+                                    <PresetRebarInfo preset={columnPreset} type="column" />
+                                </div>
+                            )}
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> {COLUMN_PRESETS.find(p => p.value === columnPreset)?.type === 'round' ? 'π × 直徑' : '(寬+深) × 2'} × 高度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getColumnFormwork())} m²</span>
+                            </div>
+                            {/* 進階配筋設定 */}
+                            <details className="group" open={useAdvancedRebar}>
+                                <summary
+                                    className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-green-700 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setUseAdvancedRebar(!useAdvancedRebar);
+                                    }}
+                                >
+                                    <span className={`transform transition-transform ${useAdvancedRebar ? 'rotate-90' : ''}`}>▶</span>
+                                    進階配筋設定
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        {useAdvancedRebar ? '(精確計算模式)' : '(快速估算模式)'}
+                                    </span>
+                                </summary>
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                                    <div className="text-xs font-medium text-gray-500">主筋配置</div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <SelectField
+                                            label="主筋號數"
+                                            value={columnMainBar}
+                                            onChange={setColumnMainBar}
+                                            options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="主筋根數"
+                                            value={columnMainBarCount}
+                                            onChange={(v) => setColumnMainBarCount(parseInt(v))}
+                                            options={COLUMN_MAIN_BAR_COUNT.map(c => ({ value: c.value, label: c.label }))}
+                                        />
+                                        <SelectField
+                                            label="混凝土規格"
+                                            value={columnConcreteGrade}
+                                            onChange={(v) => setColumnConcreteGrade(parseInt(v))}
+                                            options={CONCRETE_GRADES.map(c => ({ value: c.value, label: `${c.label} ${c.desc}` }))}
+                                        />
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-500">箍筋配置</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <SelectField
+                                            label="箍筋號數"
+                                            value={columnStirrup}
+                                            onChange={setColumnStirrup}
+                                            options={REBAR_SIZES.slice(0, 4).map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="箍筋間距"
+                                            value={columnStirrupSpacing}
+                                            onChange={(v) => setColumnStirrupSpacing(parseInt(v))}
+                                            options={REBAR_SPACING_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                                        />
+                                    </div>
+                                </div>
+                                {useAdvancedRebar && (
+                                    <div className="text-xs text-green-600 bg-green-50 p-2 rounded mt-2 border border-green-200">
+                                        <strong>精確計算:</strong> {columnMainBarCount}根{columnMainBar}主筋 + {columnStirrup}@{columnStirrupSpacing}mm箍筋
+                                    </div>
+                                )}
+                            </details>
+                            {/* 三項結果顯示 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <ResultDisplay
+                                    label="模板面積"
+                                    value={getColumnFormwork()}
+                                    unit="m²"
+                                    wastageValue={applyWastage(getColumnFormwork(), formworkWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                    subType="構件-柱子"
+                                />
+                                <ResultDisplay
+                                    label="混凝土"
+                                    value={getColumnConcrete()}
+                                    unit="m³"
+                                    wastageValue={applyWastage(getColumnConcrete(), concreteWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
+                                    subType="構件-柱子"
+                                />
+                                <ResultDisplay
+                                    label="鋼筋"
+                                    value={getColumnRebar()}
+                                    unit="kg"
+                                    wastageValue={applyWastage(getColumnRebar(), rebarWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                    subType="構件-柱子"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 梁計算 */}
+                    {structureType === 'beam' && (
+                        <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-4 space-y-4 border border-blue-100">
+                            <div className="font-medium text-blue-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                梁材料計算
+                                <span className="text-xs text-gray-500 font-normal">(模板 + 混凝土 + 鋼筋)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <SelectField
+                                    label="梁規格"
+                                    value={beamPreset}
+                                    onChange={setBeamPreset}
+                                    options={GROUND_BEAM_PRESETS.map(p => ({ value: p.value, label: `${p.label} ${p.width ? `(${p.width}×${p.height}cm)` : ''}` }))}
+                                />
+                                <InputField label="長度" value={beamLength} onChange={setBeamLength} unit="m" placeholder="0" />
+                                <InputField label="數量" value={beamCount} onChange={setBeamCount} unit="支" placeholder="1" />
+                                <div className="flex items-end pb-2">
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={beamIncludeBottom}
+                                            onChange={(e) => setBeamIncludeBottom(e.target.checked)}
+                                            className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                        />
+                                        含底模
+                                    </label>
+                                </div>
+                            </div>
+                            {beamPreset === 'custom' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <InputField label="梁寬" value={beamCustomWidth} onChange={setBeamCustomWidth} unit="cm" placeholder="0" />
+                                    <InputField label="梁高" value={beamCustomHeight} onChange={setBeamCustomHeight} unit="cm" placeholder="0" />
+                                </div>
+                            )}
+                            {/* 法規參照與常用配筋 */}
+                            {showRegulations && (
+                                <div className="space-y-2">
+                                    <RegulationReference componentType="beam" />
+                                    <PresetRebarInfo preset={beamPreset} type="beam" />
+                                </div>
+                            )}
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> (梁高×2{beamIncludeBottom ? '+梁寬' : ''}) × 長度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getBeamFormwork())} m²</span>
+                            </div>
+                            {/* 進階配筋設定 */}
+                            <details className="group" open={useAdvancedRebar}>
+                                <summary
+                                    className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-blue-700 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setUseAdvancedRebar(!useAdvancedRebar);
+                                    }}
+                                >
+                                    <span className={`transform transition-transform ${useAdvancedRebar ? 'rotate-90' : ''}`}>▶</span>
+                                    進階配筋設定
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        {useAdvancedRebar ? '(精確計算模式)' : '(快速估算模式)'}
+                                    </span>
+                                </summary>
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                                    <div className="text-xs font-medium text-gray-500">上筋配置</div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <SelectField
+                                            label="上筋號數"
+                                            value={beamTopBar}
+                                            onChange={setBeamTopBar}
+                                            options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="上筋根數"
+                                            value={beamTopBarCount}
+                                            onChange={(v) => setBeamTopBarCount(parseInt(v))}
+                                            options={[2, 3, 4, 5, 6].map(n => ({ value: n, label: `${n}根` }))}
+                                        />
+                                        <SelectField
+                                            label="混凝土規格"
+                                            value={beamConcreteGrade}
+                                            onChange={(v) => setBeamConcreteGrade(parseInt(v))}
+                                            options={CONCRETE_GRADES.map(c => ({ value: c.value, label: `${c.label} ${c.desc}` }))}
+                                        />
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-500">下筋配置</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <SelectField
+                                            label="下筋號數"
+                                            value={beamBottomBar}
+                                            onChange={setBeamBottomBar}
+                                            options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="下筋根數"
+                                            value={beamBottomBarCount}
+                                            onChange={(v) => setBeamBottomBarCount(parseInt(v))}
+                                            options={[2, 3, 4, 5, 6, 8].map(n => ({ value: n, label: `${n}根` }))}
+                                        />
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-500">箍筋配置</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <SelectField
+                                            label="箍筋號數"
+                                            value={beamStirrup}
+                                            onChange={setBeamStirrup}
+                                            options={REBAR_SIZES.slice(0, 4).map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="箍筋間距"
+                                            value={beamStirrupSpacing}
+                                            onChange={(v) => setBeamStirrupSpacing(parseInt(v))}
+                                            options={REBAR_SPACING_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                                        />
+                                    </div>
+                                </div>
+                                {useAdvancedRebar && (
+                                    <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded mt-2 border border-blue-200">
+                                        <strong>精確計算:</strong> 上筋{beamTopBarCount}根{beamTopBar} + 下筋{beamBottomBarCount}根{beamBottomBar} + {beamStirrup}@{beamStirrupSpacing}mm箍筋
+                                    </div>
+                                )}
+                            </details>
+                            {/* 三項結果顯示 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <ResultDisplay
+                                    label="模板面積"
+                                    value={getBeamFormwork()}
+                                    unit="m²"
+                                    wastageValue={applyWastage(getBeamFormwork(), formworkWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                    subType="構件-梁"
+                                />
+                                <ResultDisplay
+                                    label="混凝土"
+                                    value={getBeamConcrete()}
+                                    unit="m³"
+                                    wastageValue={applyWastage(getBeamConcrete(), concreteWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
+                                    subType="構件-梁"
+                                />
+                                <ResultDisplay
+                                    label="鋼筋"
+                                    value={getBeamRebar()}
+                                    unit="kg"
+                                    wastageValue={applyWastage(getBeamRebar(), rebarWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                    subType="構件-梁"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 樓板計算 */}
+                    {structureType === 'floor' && (
+                        <div className="bg-gradient-to-br from-cyan-50 to-white rounded-lg p-4 space-y-4 border border-cyan-100">
+                            <div className="font-medium text-cyan-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
+                                樓板材料計算
+                                <span className="text-xs text-gray-500 font-normal">(模板 + 混凝土 + 鋼筋)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <SelectField
+                                    label="樓板規格"
+                                    value={floorPreset}
+                                    onChange={setFloorPreset}
+                                    options={FLOOR_THICKNESS_PRESETS.map(p => ({ value: p.value, label: `${p.label}` }))}
+                                />
+                                <InputField label="長度" value={floorLength} onChange={setFloorLength} unit="m" placeholder="0" />
+                                <InputField label="寬度" value={floorWidth} onChange={setFloorWidth} unit="m" placeholder="0" />
+                                <InputField label="數量" value={floorCount} onChange={setFloorCount} unit="處" placeholder="1" />
+                            </div>
+                            {floorPreset === 'custom' && (
+                                <InputField label="自訂厚度" value={floorCustomThickness} onChange={setFloorCustomThickness} unit="cm" placeholder="0" />
+                            )}
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> 長度 × 寬度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getFloorFormwork())} m²</span>
+                            </div>
+                            {/* 進階配筋設定 */}
+                            <details className="group" open={useAdvancedRebar}>
+                                <summary
+                                    className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-cyan-700 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setUseAdvancedRebar(!useAdvancedRebar);
+                                    }}
+                                >
+                                    <span className={`transform transition-transform ${useAdvancedRebar ? 'rotate-90' : ''}`}>▶</span>
+                                    進階配筋設定
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        {useAdvancedRebar ? '(精確計算模式)' : '(快速估算模式)'}
+                                    </span>
+                                </summary>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <SelectField
+                                        label="鋼筋號數"
+                                        value={floorRebarSize}
+                                        onChange={setFloorRebarSize}
+                                        options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                    />
+                                    <SelectField
+                                        label="配筋間距"
+                                        value={floorRebarSpacing}
+                                        onChange={(v) => setFloorRebarSpacing(parseInt(v))}
+                                        options={REBAR_SPACING_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                                    />
+                                    <SelectField
+                                        label="配筋層數"
+                                        value={floorRebarLayer}
+                                        onChange={setFloorRebarLayer}
+                                        options={REBAR_LAYER_OPTIONS.map(l => ({ value: l.value, label: l.label }))}
+                                    />
+                                    <SelectField
+                                        label="混凝土規格"
+                                        value={floorConcreteGrade}
+                                        onChange={(v) => setFloorConcreteGrade(parseInt(v))}
+                                        options={CONCRETE_GRADES.map(c => ({ value: c.value, label: `${c.label} ${c.desc}` }))}
+                                    />
+                                </div>
+                                {useAdvancedRebar && (
+                                    <div className="text-xs text-cyan-600 bg-cyan-50 p-2 rounded mt-2 border border-cyan-200">
+                                        <strong>精確計算:</strong> {floorRebarSize} @{floorRebarSpacing}mm {floorRebarLayer === 'double' ? '雙層' : '單層'}雙向配筋
+                                    </div>
+                                )}
+                            </details>
+                            {/* 三項結果顯示 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <ResultDisplay
+                                    label="模板面積"
+                                    value={getFloorFormwork()}
+                                    unit="m²"
+                                    wastageValue={applyWastage(getFloorFormwork(), formworkWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                    subType="構件-樓板"
+                                />
+                                <ResultDisplay
+                                    label="混凝土"
+                                    value={getFloorConcrete()}
+                                    unit="m³"
+                                    wastageValue={applyWastage(getFloorConcrete(), concreteWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
+                                    subType="構件-樓板"
+                                />
+                                <ResultDisplay
+                                    label="鋼筋"
+                                    value={getFloorRebar()}
+                                    unit="kg"
+                                    wastageValue={applyWastage(getFloorRebar(), rebarWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                    subType="構件-樓板"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 牆體計算 */}
+                    {structureType === 'wall' && (
+                        <div className="bg-gradient-to-br from-purple-50 to-white rounded-lg p-4 space-y-4 border border-purple-100">
+                            <div className="font-medium text-purple-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                                牆壁材料計算
+                                <span className="text-xs text-gray-500 font-normal">(模板 + 混凝土 + 鋼筋)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                <SelectField
+                                    label="牆壁規格"
+                                    value={wallPreset}
+                                    onChange={setWallPreset}
+                                    options={WALL_THICKNESS_PRESETS.map(p => ({ value: p.value, label: `${p.label}` }))}
+                                />
+                                <InputField label="長度" value={wallLength} onChange={setWallLength} unit="m" placeholder="0" />
+                                <InputField label="高度" value={wallHeight} onChange={setWallHeight} unit="m" placeholder="0" />
+                                <InputField label="數量" value={wallCount} onChange={setWallCount} unit="面" placeholder="1" />
+                                <div className="flex items-end pb-2">
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={wallDoubleSided}
+                                            onChange={(e) => setWallDoubleSided(e.target.checked)}
+                                            className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                        />
+                                        雙面模板
+                                    </label>
+                                </div>
+                            </div>
+                            {wallPreset === 'custom' && (
+                                <InputField label="自訂厚度" value={wallCustomThickness} onChange={setWallCustomThickness} unit="cm" placeholder="0" />
+                            )}
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> 長度 × 高度 × {wallDoubleSided ? '2(雙面)' : '1(單面)'} × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getWallFormwork())} m²</span>
+                            </div>
+                            {/* 進階配筋設定 */}
+                            <details className="group" open={useAdvancedRebar}>
+                                <summary
+                                    className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-purple-700 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setUseAdvancedRebar(!useAdvancedRebar);
+                                    }}
+                                >
+                                    <span className={`transform transition-transform ${useAdvancedRebar ? 'rotate-90' : ''}`}>▶</span>
+                                    進階配筋設定
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        {useAdvancedRebar ? '(精確計算模式)' : '(快速估算模式)'}
+                                    </span>
+                                </summary>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <SelectField
+                                        label="鋼筋號數"
+                                        value={wallRebarSize}
+                                        onChange={setWallRebarSize}
+                                        options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                    />
+                                    <SelectField
+                                        label="配筋間距"
+                                        value={wallRebarSpacing}
+                                        onChange={(v) => setWallRebarSpacing(parseInt(v))}
+                                        options={REBAR_SPACING_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                                    />
+                                    <SelectField
+                                        label="配筋層數"
+                                        value={wallRebarLayer}
+                                        onChange={setWallRebarLayer}
+                                        options={REBAR_LAYER_OPTIONS.map(l => ({ value: l.value, label: l.label }))}
+                                    />
+                                    <SelectField
+                                        label="混凝土規格"
+                                        value={wallConcreteGrade}
+                                        onChange={(v) => setWallConcreteGrade(parseInt(v))}
+                                        options={CONCRETE_GRADES.map(c => ({ value: c.value, label: `${c.label} ${c.desc}` }))}
+                                    />
+                                </div>
+                                {useAdvancedRebar && (
+                                    <div className="text-xs text-purple-600 bg-purple-50 p-2 rounded mt-2 border border-purple-200">
+                                        <strong>精確計算:</strong> {wallRebarSize} @{wallRebarSpacing}mm {wallRebarLayer === 'double' ? '雙層' : '單層'}雙向配筋
+                                    </div>
+                                )}
+                            </details>
+                            {/* 三項結果顯示 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <ResultDisplay
+                                    label="模板面積"
+                                    value={getWallFormwork()}
+                                    unit="m²"
+                                    wastageValue={applyWastage(getWallFormwork(), formworkWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                    subType="構件-牆"
+                                />
+                                <ResultDisplay
+                                    label="混凝土"
+                                    value={getWallConcrete()}
+                                    unit="m³"
+                                    wastageValue={applyWastage(getWallConcrete(), concreteWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
+                                    subType="構件-牆"
+                                />
+                                <ResultDisplay
+                                    label="鋼筋"
+                                    value={getWallRebar()}
+                                    unit="kg"
+                                    wastageValue={applyWastage(getWallRebar(), rebarWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                    subType="構件-牆"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 女兒牆計算 */}
+                    {structureType === 'parapet' && (
+                        <div className="bg-gradient-to-br from-orange-50 to-white rounded-lg p-4 space-y-4 border border-orange-100">
+                            <div className="font-medium text-orange-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                女兒牆材料計算
+                                <span className="text-xs text-gray-500 font-normal">(模板 + 混凝土 + 鋼筋)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <InputField label="周長/長度" value={parapetLength} onChange={setParapetLength} unit="m" placeholder="0" />
+                                <InputField label="高度" value={parapetHeight} onChange={setParapetHeight} unit="m" placeholder="0" />
+                                <div className="flex-1">
+                                    <label className="block text-xs text-gray-500 mb-1">厚度</label>
+                                    <select
+                                        value={parapetThickness}
+                                        onChange={(e) => setParapetThickness(e.target.value === 'custom' ? 'custom' : parseInt(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm bg-white"
+                                    >
+                                        {PARAPET_THICKNESS_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <InputField label="數量" value={parapetCount} onChange={setParapetCount} unit="段" placeholder="1" />
+                            </div>
+                            {parapetThickness === 'custom' && (
+                                <InputField label="自訂厚度" value={parapetCustomThickness} onChange={setParapetCustomThickness} unit="cm" placeholder="0" />
+                            )}
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> 長度 × 高度 × 2(雙面) × 數量 = {parapetLength || 0} × {parapetHeight || 0} × 2 × {parapetCount || 1} = <span className="text-orange-600 font-bold">{formatNumber(getParapetFormwork())} m²</span>
+                            </div>
+                            {/* 法規參照 */}
+                            {showRegulations && (
+                                <RegulationReference componentType="parapet" />
+                            )}
+                            <details className="group" open={useAdvancedRebar}>
+                                <summary
+                                    className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-orange-700 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setUseAdvancedRebar(!useAdvancedRebar);
+                                    }}
+                                >
+                                    <span className={`transform transition-transform ${useAdvancedRebar ? 'rotate-90' : ''}`}>▶</span>
+                                    進階配筋設定
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        {useAdvancedRebar ? '(精確計算模式)' : '(快速估算模式)'}
+                                    </span>
+                                </summary>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <SelectField
+                                        label="鋼筋號數"
+                                        value={parapetRebarSize}
+                                        onChange={setParapetRebarSize}
+                                        options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                    />
+                                    <SelectField
+                                        label="配筋間距"
+                                        value={parapetRebarSpacing}
+                                        onChange={(v) => setParapetRebarSpacing(parseInt(v))}
+                                        options={REBAR_SPACING_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                                    />
+                                    <SelectField
+                                        label="配筋層數"
+                                        value={parapetRebarLayer}
+                                        onChange={setParapetRebarLayer}
+                                        options={REBAR_LAYER_OPTIONS.map(l => ({ value: l.value, label: l.label }))}
+                                    />
+                                    <SelectField
+                                        label="混凝土規格"
+                                        value={parapetConcreteGrade}
+                                        onChange={(v) => setParapetConcreteGrade(parseInt(v))}
+                                        options={CONCRETE_GRADES.map(c => ({ value: c.value, label: `${c.label} ${c.desc}` }))}
+                                    />
+                                </div>
+                                {useAdvancedRebar && (
+                                    <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded mt-2 border border-orange-200">
+                                        <strong>精確計算:</strong> {parapetRebarSize} @{parapetRebarSpacing}mm {parapetRebarLayer === 'double' ? '雙層' : '單層'}雙向配筋
+                                    </div>
+                                )}
+                            </details>
+                            {/* 三項結果顯示 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <ResultDisplay
+                                    label="模板面積"
+                                    value={getParapetFormwork()}
+                                    unit="m²"
+                                    wastageValue={applyWastage(getParapetFormwork(), formworkWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                    subType="構件-女兒牆"
+                                />
+                                <ResultDisplay
+                                    label="混凝土"
+                                    value={getParapetConcrete()}
+                                    unit="m³"
+                                    wastageValue={applyWastage(getParapetConcrete(), concreteWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
+                                    subType="構件-女兒牆"
+                                />
+                                <ResultDisplay
+                                    label="鋼筋"
+                                    value={getParapetRebar()}
+                                    unit="kg"
+                                    wastageValue={applyWastage(getParapetRebar(), rebarWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                    subType="構件-女兒牆"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 地梁計算 */}
+                    {structureType === 'groundbeam' && (
+                        <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg p-4 space-y-4 border border-amber-100">
+                            <div className="font-medium text-amber-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                地梁材料計算
+                                <span className="text-xs text-gray-500 font-normal">(模板 + 混凝土 + 鋼筋)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <SelectField
+                                    label="地梁規格"
+                                    value={beamPreset}
+                                    onChange={setBeamPreset}
+                                    options={GROUND_BEAM_PRESETS.map(p => ({ value: p.value, label: `${p.label} ${p.width ? `(${p.width}×${p.height}cm)` : ''}` }))}
+                                />
+                                <InputField label="長度" value={beamLength} onChange={setBeamLength} unit="m" placeholder="0" />
+                                <InputField label="數量" value={beamCount} onChange={setBeamCount} unit="支" placeholder="1" />
+                                <div className="flex items-end pb-2">
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={beamIncludeBottom}
+                                            onChange={(e) => setBeamIncludeBottom(e.target.checked)}
+                                            className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                        />
+                                        含底模
+                                    </label>
+                                </div>
+                            </div>
+                            {beamPreset === 'custom' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <InputField label="梁寬" value={beamCustomWidth} onChange={setBeamCustomWidth} unit="cm" placeholder="0" />
+                                    <InputField label="梁高" value={beamCustomHeight} onChange={setBeamCustomHeight} unit="cm" placeholder="0" />
+                                </div>
+                            )}
+                            {/* 地梁規格參考表 */}
+                            <div className="bg-white p-3 rounded border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-2">常用規格參考:</div>
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                                    {GROUND_BEAM_PRESETS.filter(p => p.value !== 'custom').map(p => (
+                                        <div key={p.value} className={`p-2 rounded border text-center ${beamPreset === p.value ? 'bg-orange-100 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
+                                            <div className="font-bold">{p.value}</div>
+                                            <div className="text-gray-600">{p.width}×{p.height}cm</div>
+                                            <div className="text-gray-400 text-[10px]">{p.desc}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> (梁高×2{beamIncludeBottom ? '+梁寬' : ''}) × 長度 × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getBeamFormwork())} m²</span>
+                            </div>
+                            {/* 法規參照與常用配筋 */}
+                            {showRegulations && (
+                                <div className="space-y-2">
+                                    <RegulationReference componentType="groundbeam" />
+                                    <PresetRebarInfo preset={beamPreset} type="groundbeam" />
+                                </div>
+                            )}
+                            <details className="group" open={useAdvancedRebar}>
+                                <summary
+                                    className="text-sm font-medium text-gray-600 cursor-pointer flex items-center gap-2 hover:text-amber-700 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setUseAdvancedRebar(!useAdvancedRebar);
+                                    }}
+                                >
+                                    <span className={`transform transition-transform ${useAdvancedRebar ? 'rotate-90' : ''}`}>▶</span>
+                                    進階配筋設定
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        {useAdvancedRebar ? '(精確計算模式)' : '(快速估算模式)'}
+                                    </span>
+                                </summary>
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                                    <div className="text-xs font-medium text-gray-500">上筋配置</div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <SelectField
+                                            label="上筋號數"
+                                            value={groundbeamTopBar}
+                                            onChange={setGroundbeamTopBar}
+                                            options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="上筋根數"
+                                            value={groundbeamTopBarCount}
+                                            onChange={(v) => setGroundbeamTopBarCount(parseInt(v))}
+                                            options={[2, 3, 4, 5, 6].map(n => ({ value: n, label: `${n}根` }))}
+                                        />
+                                        <SelectField
+                                            label="混凝土規格"
+                                            value={groundbeamConcreteGrade}
+                                            onChange={(v) => setGroundbeamConcreteGrade(parseInt(v))}
+                                            options={CONCRETE_GRADES.map(c => ({ value: c.value, label: `${c.label} ${c.desc}` }))}
+                                        />
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-500">下筋配置</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <SelectField
+                                            label="下筋號數"
+                                            value={groundbeamBottomBar}
+                                            onChange={setGroundbeamBottomBar}
+                                            options={REBAR_SIZES.map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="下筋根數"
+                                            value={groundbeamBottomBarCount}
+                                            onChange={(v) => setGroundbeamBottomBarCount(parseInt(v))}
+                                            options={[2, 3, 4, 5, 6, 8].map(n => ({ value: n, label: `${n}根` }))}
+                                        />
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-500">箍筋配置</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <SelectField
+                                            label="箍筋號數"
+                                            value={groundbeamStirrup}
+                                            onChange={setGroundbeamStirrup}
+                                            options={REBAR_SIZES.slice(0, 4).map(r => ({ value: r.value, label: r.label }))}
+                                        />
+                                        <SelectField
+                                            label="箍筋間距"
+                                            value={groundbeamStirrupSpacing}
+                                            onChange={(v) => setGroundbeamStirrupSpacing(parseInt(v))}
+                                            options={REBAR_SPACING_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                                        />
+                                    </div>
+                                </div>
+                                {useAdvancedRebar && (
+                                    <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded mt-2 border border-amber-200">
+                                        <strong>精確計算:</strong> 上筋{groundbeamTopBarCount}根{groundbeamTopBar} + 下筋{groundbeamBottomBarCount}根{groundbeamBottomBar} + {groundbeamStirrup}@{groundbeamStirrupSpacing}mm箍筋
+                                    </div>
+                                )}
+                            </details>
+                            {/* 三項結果顯示 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <ResultDisplay
+                                    label="模板面積"
+                                    value={getBeamFormwork()}
+                                    unit="m²"
+                                    wastageValue={applyWastage(getBeamFormwork(), formworkWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                    subType="構件-地梁"
+                                />
+                                <ResultDisplay
+                                    label="混凝土"
+                                    value={getBeamConcrete()}
+                                    unit="m³"
+                                    wastageValue={applyWastage(getBeamConcrete(), concreteWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, concreteCost)}
+                                    subType="構件-地梁"
+                                />
+                                <ResultDisplay
+                                    label="鋼筋"
+                                    value={getGroundbeamRebar()}
+                                    unit="kg"
+                                    wastageValue={applyWastage(getGroundbeamRebar(), rebarWastage)}
+                                    onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                        onAddRecord(subType, label, value, unit, wastageValue, rebarCost)}
+                                    subType="構件-地梁"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 基礎計算 */}
+                    {structureType === 'foundation' && (
+                        <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-4 space-y-4 border border-gray-200">
+                            <div className="font-medium text-gray-700 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                                基礎模板計算
+                                <span className="text-xs text-gray-500 font-normal">(四周側面)</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                <InputField label="長度" value={floorLength} onChange={setFloorLength} unit="m" placeholder="0" />
+                                <InputField label="寬度" value={floorWidth} onChange={setFloorWidth} unit="m" placeholder="0" />
+                                <InputField label="深度" value={columnHeight} onChange={setColumnHeight} unit="m" placeholder="0" />
+                                <InputField label="數量" value={floorCount} onChange={setFloorCount} unit="處" placeholder="1" />
+                            </div>
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>公式:</strong> (長+寬)×2 × 深度 × 數量 = ({floorLength || 0}+{floorWidth || 0})×2 × {columnHeight || 0} × {floorCount || 1} =
+                                <span className="text-orange-600 font-bold ml-1">
+                                    {formatNumber(((parseFloat(floorLength) || 0) + (parseFloat(floorWidth) || 0)) * 2 * (parseFloat(columnHeight) || 0) * (parseFloat(floorCount) || 1))} m²
+                                </span>
+                            </div>
+                            <ResultDisplay
+                                label="基礎模板面積"
+                                value={((parseFloat(floorLength) || 0) + (parseFloat(floorWidth) || 0)) * 2 * (parseFloat(columnHeight) || 0) * (parseFloat(floorCount) || 1)}
+                                unit="m²"
+                                wastageValue={applyWastage(((parseFloat(floorLength) || 0) + (parseFloat(floorWidth) || 0)) * 2 * (parseFloat(columnHeight) || 0) * (parseFloat(floorCount) || 1), formworkWastage)}
+                                onAddRecord={(subType, label, value, unit, wastageValue) =>
+                                    onAddRecord(subType, label, value, unit, wastageValue, formworkCost)}
+                                subType="構件-基礎"
+                            />
+                            <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>混凝土體積:</strong> 長 × 寬 × 深 × 數量 =
+                                <span className="text-blue-600 font-bold ml-1">
+                                    {formatNumber((parseFloat(floorLength) || 0) * (parseFloat(floorWidth) || 0) * (parseFloat(columnHeight) || 0) * (parseFloat(floorCount) || 1))} m³
+                                </span>
+                            </div>
+                            {/* 法規參照 */}
+                            {showRegulations && (
+                                <RegulationReference componentType="foundation" />
+                            )}
+                            {/* Phase 3: 素混凝土墊層 */}
+                            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-amber-700 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={foundationLevelingEnabled}
+                                            onChange={(e) => setFoundationLevelingEnabled(e.target.checked)}
+                                            className="rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                                        />
+                                        素混凝土墊層 (Plain Concrete Leveling)
+                                    </label>
+                                    {foundationLevelingEnabled && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500">厚度:</span>
+                                            <input
+                                                type="number"
+                                                value={foundationLevelingThickness}
+                                                onChange={(e) => setFoundationLevelingThickness(parseFloat(e.target.value) || 10)}
+                                                className="w-16 px-2 py-1 border border-gray-200 rounded text-sm text-center"
+                                                min="5"
+                                                max="20"
+                                                step="1"
+                                            />
+                                            <span className="text-xs text-gray-500">cm</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {foundationLevelingEnabled && (
+                                    <div className="text-xs text-amber-700 bg-amber-100 p-2 rounded">
+                                        <strong>墊層體積:</strong> 長 × 寬 × 厚度 × 數量 = {floorLength || 0} × {floorWidth || 0} × {foundationLevelingThickness / 100} × {floorCount || 1} =
+                                        <span className="font-bold ml-1">
+                                            {formatNumber((parseFloat(floorLength) || 0) * (parseFloat(floorWidth) || 0) * (foundationLevelingThickness / 100) * (parseFloat(floorCount) || 1))} m³
+                                        </span>
+                                        <span className="text-gray-500 ml-2">(140kg/cm²低強度混凝土)</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 損耗率控制 */}
+                    <WastageControl
+                        wastage={formworkWastage}
+                        setWastage={setFormworkWastage}
+                        defaultValue={DEFAULT_WASTAGE.formwork}
+                        useCustom={formworkCustomWastage}
+                        setUseCustom={setFormworkCustomWastage}
+                    />
                 </div>
             )}
         </div>
@@ -2276,18 +3776,18 @@ const TileCalculator = ({ onAddRecord, vendors = [] }) => {
                                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">{row.unit === 'ping' ? '坪' : 'm²'}</span>
                                         </div>
                                     </div>
-                                    <div className="col-span-4 sm:col-span-1">
+                                    <div className="col-span-3 sm:col-span-1">
                                         <label className="block text-xs text-gray-500 mb-1">單位</label>
                                         <select value={row.unit} onChange={(e) => updateTileRow(row.id, 'unit', e.target.value)}
-                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            className="w-full px-1.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-orange-500">
                                             <option value="ping">坪</option>
                                             <option value="sqm">m²</option>
                                         </select>
                                     </div>
-                                    <div className="col-span-4 sm:col-span-2">
+                                    <div className="col-span-5 sm:col-span-2">
                                         <label className="block text-xs text-gray-500 mb-1">磁磚尺寸</label>
                                         <select value={row.sizeIdx} onChange={(e) => updateTileRow(row.id, 'sizeIdx', parseInt(e.target.value))}
-                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            className="w-full px-1.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-orange-500">
                                             {TILE_SIZES.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
                                         </select>
                                     </div>
@@ -2298,7 +3798,7 @@ const TileCalculator = ({ onAddRecord, vendors = [] }) => {
                                             {TILE_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                                         </select>
                                     </div>
-                                    <div className="col-span-10 sm:col-span-2 flex items-center">
+                                    <div className="col-span-9 sm:col-span-2 flex items-center">
                                         <div className="flex-1">
                                             <label className="block text-xs text-gray-500 mb-1">片數</label>
                                             <div className="text-sm font-bold text-orange-600">
@@ -3085,8 +4585,12 @@ export const MaterialCalculator = ({
     embedded = false,
     calcRecords: externalCalcRecords,
     setCalcRecords: externalSetCalcRecords,
+    activeCategory = null, // 外部控制的分類（來自 L2 tabs）
 }) => {
     const [activeTab, setActiveTab] = useState('structure');
+
+    // 當有外部 activeCategory 時使用它，否則使用內部狀態
+    const effectiveTab = activeCategory || activeTab;
 
     // CMM API 數據 (含 fallback 到硬編碼常量)
     const { buildingTypes, rebarSpecs, loading: cmmLoading, apiAvailable } = useCmmData();
@@ -3176,7 +4680,7 @@ export const MaterialCalculator = ({
     };
 
     const renderCalculator = () => {
-        switch (activeTab) {
+        switch (effectiveTab) {
             case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} rebarSpecs={rebarSpecs} />;
             case 'masonry': return <MasonryCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('泥作工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('磁磚工程', s, l, v, u, w, c)} vendors={vendors} />;
@@ -3190,32 +4694,34 @@ export const MaterialCalculator = ({
     if (embedded) {
         return (
             <div className="space-y-4">
-                {/* 工項選擇頁籤 */}
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                    {tabs.map(tab => {
-                        const Icon = tab.icon;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all text-sm ${activeTab === tab.id
+                {/* 工項選擇頁籤 - 只有在沒有外部 activeCategory 時才顯示（避免與 L2 重複） */}
+                {!activeCategory && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                        {tabs.map(tab => {
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all text-sm ${effectiveTab === tab.id
                                         ? 'bg-gray-900 text-white'
                                         : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                                    }`}
-                            >
-                                <Icon size={16} />
-                                <span className="font-medium">{tab.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
+                                        }`}
+                                >
+                                    <Icon size={16} />
+                                    <span className="font-medium">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* 計算器區域 */}
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                     {renderCalculator()}
                 </div>
 
-                {/* 計算記錄列表 (唯讀模式) */}
+                {/* 計算記錄列表 */}
                 {calcRecords.length > 0 && (
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
                         <div className="flex items-center justify-between mb-3">
@@ -3250,6 +4756,55 @@ export const MaterialCalculator = ({
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* 匯出到 Google Sheet - Embedded 模式 */}
+                {calcRecords.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                            <FileSpreadsheet size={16} className="text-blue-600" />
+                            <span className="font-medium text-blue-800 text-sm">匯出到 Google Sheet</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={exportName}
+                                onChange={(e) => setExportName(e.target.value)}
+                                placeholder="報表名稱（選填）"
+                                className="flex-1 px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+                            <button
+                                onClick={exportToSheet}
+                                disabled={isExporting}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            >
+                                {isExporting ? (
+                                    <>
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        匯出中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileSpreadsheet size={14} />
+                                        匯出
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {exportedSheet && (
+                            <div className="mt-3 pt-3 border-t border-blue-200">
+                                <a
+                                    href={exportedSheet.sheetUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                >
+                                    <ExternalLink size={14} />
+                                    開啟已匯出的 Sheet
+                                </a>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

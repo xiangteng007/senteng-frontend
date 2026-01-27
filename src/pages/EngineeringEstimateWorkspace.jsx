@@ -469,18 +469,6 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setCalcDrawerOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                            >
-                                <Calculator size={16} />
-                                計算器
-                                {calcRecords.length > 0 && (
-                                    <span className="px-1.5 py-0.5 bg-gray-900 text-white text-xs rounded">
-                                        {calcRecords.length}
-                                    </span>
-                                )}
-                            </button>
-                            <button
                                 onClick={handleSyncRegulations}
                                 disabled={isSyncingRegulations}
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:opacity-60 transition-colors"
@@ -548,46 +536,83 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
             {/* ===== Main Content ===== */}
             <div className="p-6">
                 {/* Desktop Layout (>=1024px): Side by Side */}
-                <div className="hidden lg:grid lg:grid-cols-2 gap-6">
-                    {/* Left Panel: Catalog / Cost Estimator */}
-                    <WorkspacePanel
-                        title="成本項目庫"
-                        icon={ClipboardList}
-                        badge={`${CATEGORY_L1.find(c => c.id === selectedL1)?.label || ''} / ${CATEGORY_L2[selectedL1]?.find(c => c.id === selectedL2)?.label || ''}`}
-                    >
-                        <CostEstimator
-                            embedded
-                            addToast={addToast}
-                            estimateItems={estimateLines}
-                            setEstimateItems={setEstimateLines}
-                            activeCategory={selectedL2}
-                            categoryL1={selectedL1}
-                        />
-                    </WorkspacePanel>
-
-                    {/* Right Panel: Estimate Sheet */}
-                    <WorkspacePanel
-                        title="估價單"
-                        icon={Layers}
-                        badge={estimateLines.length > 0 ? `${estimateLines.length} 項` : undefined}
-                        actions={
-                            <button
-                                onClick={handleAddManualLine}
-                                className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                <div className="hidden lg:block">
+                    {selectedL1 === 'calculator' ? (
+                        /* Calculator Mode: Full Width MaterialCalculator */
+                        <WorkspacePanel
+                            title="材料計算器"
+                            icon={Calculator}
+                            badge={`${CATEGORY_L2[selectedL1]?.find(c => c.id === selectedL2)?.label || '結構工程'}`}
+                        >
+                            <MaterialCalculator
+                                embedded
+                                addToast={addToast}
+                                onAddRecord={(subType, label, value, unit, wastageValue, costInfo) => {
+                                    /* 將計算結果新增到估價單 */
+                                    const newLine = {
+                                        id: `calc:${Date.now()}`,
+                                        categoryL1: 'calculator',
+                                        categoryL2: selectedL2,
+                                        name: label,
+                                        spec: costInfo?.spec || '',
+                                        unit: unit,
+                                        quantity: wastageValue || value,
+                                        unitPrice: costInfo?.price || 0,
+                                        note: `來源: ${subType}`,
+                                        source: { type: 'calculator' },
+                                    };
+                                    setEstimateLines(prev => [...prev, newLine]);
+                                    addToast?.(`已新增「${label}」至估價單`, 'success');
+                                }}
+                                calcRecords={calcRecords}
+                                setCalcRecords={setCalcRecords}
+                                activeCategory={selectedL2 === 'structure' ? 'structure' : selectedL2}
+                            />
+                        </WorkspacePanel>
+                    ) : (
+                        /* Standard Mode: Two Column Layout */
+                        <div className="grid grid-cols-2 gap-6">
+                            {/* Left Panel: Catalog / Cost Estimator */}
+                            <WorkspacePanel
+                                title="成本項目庫"
+                                icon={ClipboardList}
+                                badge={`${CATEGORY_L1.find(c => c.id === selectedL1)?.label || ''} / ${CATEGORY_L2[selectedL1]?.find(c => c.id === selectedL2)?.label || ''}`}
                             >
-                                <Plus size={12} />
-                                新增
-                            </button>
-                        }
-                    >
-                        <EstimateSheet
-                            lines={estimateLines}
-                            onUpdateLine={handleUpdateLine}
-                            onDeleteLine={handleDeleteLine}
-                            categoryL1={selectedL1}
-                            categoryL2={selectedL2}
-                        />
-                    </WorkspacePanel>
+                                <CostEstimator
+                                    embedded
+                                    addToast={addToast}
+                                    estimateItems={estimateLines}
+                                    setEstimateItems={setEstimateLines}
+                                    activeCategory={selectedL2}
+                                    categoryL1={selectedL1}
+                                />
+                            </WorkspacePanel>
+
+                            {/* Right Panel: Estimate Sheet */}
+                            <WorkspacePanel
+                                title="估價單"
+                                icon={Layers}
+                                badge={estimateLines.length > 0 ? `${estimateLines.length} 項` : undefined}
+                                actions={
+                                    <button
+                                        onClick={handleAddManualLine}
+                                        className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                                    >
+                                        <Plus size={12} />
+                                        新增
+                                    </button>
+                                }
+                            >
+                                <EstimateSheet
+                                    lines={estimateLines}
+                                    onUpdateLine={handleUpdateLine}
+                                    onDeleteLine={handleDeleteLine}
+                                    categoryL1={selectedL1}
+                                    categoryL2={selectedL2}
+                                />
+                            </WorkspacePanel>
+                        </div>
+                    )}
                 </div>
 
                 {/* Tablet Layout (768-1023px): Stacked */}
