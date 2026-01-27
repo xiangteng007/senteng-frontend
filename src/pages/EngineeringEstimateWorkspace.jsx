@@ -5,12 +5,17 @@ import {
     FileSpreadsheet,
     ChevronDown,
     ChevronUp,
-    Download,
     ClipboardList,
     Layers,
     Building2,
-    Home
+    Home,
+    Plus,
+    Trash2,
+    Edit3,
+    ExternalLink
 } from 'lucide-react';
+import CategoryTabs, { CATEGORY_L1, CATEGORY_L2, CategoryTabsL1, CategoryTabsL2 } from '../components/estimate/CategoryTabs';
+import ExportDrawer from '../components/estimate/ExportDrawer';
 import { MaterialCalculator } from './MaterialCalculator';
 import { CostEstimator } from './CostEstimator';
 
@@ -19,17 +24,22 @@ import { CostEstimator } from './CostEstimator';
 // ============================================
 
 // 將 calcRecords 轉換為 estimateItems
-const importCalcRecordsToEstimate = (calcRecords, existingItems) => {
+const importCalcRecordsToEstimate = (calcRecords, existingItems, categoryL1, categoryL2) => {
     const imported = calcRecords.map(record => ({
-        id: `cmm:${record.category}:${record.subType}:${record.label}:${record.spec || ''}`,
+        id: `cmm:${record.category}:${record.subType}:${record.label}:${record.spec || ''}:${Date.now()}`,
+        categoryL1,
+        categoryL2,
         name: record.label,
         spec: record.spec || record.vendor || '',
         unit: record.unit,
-        price: record.price || 0,
+        unitPrice: record.price || 0,
         quantity: record.wastageValue || record.value || 0,
-        note: `${record.note || ''} | src=${record.category}/${record.subType}`,
-        sourceType: 'cmm',
-        importedAt: new Date().toISOString(),
+        note: record.note || '',
+        source: {
+            type: 'calculator',
+            runId: record.id,
+            timestamp: new Date().toISOString(),
+        },
     }));
 
     // 合併規則：相同 name+spec 累加數量
@@ -74,6 +84,7 @@ const WorkspacePanel = ({
     collapsible = false,
     defaultCollapsed = false,
     badge,
+    actions,
     className = ''
 }) => {
     const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -94,11 +105,14 @@ const WorkspacePanel = ({
                         </span>
                     )}
                 </div>
-                {collapsible && (
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                        {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                    </button>
-                )}
+                <div className="flex items-center gap-2">
+                    {actions}
+                    {collapsible && (
+                        <button className="p-1 hover:bg-gray-100 rounded">
+                            {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Panel Content */}
@@ -112,103 +126,310 @@ const WorkspacePanel = ({
 };
 
 // ============================================
+// 估價單行組件
+// ============================================
+
+const EstimateLineRow = ({ line, index, onUpdate, onDelete }) => {
+    const subtotal = (line.quantity || 0) * (line.unitPrice || 0);
+
+    return (
+        <tr className="hover:bg-gray-50 group">
+            <td className="px-3 py-2 text-gray-500 text-sm">{index + 1}</td>
+            <td className="px-3 py-2 font-medium text-gray-900">{line.name}</td>
+            <td className="px-3 py-2 text-gray-600">{line.spec}</td>
+            <td className="px-3 py-2 text-gray-600">{line.unit}</td>
+            <td className="px-3 py-2">
+                <input
+                    type="number"
+                    value={line.quantity}
+                    onChange={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
+                    className="w-20 px-2 py-1 border border-gray-200 rounded text-right focus:outline-none focus:ring-2 focus:ring-gray-900"
+                />
+            </td>
+            <td className="px-3 py-2">
+                <input
+                    type="number"
+                    value={line.unitPrice}
+                    onChange={(e) => onUpdate(line.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-24 px-2 py-1 border border-gray-200 rounded text-right focus:outline-none focus:ring-2 focus:ring-gray-900"
+                />
+            </td>
+            <td className="px-3 py-2 text-right font-medium text-gray-900">
+                {formatCurrency(subtotal)}
+            </td>
+            <td className="px-3 py-2">
+                <button
+                    onClick={() => onDelete(line.id)}
+                    className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <Trash2 size={14} />
+                </button>
+            </td>
+        </tr>
+    );
+};
+
+// ============================================
+// 估價單組件
+// ============================================
+
+const EstimateSheet = ({ lines, onUpdateLine, onDeleteLine, categoryL1, categoryL2 }) => {
+    // 篩選當前分類的項目（或顯示全部）
+    const filteredLines = lines; // 目前顯示全部，可選篩選
+
+    const grandTotal = lines.reduce((sum, line) =>
+        sum + (line.quantity || 0) * (line.unitPrice || 0), 0
+    );
+
+    if (filteredLines.length === 0) {
+        return (
+            <div className="text-center py-12 text-gray-500">
+                <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
+                <p className="font-medium">估價單為空</p>
+                <p className="text-sm mt-1">從左側項目庫加入，或使用計算器匯入</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+                <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="px-3 py-2 text-left text-gray-600 font-medium">#</th>
+                        <th className="px-3 py-2 text-left text-gray-600 font-medium">名稱</th>
+                        <th className="px-3 py-2 text-left text-gray-600 font-medium">規格</th>
+                        <th className="px-3 py-2 text-left text-gray-600 font-medium">單位</th>
+                        <th className="px-3 py-2 text-left text-gray-600 font-medium">數量</th>
+                        <th className="px-3 py-2 text-left text-gray-600 font-medium">單價</th>
+                        <th className="px-3 py-2 text-right text-gray-600 font-medium">小計</th>
+                        <th className="px-3 py-2 w-8"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filteredLines.map((line, index) => (
+                        <EstimateLineRow
+                            key={line.id}
+                            line={line}
+                            index={index}
+                            onUpdate={onUpdateLine}
+                            onDelete={onDeleteLine}
+                        />
+                    ))}
+                </tbody>
+                <tfoot>
+                    <tr className="border-t-2 border-gray-300 bg-gray-50">
+                        <td colSpan="6" className="px-3 py-3 text-right font-bold text-gray-700">
+                            總計
+                        </td>
+                        <td className="px-3 py-3 text-right font-bold text-gray-900 text-lg">
+                            {formatCurrency(grandTotal)}
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    );
+};
+
+// ============================================
+// 計算器抽屜組件
+// ============================================
+
+const CalculatorDrawer = ({
+    open,
+    onClose,
+    categoryL1,
+    categoryL2,
+    calcRecords,
+    setCalcRecords,
+    onImport,
+    addToast
+}) => {
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/30"
+                onClick={onClose}
+            />
+
+            {/* Drawer */}
+            <div
+                className="absolute right-0 top-0 bottom-0 w-full max-w-xl bg-white shadow-2xl flex flex-col"
+                style={{ backdropFilter: 'blur(20px)' }}
+            >
+                {/* Drawer Header */}
+                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Calculator size={20} className="text-gray-600" />
+                        <span className="font-medium">材料計算器</span>
+                        {calcRecords.length > 0 && (
+                            <span className="px-2 py-0.5 bg-gray-900 text-white text-xs rounded-full">
+                                {calcRecords.length}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onImport}
+                            disabled={calcRecords.length === 0}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <ArrowRightLeft size={14} />
+                            匯入估價單
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-gray-100 rounded-lg"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                {/* Drawer Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                    <MaterialCalculator
+                        embedded
+                        addToast={addToast}
+                        calcRecords={calcRecords}
+                        setCalcRecords={setCalcRecords}
+                        activeCategory={categoryL1 === 'construction' ? categoryL2 : 'structure'}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================
 // 主組件
 // ============================================
 
 export const EngineeringEstimateWorkspace = ({ addToast }) => {
-    // 單一狀態源
+    // ===== 導覽狀態 =====
+    const [selectedL1, setSelectedL1] = useState('construction');
+    const [selectedL2, setSelectedL2] = useState('structure');
+
+    // ===== 資料狀態 =====
     const [calcRecords, setCalcRecords] = useState([]);
-    const [estimateItems, setEstimateItems] = useState([]);
+    const [estimateLines, setEstimateLines] = useState([]);
 
-    // UI 狀態 - 使用營建/裝潢作為頂層分類
-    const [activeCategory, setActiveCategory] = useState('construction'); // 'construction' | 'interior'
+    // ===== UI 狀態 =====
+    const [calcDrawerOpen, setCalcDrawerOpen] = useState(false);
+    const [exportDrawerOpen, setExportDrawerOpen] = useState(false);
+    const [mobileView, setMobileView] = useState('catalog'); // 'catalog' | 'sheet' | 'export'
 
-    // 分類定義
-    const CATEGORIES = [
-        { id: 'construction', label: '營建工程', icon: Building2, desc: '結構、鋼筋、混凝土、模板' },
-        { id: 'interior', label: '室內裝潢', icon: Home, desc: '油漆、木作、泥作、水電' },
-    ];
-
-    // URL query 參數處理
+    // ===== URL query 參數處理 =====
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        const focus = params.get('focus');
         const category = params.get('category');
+        const sub = params.get('sub');
 
-        // 支援舊版 URL 參數向後相容
-        if (focus === 'materials' || category === 'construction') {
-            setActiveCategory('construction');
-        } else if (focus === 'cost' || category === 'interior') {
-            setActiveCategory('interior');
+        if (category === 'construction' || category === 'interior') {
+            setSelectedL1(category);
+        }
+        if (sub) {
+            setSelectedL2(sub);
         }
     }, []);
 
-    // 計算總成本
-    const totalCost = estimateItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // ===== L1 變更時重設 L2 =====
+    const handleL1Change = (newL1) => {
+        setSelectedL1(newL1);
+        const firstL2 = CATEGORY_L2[newL1]?.[0]?.id || '';
+        setSelectedL2(firstL2);
+    };
 
-    // 匯入計算記錄到估算清單
-    const handleImportRecords = () => {
+    // ===== 計算統計 =====
+    const grandTotal = estimateLines.reduce((sum, line) =>
+        sum + (line.quantity || 0) * (line.unitPrice || 0), 0
+    );
+
+    // ===== 估價單操作 =====
+    const handleUpdateLine = (id, updates) => {
+        setEstimateLines(prev =>
+            prev.map(line => line.id === id ? { ...line, ...updates } : line)
+        );
+    };
+
+    const handleDeleteLine = (id) => {
+        setEstimateLines(prev => prev.filter(line => line.id !== id));
+    };
+
+    const handleImportFromCalc = () => {
         if (calcRecords.length === 0) {
             addToast?.('沒有計算記錄可匯入', 'warning');
             return;
         }
 
-        const merged = importCalcRecordsToEstimate(calcRecords, estimateItems);
-        setEstimateItems(merged);
+        const merged = importCalcRecordsToEstimate(calcRecords, estimateLines, selectedL1, selectedL2);
+        setEstimateLines(merged);
         addToast?.(`已匯入 ${calcRecords.length} 筆計算記錄`, 'success');
+        setCalcDrawerOpen(false);
     };
 
-    // 清空所有
-    const handleClearAll = () => {
-        setCalcRecords([]);
-        setEstimateItems([]);
-        addToast?.('已清空所有資料', 'info');
+    const handleAddManualLine = () => {
+        const newLine = {
+            id: `manual:${Date.now()}`,
+            categoryL1: selectedL1,
+            categoryL2: selectedL2,
+            name: '新項目',
+            spec: '',
+            unit: '式',
+            quantity: 1,
+            unitPrice: 0,
+            note: '',
+            source: { type: 'manual' },
+        };
+        setEstimateLines(prev => [...prev, newLine]);
     };
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Workspace Header */}
+            {/* ===== Workspace Header ===== */}
             <div
-                className="sticky top-0 z-10 bg-white/90 border-b border-gray-200"
+                className="sticky top-0 z-20 bg-white/95 border-b border-gray-200"
                 style={{
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
                 }}
             >
                 <div className="px-6 py-4">
+                    {/* Title Row */}
                     <div className="flex items-center justify-between">
-                        {/* Title */}
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-gray-900 rounded-lg">
                                 <Calculator size={20} className="text-white" />
                             </div>
                             <div>
                                 <h1 className="text-lg font-bold text-gray-900">工程估算工作區</h1>
-                                <p className="text-xs text-gray-500">材料計算 + 成本估算整合介面</p>
+                                <p className="text-xs text-gray-500">統一導覽 + 估價單式介面</p>
                             </div>
                         </div>
 
-                        {/* Actions */}
+                        {/* Action Buttons */}
                         <div className="flex items-center gap-2">
-                            {/* Import Button */}
                             <button
-                                onClick={handleImportRecords}
-                                disabled={calcRecords.length === 0}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                onClick={() => setCalcDrawerOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                             >
-                                <ArrowRightLeft size={16} />
-                                匯入估算
+                                <Calculator size={16} />
+                                計算器
                                 {calcRecords.length > 0 && (
-                                    <span className="px-1.5 py-0.5 bg-white/20 rounded text-xs">
+                                    <span className="px-1.5 py-0.5 bg-gray-900 text-white text-xs rounded">
                                         {calcRecords.length}
                                     </span>
                                 )}
                             </button>
-
-                            {/* Export Button */}
                             <button
-                                disabled={estimateItems.length === 0}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                onClick={() => setExportDrawerOpen(true)}
+                                disabled={estimateLines.length === 0}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 <FileSpreadsheet size={16} />
                                 匯出
@@ -216,8 +437,8 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                         </div>
                     </div>
 
-                    {/* Summary Bar */}
-                    <div className="mt-4 flex items-center gap-6 text-sm">
+                    {/* Summary Row */}
+                    <div className="mt-3 flex items-center gap-6 text-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                             <span className="text-gray-600">計算記錄</span>
@@ -226,139 +447,185 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
                             <span className="text-gray-600">估算項目</span>
-                            <span className="font-medium text-gray-900">{estimateItems.length} 項</span>
+                            <span className="font-medium text-gray-900">{estimateLines.length} 項</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-gray-600">預估總成本</span>
-                            <span className="font-bold text-gray-900 text-lg">{formatCurrency(totalCost)}</span>
+                            <span className="font-bold text-gray-900 text-lg">{formatCurrency(grandTotal)}</span>
                         </div>
+                    </div>
+
+                    {/* ===== Unified Navigation (L1 + L2) ===== */}
+                    <div className="mt-4 space-y-3">
+                        {/* L1 Tabs */}
+                        <CategoryTabsL1
+                            selected={selectedL1}
+                            onSelect={handleL1Change}
+                        />
+
+                        {/* L2 Tabs */}
+                        <CategoryTabsL2
+                            categoryL1={selectedL1}
+                            selected={selectedL2}
+                            onSelect={setSelectedL2}
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* Category Tabs for Mobile/Tablet (<=1279px) */}
-            <div className="lg:hidden sticky top-[120px] z-10 bg-white border-b border-gray-200 px-4 py-2">
-                <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
-                    {CATEGORIES.map(cat => {
-                        const Icon = cat.icon;
-                        return (
+            {/* ===== Main Content ===== */}
+            <div className="p-6">
+                {/* Desktop Layout (>=1024px): Side by Side */}
+                <div className="hidden lg:grid lg:grid-cols-2 gap-6">
+                    {/* Left Panel: Catalog / Cost Estimator */}
+                    <WorkspacePanel
+                        title="成本項目庫"
+                        icon={ClipboardList}
+                        badge={`${CATEGORY_L1.find(c => c.id === selectedL1)?.label || ''} / ${CATEGORY_L2[selectedL1]?.find(c => c.id === selectedL2)?.label || ''}`}
+                    >
+                        <CostEstimator
+                            embedded
+                            addToast={addToast}
+                            estimateItems={estimateLines}
+                            setEstimateItems={setEstimateLines}
+                            activeCategory={selectedL1 === 'interior' ? selectedL2 : 'paint'}
+                        />
+                    </WorkspacePanel>
+
+                    {/* Right Panel: Estimate Sheet */}
+                    <WorkspacePanel
+                        title="估價單"
+                        icon={Layers}
+                        badge={estimateLines.length > 0 ? `${estimateLines.length} 項` : undefined}
+                        actions={
                             <button
-                                key={cat.id}
-                                onClick={() => setActiveCategory(cat.id)}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-md text-sm font-medium transition-colors ${activeCategory === cat.id
+                                onClick={handleAddManualLine}
+                                className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                            >
+                                <Plus size={12} />
+                                新增
+                            </button>
+                        }
+                    >
+                        <EstimateSheet
+                            lines={estimateLines}
+                            onUpdateLine={handleUpdateLine}
+                            onDeleteLine={handleDeleteLine}
+                            categoryL1={selectedL1}
+                            categoryL2={selectedL2}
+                        />
+                    </WorkspacePanel>
+                </div>
+
+                {/* Tablet Layout (768-1023px): Stacked */}
+                <div className="hidden md:block lg:hidden space-y-6">
+                    <WorkspacePanel
+                        title="成本項目庫"
+                        icon={ClipboardList}
+                        collapsible
+                        defaultCollapsed={false}
+                    >
+                        <CostEstimator
+                            embedded
+                            addToast={addToast}
+                            estimateItems={estimateLines}
+                            setEstimateItems={setEstimateLines}
+                            activeCategory={selectedL1 === 'interior' ? selectedL2 : 'paint'}
+                        />
+                    </WorkspacePanel>
+
+                    <WorkspacePanel
+                        title="估價單"
+                        icon={Layers}
+                        collapsible
+                        defaultCollapsed={false}
+                        badge={estimateLines.length > 0 ? `${estimateLines.length} 項` : undefined}
+                    >
+                        <EstimateSheet
+                            lines={estimateLines}
+                            onUpdateLine={handleUpdateLine}
+                            onDeleteLine={handleDeleteLine}
+                            categoryL1={selectedL1}
+                            categoryL2={selectedL2}
+                        />
+                    </WorkspacePanel>
+                </div>
+
+                {/* Mobile Layout (<768px): Tab-based View Switching */}
+                <div className="block md:hidden">
+                    {/* View Switcher */}
+                    <div className="flex gap-1 p-1 bg-gray-100 rounded-lg mb-4">
+                        {[
+                            { id: 'catalog', label: '項目庫' },
+                            { id: 'sheet', label: '估價單' },
+                        ].map(view => (
+                            <button
+                                key={view.id}
+                                onClick={() => setMobileView(view.id)}
+                                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${mobileView === view.id
                                     ? 'bg-white text-gray-900 shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900'
                                     }`}
                             >
-                                <Icon size={16} />
-                                <span>{cat.label}</span>
+                                {view.label}
                             </button>
-                        );
-                    })}
-                </div>
-            </div>
+                        ))}
+                    </div>
 
-            {/* Main Content */}
-            <div className="p-6">
-                {/* Desktop Layout (>=1280px) */}
-                <div className="hidden lg:grid lg:grid-cols-2 gap-6">
-                    {/* Left Panel: Cost Estimation */}
-                    <WorkspacePanel
-                        title="成本估算"
-                        icon={ClipboardList}
-                        badge={estimateItems.length > 0 ? `${estimateItems.length} 項` : undefined}
-                    >
+                    {/* Mobile Content */}
+                    {mobileView === 'catalog' && (
                         <CostEstimator
                             embedded
                             addToast={addToast}
-                            estimateItems={estimateItems}
-                            setEstimateItems={setEstimateItems}
+                            estimateItems={estimateLines}
+                            setEstimateItems={setEstimateLines}
+                            activeCategory={selectedL1 === 'interior' ? selectedL2 : 'paint'}
                         />
-                    </WorkspacePanel>
-
-                    {/* Right Panel: Material Calculation */}
-                    <WorkspacePanel
-                        title="材料計算"
-                        icon={Layers}
-                        badge={calcRecords.length > 0 ? `${calcRecords.length} 筆` : undefined}
-                        collapsible
-                        defaultCollapsed={false}
-                    >
-                        <MaterialCalculator
-                            embedded
-                            addToast={addToast}
-                            calcRecords={calcRecords}
-                            setCalcRecords={setCalcRecords}
-                        />
-                    </WorkspacePanel>
-                </div>
-
-                {/* Tablet Layout (768-1279px) */}
-                <div className="hidden md:block lg:hidden space-y-6">
-                    {/* Cost Estimation */}
-                    <WorkspacePanel
-                        title="成本估算"
-                        icon={ClipboardList}
-                        badge={estimateItems.length > 0 ? `${estimateItems.length} 項` : undefined}
-                    >
-                        <CostEstimator
-                            embedded
-                            addToast={addToast}
-                            estimateItems={estimateItems}
-                            setEstimateItems={setEstimateItems}
-                        />
-                    </WorkspacePanel>
-
-                    {/* Material Calculation - Collapsible */}
-                    <WorkspacePanel
-                        title="材料計算"
-                        icon={Layers}
-                        badge={calcRecords.length > 0 ? `${calcRecords.length} 筆` : undefined}
-                        collapsible
-                        defaultCollapsed={true}
-                    >
-                        <MaterialCalculator
-                            embedded
-                            addToast={addToast}
-                            calcRecords={calcRecords}
-                            setCalcRecords={setCalcRecords}
-                        />
-                    </WorkspacePanel>
-                </div>
-
-                {/* Mobile Layout (<=767px) - Category-based */}
-                <div className="block md:hidden">
-                    {activeCategory === 'construction' && (
-                        <WorkspacePanel
-                            title="營建工程"
-                            icon={Building2}
-                            badge={calcRecords.length > 0 ? `${calcRecords.length} 筆` : undefined}
-                        >
-                            <MaterialCalculator
-                                embedded
-                                addToast={addToast}
-                                calcRecords={calcRecords}
-                                setCalcRecords={setCalcRecords}
-                            />
-                        </WorkspacePanel>
                     )}
 
-                    {activeCategory === 'interior' && (
-                        <WorkspacePanel
-                            title="室內裝潢"
-                            icon={Home}
-                            badge={estimateItems.length > 0 ? `${estimateItems.length} 項` : undefined}
-                        >
-                            <CostEstimator
-                                embedded
-                                addToast={addToast}
-                                estimateItems={estimateItems}
-                                setEstimateItems={setEstimateItems}
+                    {mobileView === 'sheet' && (
+                        <div className="bg-white rounded-xl border border-gray-200 p-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-medium text-gray-800">估價單</h3>
+                                <button
+                                    onClick={handleAddManualLine}
+                                    className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                                >
+                                    <Plus size={12} />
+                                    新增
+                                </button>
+                            </div>
+                            <EstimateSheet
+                                lines={estimateLines}
+                                onUpdateLine={handleUpdateLine}
+                                onDeleteLine={handleDeleteLine}
+                                categoryL1={selectedL1}
+                                categoryL2={selectedL2}
                             />
-                        </WorkspacePanel>
+                        </div>
                     )}
                 </div>
             </div>
+
+            {/* ===== Calculator Drawer ===== */}
+            <CalculatorDrawer
+                open={calcDrawerOpen}
+                onClose={() => setCalcDrawerOpen(false)}
+                categoryL1={selectedL1}
+                categoryL2={selectedL2}
+                calcRecords={calcRecords}
+                setCalcRecords={setCalcRecords}
+                onImport={handleImportFromCalc}
+                addToast={addToast}
+            />
+
+            {/* ===== Export Drawer ===== */}
+            <ExportDrawer
+                open={exportDrawerOpen}
+                onClose={() => setExportDrawerOpen(false)}
+                estimateLines={estimateLines}
+                addToast={addToast}
+            />
         </div>
     );
 };
