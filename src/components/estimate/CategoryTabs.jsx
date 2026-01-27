@@ -29,19 +29,24 @@ export const CATEGORY_L1 = [
 
 export const CATEGORY_L2 = {
     construction: [
-        { id: 'structure', label: '結構工程', icon: Layers },
+        { id: 'concrete', label: '混凝土', icon: Layers },
+        { id: 'rebar', label: '鋼筋', icon: Grid3X3 },
+        { id: 'formwork', label: '模板', icon: Grid3X3 },
         { id: 'masonry', label: '泥作工程', icon: Hammer },
         { id: 'tile', label: '磁磚工程', icon: Grid3X3 },
         { id: 'coating', label: '塗料工程', icon: Paintbrush },
+        { id: 'waterproof', label: '防水工程', icon: Layers },
+        { id: 'window', label: '門窗工程', icon: Grid3X3 },
+        { id: 'demolition', label: '拆除清運', icon: Hammer },
         { id: 'overview', label: '建築概估', icon: Mountain },
     ],
     interior: [
         { id: 'paint', label: '油漆', icon: Paintbrush },
         { id: 'woodwork', label: '木作', icon: Hammer },
-        { id: 'masonry', label: '泥作', icon: Layers },
+        { id: 'cabinet', label: '系統櫃', icon: Grid3X3 },
         { id: 'electrical', label: '水電', icon: Grid3X3 },
+        { id: 'flooring', label: '地板', icon: Layers },
         { id: 'glass', label: '玻璃', icon: Grid3X3 },
-        { id: 'flooring', label: '地板', icon: Grid3X3 },
     ],
 };
 

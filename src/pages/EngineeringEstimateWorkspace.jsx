@@ -12,7 +12,9 @@ import {
     Plus,
     Trash2,
     Edit3,
-    ExternalLink
+    ExternalLink,
+    RefreshCw,
+    BookOpen
 } from 'lucide-react';
 import CategoryTabs, { CATEGORY_L1, CATEGORY_L2, CategoryTabsL1, CategoryTabsL2 } from '../components/estimate/CategoryTabs';
 import ExportDrawer from '../components/estimate/ExportDrawer';
@@ -173,7 +175,7 @@ const EstimateLineRow = ({ line, index, onUpdate, onDelete }) => {
 // 估價單組件
 // ============================================
 
-const EstimateSheet = ({ lines, onUpdateLine, onDeleteLine, categoryL1, categoryL2 }) => {
+const EstimateSheet = ({ lines, onUpdateLine, onDeleteLine, categoryL1: _categoryL1, categoryL2: _categoryL2 }) => {
     // 篩選當前分類的項目（或顯示全部）
     const filteredLines = lines; // 目前顯示全部，可選篩選
 
@@ -324,6 +326,10 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
     const [exportDrawerOpen, setExportDrawerOpen] = useState(false);
     const [mobileView, setMobileView] = useState('catalog'); // 'catalog' | 'sheet' | 'export'
 
+    // ===== 法規同步狀態 =====
+    const [regulationSyncStatus, setRegulationSyncStatus] = useState(null);
+    const [isSyncingRegulations, setIsSyncingRegulations] = useState(false);
+
     // ===== URL query 參數處理 =====
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -389,6 +395,45 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
         setEstimateLines(prev => [...prev, newLine]);
     };
 
+    // ===== 法規同步處理 =====
+    const handleSyncRegulations = async () => {
+        if (isSyncingRegulations) return;
+
+        setIsSyncingRegulations(true);
+        try {
+            const response = await fetch('/api/v1/regulations/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await response.json();
+            setRegulationSyncStatus(data);
+            addToast?.('法規同步已啟動', 'success');
+
+            // 輪詢狀態
+            const pollStatus = async () => {
+                const statusRes = await fetch('/api/v1/regulations/sync/status');
+                const status = await statusRes.json();
+                setRegulationSyncStatus(status);
+
+                if (status.status === 'running') {
+                    setTimeout(pollStatus, 2000);
+                } else if (status.status === 'completed') {
+                    addToast?.('法規同步完成', 'success');
+                    setIsSyncingRegulations(false);
+                } else if (status.status === 'failed') {
+                    addToast?.('法規同步失敗: ' + (status.message || ''), 'error');
+                    setIsSyncingRegulations(false);
+                } else {
+                    setIsSyncingRegulations(false);
+                }
+            };
+            setTimeout(pollStatus, 1000);
+        } catch {
+            addToast?.('法規同步請求失敗', 'error');
+            setIsSyncingRegulations(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* ===== Workspace Header ===== */}
@@ -424,6 +469,24 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                                     <span className="px-1.5 py-0.5 bg-gray-900 text-white text-xs rounded">
                                         {calcRecords.length}
                                     </span>
+                                )}
+                            </button>
+                            <button
+                                onClick={handleSyncRegulations}
+                                disabled={isSyncingRegulations}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                                title="從全國法規資料庫同步建築法規"
+                            >
+                                <RefreshCw size={16} className={isSyncingRegulations ? 'animate-spin' : ''} />
+                                {isSyncingRegulations ? (
+                                    <>
+                                        同步中...
+                                        {regulationSyncStatus?.progress && (
+                                            <span className="text-xs">({regulationSyncStatus.progress}%)</span>
+                                        )}
+                                    </>
+                                ) : (
+                                    '法規同步'
                                 )}
                             </button>
                             <button
@@ -488,7 +551,8 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                             addToast={addToast}
                             estimateItems={estimateLines}
                             setEstimateItems={setEstimateLines}
-                            activeCategory={selectedL1 === 'interior' ? selectedL2 : 'paint'}
+                            activeCategory={selectedL2}
+                            categoryL1={selectedL1}
                         />
                     </WorkspacePanel>
 
@@ -530,7 +594,8 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                             addToast={addToast}
                             estimateItems={estimateLines}
                             setEstimateItems={setEstimateLines}
-                            activeCategory={selectedL1 === 'interior' ? selectedL2 : 'paint'}
+                            activeCategory={selectedL2}
+                            categoryL1={selectedL1}
                         />
                     </WorkspacePanel>
 
@@ -579,7 +644,8 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
                             addToast={addToast}
                             estimateItems={estimateLines}
                             setEstimateItems={setEstimateLines}
-                            activeCategory={selectedL1 === 'interior' ? selectedL2 : 'paint'}
+                            activeCategory={selectedL2}
+                            categoryL1={selectedL1}
                         />
                     )}
 
