@@ -14,6 +14,11 @@ import {
     saveDraft, getDraft
 } from '../utils/exportUtils';
 
+// 新模組化架構導入
+import { CalculationSummary } from './MaterialCalculator/components';
+import { useCalculationSummary, formatNumber as formatNum, applyWastage as calcWastage } from './MaterialCalculator/hooks';
+import * as CONST from './MaterialCalculator/constants';
+
 // ============================================
 // 計算公式與常數定義
 // ============================================
@@ -5104,6 +5109,27 @@ export const MaterialCalculator = ({
                     </div>
                 </div>
             </div>
+
+            {/* 計算摘要浮動面板 */}
+            <CalculationSummary
+                records={calcRecords}
+                onExportExcel={() => exportToExcel(calcRecords, '材料計算清單')}
+                onExportPdf={() => {
+                    const el = document.querySelector('.material-calculator-container');
+                    if (el) exportToPDF(el, '材料計算清單');
+                }}
+                onSaveHistory={() => {
+                    if (calcRecords.length > 0) {
+                        saveToHistory({
+                            id: Date.now(),
+                            date: new Date().toISOString(),
+                            records: calcRecords,
+                            summary: `${calcRecords.length} 筆記錄`,
+                        });
+                    }
+                }}
+                onClearRecords={clearRecords}
+            />
         </div>
     );
 };
