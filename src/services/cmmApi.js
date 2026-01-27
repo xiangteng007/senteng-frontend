@@ -4,7 +4,7 @@
  * 連接 senteng-erp-api /v2/cmm 端點
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app';
 const CMM_BASE = `${API_BASE}/v2/cmm`;
 
 /**
