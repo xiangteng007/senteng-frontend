@@ -1,13 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Calculator, Building2, Layers, Grid3X3, Paintbrush, BarChart3,
     Info, RotateCcw, Settings2, ChevronDown, ChevronUp, Copy, Check,
-    FileSpreadsheet, Plus, Trash2, ExternalLink, RefreshCw
+    FileSpreadsheet, Plus, Trash2, ExternalLink, RefreshCw, Download, History, Save
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
 import { useCmmData } from '../hooks/useCmmData';
+import {
+    exportToExcel, exportToPDF,
+    saveToHistory, getHistory, deleteFromHistory, clearHistory,
+    saveDraft, getDraft
+} from '../utils/exportUtils';
 
 // ============================================
 // 計算公式與常數定義
@@ -237,15 +242,15 @@ const REBAR_LAYER_OPTIONS = [
     { value: 'double', label: '雙層配筋', multiplier: 2 },
 ];
 
-// 混凝土規格 (抗壓強度 kgf/cm²)
+// 混凝土規格 (抗壓強度 kgf/cm²) + 台灣市場參考單價
 const CONCRETE_GRADES = [
-    { value: 140, label: "fc'140", desc: '墊層/填充' },
-    { value: 175, label: "fc'175", desc: '輕載結構' },
-    { value: 210, label: "fc'210", desc: '一般結構 (預設)' },
-    { value: 245, label: "fc'245", desc: '中跨度梁柱' },
-    { value: 280, label: "fc'280", desc: '高層建築' },
-    { value: 315, label: "fc'315", desc: '預力構件' },
-    { value: 350, label: "fc'350", desc: '特殊結構' },
+    { value: 140, label: "fc'140", desc: '墊層/填充', price: 2200 },
+    { value: 175, label: "fc'175", desc: '輕載結構', price: 2400 },
+    { value: 210, label: "fc'210", desc: '一般結構 (預設)', price: 2600 },
+    { value: 245, label: "fc'245", desc: '中跨度梁柱', price: 2800 },
+    { value: 280, label: "fc'280", desc: '高層建築', price: 3000 },
+    { value: 315, label: "fc'315", desc: '預力構件', price: 3200 },
+    { value: 350, label: "fc'350", desc: '特殊結構', price: 3500 },
 ];
 
 // 柱子主筋根數選項
@@ -405,9 +410,96 @@ const applyWastage = (value, wastagePercent) => {
     return value * (1 + wastagePercent / 100);
 };
 
+// 鋼筋搭接長度計算 (建技規§407: 搭接長度 ≥ 40d)
+const getLapLength = (rebarSpec) => {
+    const spec = REBAR_SPECS.find(r => r.label.includes(rebarSpec));
+    if (!spec) return 500; // 預設 50cm
+    return Math.ceil(spec.d * 40); // mm
+};
+
+// 取得混凝土參考單價
+const getConcretePrice = (grade) => {
+    const spec = CONCRETE_GRADES.find(g => g.value === grade);
+    return spec?.price || 2600;
+};
+
+// 鋼筋參考單價 (NT$/kg)
+const REBAR_PRICES = {
+    '#3': 28,
+    '#4': 26,
+    '#5': 25,
+    '#6': 24,
+    '#7': 23,
+    '#8': 22,
+    '#9': 22,
+    '#10': 22,
+};
+
+// 取得鋼筋參考單價
+const getRebarPrice = (rebarSize) => {
+    return REBAR_PRICES[rebarSize] || 25;
+};
+
 // ============================================
 // 子組件
 // ============================================
+
+// 匯出工具列組件
+const ExportToolbar = ({ data, elementRef, title = '計算結果', onSaveToHistory }) => {
+    const [exporting, setExporting] = useState(null);
+
+    const handleExcelExport = async () => {
+        if (!data || data.length === 0) return;
+        setExporting('excel');
+        try {
+            await exportToExcel(data, title);
+        } catch (e) {
+            console.error('Excel export failed:', e);
+        }
+        setExporting(null);
+    };
+
+    const handlePdfExport = async () => {
+        if (!elementRef?.current) return;
+        setExporting('pdf');
+        try {
+            await exportToPDF(elementRef.current, title);
+        } catch (e) {
+            console.error('PDF export failed:', e);
+        }
+        setExporting(null);
+    };
+
+    return (
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <button
+                onClick={handleExcelExport}
+                disabled={exporting || !data?.length}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded-lg hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+                <FileSpreadsheet size={14} />
+                {exporting === 'excel' ? '匯出中...' : 'Excel'}
+            </button>
+            <button
+                onClick={handlePdfExport}
+                disabled={exporting === 'pdf'}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-50 text-red-700 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+                <Download size={14} />
+                {exporting === 'pdf' ? '匯出中...' : 'PDF'}
+            </button>
+            {onSaveToHistory && (
+                <button
+                    onClick={onSaveToHistory}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors ml-auto"
+                >
+                    <Save size={14} />
+                    儲存記錄
+                </button>
+            )}
+        </div>
+    );
+};
 
 // 輸入欄位組件
 const InputField = ({ label, value, onChange, unit, placeholder, type = 'number', min = 0, step = 'any' }) => (
