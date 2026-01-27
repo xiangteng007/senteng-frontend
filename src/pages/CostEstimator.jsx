@@ -61,11 +61,22 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
-export const CostEstimator = ({ addToast }) => {
+export const CostEstimator = ({
+    addToast,
+    // Embedded mode props
+    embedded = false,
+    estimateItems: externalEstimateItems,
+    setEstimateItems: externalSetEstimateItems,
+}) => {
     // 狀態
     const [materials, setMaterials] = useState(DEFAULT_MATERIALS);
     const [selectedCategory, setSelectedCategory] = useState('油漆');
-    const [estimateItems, setEstimateItems] = useState([]);
+
+    // 估算項目 - 支援外部狀態注入
+    const [internalEstimateItems, internalSetEstimateItems] = useState([]);
+    const estimateItems = externalEstimateItems ?? internalEstimateItems;
+    const setEstimateItems = externalSetEstimateItems ?? internalSetEstimateItems;
+
     const [isLoading, setIsLoading] = useState(false);
     const [driveFolder, setDriveFolder] = useState(null);
     const [isInitializing, setIsInitializing] = useState(false);
@@ -235,6 +246,103 @@ export const CostEstimator = ({ addToast }) => {
     const categories = Object.keys(materials);
     const currentMaterials = materials[selectedCategory] || [];
 
+    // Embedded mode: 簡化渲染
+    if (embedded) {
+        return (
+            <div className="space-y-4">
+                {/* 類別選擇 */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                    {categories.map(category => {
+                        const Icon = CATEGORY_ICONS[category] || Package;
+                        return (
+                            <button
+                                key={category}
+                                onClick={() => setSelectedCategory(category)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all text-sm ${selectedCategory === category
+                                        ? 'bg-gray-900 text-white'
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                            >
+                                <Icon size={16} />
+                                <span className="font-medium">{category}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* 物料列表 (簡化版) */}
+                <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {currentMaterials.map(material => (
+                            <div key={material.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-800 text-sm">{material.name}</div>
+                                    <div className="text-xs text-gray-500">{material.spec} | {formatCurrency(material.price)}/{material.unit}</div>
+                                </div>
+                                <button
+                                    onClick={() => addEstimateItem(material)}
+                                    className="p-2 bg-gray-900 text-white hover:bg-gray-800 rounded-lg transition-colors"
+                                >
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 估算清單 */}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="font-medium text-gray-800 text-sm">估算清單 ({estimateItems.length})</span>
+                        {estimateItems.length > 0 && (
+                            <button
+                                onClick={clearEstimate}
+                                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
+                            >
+                                清空
+                            </button>
+                        )}
+                    </div>
+
+                    {estimateItems.length === 0 ? (
+                        <div className="text-center py-6 text-gray-400">
+                            <Package size={32} className="mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">點擊 + 加入估算</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                            {estimateItems.map(item => (
+                                <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 text-sm">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-800">{item.name}</div>
+                                        <div className="text-xs text-gray-500">{formatCurrency(item.price)}/{item.unit}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm">-</button>
+                                        <span className="w-10 text-center font-medium">{item.quantity}</span>
+                                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm">+</button>
+                                        <button onClick={() => removeItem(item.id)} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-red-500">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 總計 */}
+                    {estimateItems.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+                            <span className="text-gray-600 text-sm">材料總計</span>
+                            <span className="text-xl font-bold text-gray-900">{formatCurrency(totalCost)}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // Standalone mode: 完整頁面渲染
     return (
         <div className="space-y-6 animate-fade-in">
             <SectionTitle title="營建物料成本快速估算" />

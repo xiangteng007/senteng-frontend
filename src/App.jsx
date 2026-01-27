@@ -35,12 +35,14 @@ import {
   ShoppingCart,
   ClipboardList,
   Menu,
-  X
+  X,
+  Layers
 } from 'lucide-react';
 
 // Import P0 pages from design-system
 import MaterialCalculator from './pages/MaterialCalculator';
 import CostEstimator from './pages/CostEstimator';
+import EngineeringEstimateWorkspace from './pages/EngineeringEstimateWorkspace';
 import QuotationEditor from './pages/QuotationEditor';
 import BimManagement from './pages/BimManagement';
 import ContractsPage from './pages/Contracts';
@@ -66,12 +68,14 @@ import ProcurementsPage from './pages/Procurements';
 import SiteLogsPage from './pages/SiteLogs';
 import IntegrationsPage from './pages/IntegrationsPage';
 import StoragePage from './pages/StoragePage';
+import DashboardPage from './pages/Dashboard';
 import { clientsApi, projectsApi } from './services/api';
 
 // Import shared components
 import { Badge } from './components/common/Badge';
 import { Card } from './components/common/Card';
 import { ToastContainer } from './components/common/Toast';
+import { BottomNav } from './components/layout/BottomNav';
 
 // --- MOCK DATA (From Prompt) ---
 const MOCK_DATA = {
@@ -153,7 +157,7 @@ const Dashboard = ({ data }) => {
         <Card className="flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
             <span className="text-gray-500 text-sm font-medium">進行中專案</span>
-            <Briefcase size={18} className="text-blue-500" />
+            <Briefcase size={18} className="text-gray-500" />
           </div>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-bold text-gray-900">{activeProjectsCount}</span>
@@ -164,14 +168,14 @@ const Dashboard = ({ data }) => {
         <Card className="flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
             <span className="text-gray-500 text-sm font-medium">本月實收</span>
-            <Wallet size={18} className="text-emerald-500" />
+            <Wallet size={18} className="text-gray-500" />
           </div>
           <div>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-gray-900">NT$ {monthlyIncome}</span>
               <span className="text-gray-400 text-sm mb-1">萬</span>
             </div>
-            <span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded flex w-fit mt-1 items-center">
+            <span className="text-xs text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded flex w-fit mt-1 items-center">
               <ArrowUpRight size={12} className="mr-0.5" /> +15% 較上月
             </span>
           </div>
@@ -180,7 +184,7 @@ const Dashboard = ({ data }) => {
         <Card className="flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
             <span className="text-gray-500 text-sm font-medium">施工中案場</span>
-            <HardHat size={18} className="text-orange-500" />
+            <HardHat size={18} className="text-gray-500" />
           </div>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-bold text-gray-900">{constructionCount}</span>
@@ -191,7 +195,7 @@ const Dashboard = ({ data }) => {
         <Card className="flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
             <span className="text-gray-500 text-sm font-medium">即將完工</span>
-            <CheckCircle2 size={18} className="text-purple-500" />
+            <CheckCircle2 size={18} className="text-gray-500" />
           </div>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-bold text-gray-900">{nearCompletionCount}</span>
@@ -230,13 +234,13 @@ const Dashboard = ({ data }) => {
           <div>
             <h3 className="text-lg font-bold text-gray-800 mb-4">財務概況</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
-                <p className="text-sm text-emerald-800 font-medium mb-1">預計實收</p>
-                <p className="text-2xl font-bold text-emerald-900">NT$ {estimatedIncome} 萬</p>
+              <Card className="bg-gray-50 border-gray-200">
+                <p className="text-sm text-gray-700 font-medium mb-1">預計實收</p>
+                <p className="text-2xl font-bold text-gray-900">NT$ {estimatedIncome} 萬</p>
               </Card>
-              <Card className="bg-gradient-to-br from-red-50 to-white border-red-100">
-                <p className="text-sm text-red-800 font-medium mb-1">預計支出</p>
-                <p className="text-2xl font-bold text-red-900">NT$ {estimatedExpense} 萬</p>
+              <Card className="bg-gray-100 border-gray-200">
+                <p className="text-sm text-gray-700 font-medium mb-1">預計支出</p>
+                <p className="text-2xl font-bold text-gray-800">NT$ {estimatedExpense} 萬</p>
               </Card>
             </div>
           </div>
@@ -250,7 +254,7 @@ const Dashboard = ({ data }) => {
               {data.todos.map(todo => (
                 <li key={todo.id} className="flex items-start gap-3 group">
                   {todo.done ? (
-                    <CheckCircle2 size={20} className="text-emerald-500 mt-0.5 shrink-0" />
+                    <CheckCircle2 size={20} className="text-gray-600 mt-0.5 shrink-0" />
                   ) : (
                     <Circle size={20} className="text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400" />
                   )}
@@ -388,7 +392,7 @@ const Projects = ({ data }) => {
               <Badge color={getStatusColor(project.type)} className="mb-2">
                 {project.type === '翻修' ? '翻' : project.type === '新建' ? '新' : '商'}
               </Badge>
-              <span className={`text-xs px-2 py-1 rounded ${project.status === '施工中' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}`}>
+              <span className={`text-xs px-2 py-1 rounded ${project.status === '施工中' ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-600'}`}>
                 {project.status}
               </span>
             </div>
@@ -442,7 +446,7 @@ const Projects = ({ data }) => {
                     {project.status === '施工中' ? '泥作進場，水電配管完成' : '平面圖定稿，3D渲染中'}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === '施工中' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === '施工中' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-700'
                       }`}>
                       {project.status}
                     </span>
@@ -476,11 +480,11 @@ const Finance = ({ data }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-white">
           <p className="text-sm text-gray-500 mb-1">本期收入</p>
-          <p className="text-3xl font-bold text-emerald-600">+ NT$ {totalIncome} 萬</p>
+          <p className="text-3xl font-bold text-gray-800">+ NT$ {totalIncome} 萬</p>
         </Card>
         <Card className="bg-white">
           <p className="text-sm text-gray-500 mb-1">本期支出</p>
-          <p className="text-3xl font-bold text-red-600">- NT$ {totalExpense} 萬</p>
+          <p className="text-3xl font-bold text-gray-600">- NT$ {totalExpense} 萬</p>
         </Card>
         <Card className="bg-gray-800 text-white border-none">
           <p className="text-sm text-gray-400 mb-1">淨現金流</p>
@@ -531,7 +535,7 @@ const Finance = ({ data }) => {
                     <div className="text-gray-900">{accountName}</div>
                     <div className="text-xs text-gray-400">{projectName}</div>
                   </td>
-                  <td className={`px-6 py-4 text-right font-bold ${t.type === '收入' ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <td className={`px-6 py-4 text-right font-bold ${t.type === '收入' ? 'text-gray-800' : 'text-gray-500'}`}>
                     {t.type === '收入' ? '+' : '-'} NT$ {t.amount} 萬
                   </td>
                 </tr>
@@ -579,15 +583,15 @@ const Vendors = ({ data }) => {
         {filteredVendors.map(vendor => (
           <Card key={vendor.id} className="hover:shadow-md transition-all">
             <div className="flex justify-between items-start mb-2">
-              <Badge color="blue">{vendor.tradeType}</Badge>
-              <div className={`px-2 py-0.5 rounded text-xs font-medium ${vendor.status === '長期合作' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+              <Badge color="gray">{vendor.tradeType}</Badge>
+              <div className={`px-2 py-0.5 rounded text-xs font-medium ${vendor.status === '長期合作' ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-600'
                 }`}>
                 {vendor.status}
               </div>
             </div>
 
             <h3 className="font-bold text-gray-900 text-lg mb-1">{vendor.name}</h3>
-            <div className="flex items-center gap-1 text-orange-400 text-sm mb-4">
+            <div className="flex items-center gap-1 text-gray-500 text-sm mb-4">
               <Star size={14} fill="currentColor" />
               <span className="font-bold text-gray-700">{vendor.rating}</span>
             </div>
@@ -620,9 +624,9 @@ const Vendors = ({ data }) => {
 
 const Inventory = ({ data }) => {
   const getStockStatus = (qty, safe) => {
-    if (qty <= 0) return { label: '缺貨', color: 'bg-red-100 text-red-700' };
-    if (qty <= safe) return { label: '庫存偏低', color: 'bg-orange-100 text-orange-700' };
-    return { label: '充足', color: 'bg-emerald-100 text-emerald-700' };
+    if (qty <= 0) return { label: '缺貨', color: 'bg-gray-300 text-gray-800' };
+    if (qty <= safe) return { label: '庫存偏低', color: 'bg-gray-200 text-gray-700' };
+    return { label: '充足', color: 'bg-gray-100 text-gray-600' };
   };
 
   return (
@@ -757,11 +761,14 @@ const App = () => {
     '/users': 'users',
     '/integrations': 'integrations',
     '/storage': 'storage',
-    '/material-calc': 'material-calc',
-    '/cost-est': 'cost-est',
+    '/engineering-estimate': 'engineering-estimate',
+    '/material-calc': 'engineering-estimate',   // Redirect to workspace
+    '/cost-estimator': 'engineering-estimate',   // Redirect to workspace
+    '/cost-est': 'engineering-estimate',         // Alias
     '/quotation-edit': 'quotation-edit',
     '/bim': 'bim',
     '/invoice-helper': 'invoice-helper',
+    '/procurements': 'procurements',
     '/site-logs': 'site-logs'
   };
 
@@ -833,7 +840,7 @@ const App = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard data={MOCK_DATA} />;
+      case 'dashboard': return <DashboardPage events={MOCK_DATA.events || []} finance={MOCK_DATA} projects={projects} clients={clients} />;
       case 'clients': return <ClientsPage data={clients} allProjects={MOCK_DATA.projects || []} addToast={addToast} onUpdateClients={setClients} />;
       case 'projects': return <ProjectsPage
         data={{ ...MOCK_DATA, projects }}
@@ -876,14 +883,14 @@ const App = () => {
       case 'users': return <UserManagement addToast={addToast} />;
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;
-      case 'material-calc': return <MaterialCalculator />;
-      case 'cost-est': return <CostEstimator />;
+      case 'engineering-estimate': return <EngineeringEstimateWorkspace addToast={addToast} />;
       case 'quotation-edit': return <QuotationEditor />;
       case 'bim': return <BimManagement />;
       case 'invoice-helper': return <InvoiceHelperPage />;
       // case 'customers' removed - use clients instead
       case 'procurements': return <ProcurementsPage addToast={addToast} />;
       case 'site-logs': return <SiteLogsPage addToast={addToast} />;
+      // material-calc and cost-estimator now redirect to engineering-estimate
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
@@ -906,14 +913,14 @@ const App = () => {
     users: '使用者管理',
     integrations: '整合設定',
     storage: '文件管理',
-    'material-calc': '材料估算',
-    'cost-est': '成本估算',
+    'engineering-estimate': '工程估算工作區',
     'quotation-edit': '報價編輯',
     'bim': 'BIM 管理',
     'invoice-helper': '發票小幫手',
-
     'procurements': '採購管理',
-    'site-logs': '工地日誌'
+    'site-logs': '工地日誌',
+    'cost-estimator': '成本估算',
+    'material-calc': '材料估算'
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -988,8 +995,7 @@ const App = () => {
           </SidebarGroup>
 
           <SidebarGroup label="工程估算">
-            <SidebarItem icon={Ruler} label="材料估算" active={activeTab === 'material-calc'} onClick={() => navigate('material-calc')} />
-            <SidebarItem icon={Calculator} label="成本估算" active={activeTab === 'cost-est'} onClick={() => navigate('cost-est')} />
+            <SidebarItem icon={Layers} label="工程估算" active={activeTab === 'engineering-estimate'} onClick={() => navigate('engineering-estimate')} />
 
             <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => navigate('bim')} />
             <SidebarItem icon={Receipt} label="發票小幫手" active={activeTab === 'invoice-helper'} onClick={() => navigate('invoice-helper')} />
@@ -1069,6 +1075,13 @@ const App = () => {
         </div>
 
       </main>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNav
+        currentPath={activeTab}
+        onNavigate={navigate}
+        className="lg:hidden"
+      />
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />

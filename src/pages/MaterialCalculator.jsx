@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
+import { useCmmData } from '../hooks/useCmmData';
 
 // ============================================
 // 計算公式與常數定義
@@ -413,7 +414,7 @@ const CostInput = ({ label, quantity, unit, unitLabel, vendors = [], onChange, p
 
 
 // 1️⃣ 結構工程計算器 (支援多列輸入)
-const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
+const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => {
     const [calcType, setCalcType] = useState('concrete');
 
     // 混凝土計算 - 多列支援
@@ -615,7 +616,7 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
     };
 
     // 鋼筋計算結果
-    const selectedRebar = REBAR_SPECS[rebarSpec];
+    const selectedRebar = rebarSpecs[rebarSpec] || { weight: 0 };
     const rebarWeight = selectedRebar.weight * (parseFloat(rebarLength) || 0) * (parseFloat(rebarCount) || 0);
     const rebarWithWastage = applyWastage(rebarWeight, rebarCustomWastage ? rebarWastage : DEFAULT_WASTAGE.rebar);
 
@@ -940,7 +941,7 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
                                     label="鋼筋規格"
                                     value={rebarSpec}
                                     onChange={(v) => setRebarSpec(parseInt(v))}
-                                    options={REBAR_SPECS.map((r, i) => ({ value: i, label: `${r.label} (${r.weight}kg/m)` }))}
+                                    options={rebarSpecs.map((r, i) => ({ value: i, label: `${r.label} (${r.weight}kg/m)` }))}
                                 />
                                 <InputField label="單根長度" value={rebarLength} onChange={setRebarLength} unit="m" placeholder="0" />
                                 <InputField label="數量" value={rebarCount} onChange={setRebarCount} unit="支" placeholder="0" />
@@ -2933,19 +2934,19 @@ const FinishCalculator = ({ onAddRecord, vendors = [] }) => {
 
 
 // 5️⃣ 建築概估計算器
-const BuildingEstimator = ({ onAddRecord }) => {
+const BuildingEstimator = ({ onAddRecord, buildingTypes = [] }) => {
     const [buildingType, setBuildingType] = useState(1);
     const [floorArea, setFloorArea] = useState('');
     const [wallThicknessFilter, setWallThicknessFilter] = useState('all');
 
     // 根據牆壁厚度篩選建築類型
-    const filteredTypes = BUILDING_TYPES.map((t, i) => ({ ...t, originalIndex: i }))
+    const filteredTypes = buildingTypes.map((t, i) => ({ ...t, originalIndex: i }))
         .filter(t => wallThicknessFilter === 'all' || t.wallThickness === parseInt(wallThicknessFilter));
 
     // 確保選中的類型在過濾後仍然有效
     const selectedIndex = filteredTypes.findIndex(t => t.originalIndex === buildingType);
     const validSelectedIndex = selectedIndex >= 0 ? buildingType : (filteredTypes[0]?.originalIndex ?? 0);
-    const selected = BUILDING_TYPES[validSelectedIndex];
+    const selected = buildingTypes[validSelectedIndex] || buildingTypes[0] || { rebar: 0, concrete: 0, formwork: 0, sand: 0 };
 
     const totalRebar = (parseFloat(floorArea) || 0) * selected.rebar;
     const totalConcrete = (parseFloat(floorArea) || 0) * selected.concrete;
@@ -2956,7 +2957,7 @@ const BuildingEstimator = ({ onAddRecord }) => {
     const handleWallThicknessChange = (value) => {
         setWallThicknessFilter(value);
         if (value !== 'all') {
-            const newFiltered = BUILDING_TYPES.map((t, i) => ({ ...t, originalIndex: i }))
+            const newFiltered = buildingTypes.map((t, i) => ({ ...t, originalIndex: i }))
                 .filter(t => t.wallThickness === parseInt(value));
             if (newFiltered.length > 0) {
                 setBuildingType(newFiltered[0].originalIndex);
@@ -3077,11 +3078,24 @@ const BuildingEstimator = ({ onAddRecord }) => {
 // 主組件
 // ============================================
 
-export const MaterialCalculator = ({ addToast, vendors = [] }) => {
+export const MaterialCalculator = ({
+    addToast,
+    vendors = [],
+    // Embedded mode props
+    embedded = false,
+    calcRecords: externalCalcRecords,
+    setCalcRecords: externalSetCalcRecords,
+}) => {
     const [activeTab, setActiveTab] = useState('structure');
 
-    // 計算記錄
-    const [calcRecords, setCalcRecords] = useState([]);
+    // CMM API 數據 (含 fallback 到硬編碼常量)
+    const { buildingTypes, rebarSpecs, loading: cmmLoading, apiAvailable } = useCmmData();
+
+    // 計算記錄 - 支援外部狀態注入
+    const [internalCalcRecords, internalSetCalcRecords] = useState([]);
+    const calcRecords = externalCalcRecords ?? internalCalcRecords;
+    const setCalcRecords = externalSetCalcRecords ?? internalSetCalcRecords;
+
     const [exportName, setExportName] = useState('');
     const [isExporting, setIsExporting] = useState(false);
     const [exportedSheet, setExportedSheet] = useState(null);
@@ -3163,15 +3177,86 @@ export const MaterialCalculator = ({ addToast, vendors = [] }) => {
 
     const renderCalculator = () => {
         switch (activeTab) {
-            case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} rebarSpecs={rebarSpecs} />;
             case 'masonry': return <MasonryCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('泥作工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('磁磚工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('塗料工程', s, l, v, u, w, c)} vendors={vendors} />;
-            case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w, c) => addRecord('建築概估', s, l, v, u, w, c)} />;
-            default: return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w, c) => addRecord('建築概估', s, l, v, u, w, c)} buildingTypes={buildingTypes} />;
+            default: return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} rebarSpecs={rebarSpecs} />;
         }
     };
 
+    // Embedded mode: 簡化渲染
+    if (embedded) {
+        return (
+            <div className="space-y-4">
+                {/* 工項選擇頁籤 */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                    {tabs.map(tab => {
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all text-sm ${activeTab === tab.id
+                                        ? 'bg-gray-900 text-white'
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                            >
+                                <Icon size={16} />
+                                <span className="font-medium">{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* 計算器區域 */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    {renderCalculator()}
+                </div>
+
+                {/* 計算記錄列表 (唯讀模式) */}
+                {calcRecords.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="font-medium text-gray-800 text-sm">計算記錄 ({calcRecords.length})</span>
+                            <button
+                                onClick={clearRecords}
+                                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
+                            >
+                                清空
+                            </button>
+                        </div>
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                            {calcRecords.map(record => (
+                                <div key={record.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 text-sm">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-800 truncate">{record.label}</div>
+                                        <div className="text-xs text-gray-500">
+                                            {record.category} - {record.subType}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium text-gray-900">
+                                            {formatNumber(record.wastageValue)} {record.unit}
+                                        </span>
+                                        <button
+                                            onClick={() => removeRecord(record.id)}
+                                            className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-red-500"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Standalone mode: 完整頁面渲染
     return (
         <div className="space-y-6 animate-fade-in">
             <SectionTitle title="營建物料快速換算" />
