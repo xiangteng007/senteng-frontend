@@ -755,6 +755,7 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
     const [wallHeight, setWallHeight] = useState('');
     const [wallCount, setWallCount] = useState(1);
     const [wallDoubleSided, setWallDoubleSided] = useState(true);
+    const [wallOpeningDeduction, setWallOpeningDeduction] = useState('');
 
     // 樓板狀態
     const [floorPreset, setFloorPreset] = useState('F2');
@@ -2636,8 +2637,33 @@ const StructureCalculator = ({ onAddRecord, vendors = [], rebarSpecs = [] }) => 
                             {wallPreset === 'custom' && (
                                 <InputField label="自訂厚度" value={wallCustomThickness} onChange={setWallCustomThickness} unit="cm" placeholder="0" />
                             )}
+                            {/* 開口扣除 */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex-1">
+                                    <label className="block text-xs text-gray-500 mb-1">開口扣除 (門窗)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={wallOpeningDeduction}
+                                            onChange={(e) => setWallOpeningDeduction(e.target.value)}
+                                            placeholder="0"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-end">
+                                    <div className="text-xs text-purple-600 bg-purple-50 p-2 rounded border border-purple-200">
+                                        淨牆面積: {formatNumber(Math.max(0, getWallFormwork() - (parseFloat(wallOpeningDeduction) || 0)))} m²
+                                    </div>
+                                </div>
+                            </div>
+                            {/* 法規參照 */}
+                            {showRegulations && (
+                                <RegulationReference componentType="wall" />
+                            )}
                             <div className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
-                                <strong>公式:</strong> 長度 × 高度 × {wallDoubleSided ? '2(雙面)' : '1(單面)'} × 數量 = <span className="text-orange-600 font-bold">{formatNumber(getWallFormwork())} m²</span>
+                                <strong>公式:</strong> (長度 × 高度 × {wallDoubleSided ? '2(雙面)' : '1(單面)'} × 數量) - 開口 = <span className="text-orange-600 font-bold">{formatNumber(Math.max(0, getWallFormwork() - (parseFloat(wallOpeningDeduction) || 0)))} m²</span>
                             </div>
                             {/* 進階配筋設定 */}
                             <details className="group" open={useAdvancedRebar}>
