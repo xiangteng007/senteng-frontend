@@ -1,6 +1,6 @@
 /**
  * integrationsApi.js
- * 
+ *
  * Google Integrations API 封裝
  */
 
@@ -39,21 +39,21 @@ import { api } from './api';
 
 // ===== Google Integrations API =====
 export const integrationsApi = {
-    // OAuth 管理
-    getStatus: () => api.get('/integrations/google/status'),
-    connect: () => api.post('/integrations/google/connect'),
-    disconnect: () => api.post('/integrations/google/disconnect'),
-    configure: (config) => api.post('/integrations/google/configure', config),
+  // OAuth 管理
+  getStatus: () => api.get('/integrations/google/status'),
+  connect: () => api.post('/integrations/google/connect'),
+  disconnect: () => api.post('/integrations/google/disconnect'),
+  configure: config => api.post('/integrations/google/configure', config),
 
-    // Calendar Sync
-    syncEvent: (eventId) => api.post(`/integrations/google/calendar/sync/events/${eventId}`),
-    syncCalendarBulk: () => api.post('/integrations/google/calendar/sync/bulk'),
-    retryCalendarSync: () => api.post('/integrations/google/calendar/retry'),
+  // Calendar Sync
+  syncEvent: eventId => api.post(`/integrations/google/calendar/sync/events/${eventId}`),
+  syncCalendarBulk: () => api.post('/integrations/google/calendar/sync/bulk'),
+  retryCalendarSync: () => api.post('/integrations/google/calendar/retry'),
 
-    // Contacts Sync
-    syncContact: (contactId) => api.post(`/integrations/google/contacts/sync/contact/${contactId}`),
-    syncClientContacts: (clientId) => api.post(`/integrations/google/contacts/sync/client/${clientId}`),
-    syncVendorContacts: (vendorId) => api.post(`/integrations/google/contacts/sync/vendor/${vendorId}`),
+  // Contacts Sync
+  syncContact: contactId => api.post(`/integrations/google/contacts/sync/contact/${contactId}`),
+  syncClientContacts: clientId => api.post(`/integrations/google/contacts/sync/client/${clientId}`),
+  syncVendorContacts: vendorId => api.post(`/integrations/google/contacts/sync/vendor/${vendorId}`),
 };
 
 export default integrationsApi;

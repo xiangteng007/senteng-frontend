@@ -1,6 +1,6 @@
 /**
  * eventsSyncApi.js
- * 
+ *
  * Events 同步 API 封裝
  */
 
@@ -8,11 +8,11 @@ import { api } from './api';
 
 /**
  * 同步事件到 Google Calendar
- * @param {string} eventId 
+ * @param {string} eventId
  * @returns {Promise<{success: boolean, syncedAt: string, googleId?: string, error?: string}>}
  */
 export async function syncEventToGoogle(eventId) {
-    return api.post(`/integrations/google/calendar/sync/events/${eventId}`);
+  return api.post(`/integrations/google/calendar/sync/events/${eventId}`);
 }
 
 /**
@@ -20,7 +20,7 @@ export async function syncEventToGoogle(eventId) {
  * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
  */
 export async function syncCalendarBulk() {
-    return api.post('/integrations/google/calendar/sync/bulk');
+  return api.post('/integrations/google/calendar/sync/bulk');
 }
 
 /**
@@ -28,11 +28,11 @@ export async function syncCalendarBulk() {
  * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
  */
 export async function retryCalendarSync() {
-    return api.post('/integrations/google/calendar/retry');
+  return api.post('/integrations/google/calendar/retry');
 }
 
 export default {
-    syncEventToGoogle,
-    syncCalendarBulk,
-    retryCalendarSync,
+  syncEventToGoogle,
+  syncCalendarBulk,
+  retryCalendarSync,
 };

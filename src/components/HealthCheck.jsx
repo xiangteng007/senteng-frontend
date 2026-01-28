@@ -1,26 +1,33 @@
-﻿import React, { useMemo, useState } from "react";
-import GoogleService from "../services/googleService";
+﻿import React, { useMemo, useState } from 'react';
+import GoogleService from '../services/googleService';
 
 function pretty(obj) {
-  try { return JSON.stringify(obj, null, 2); } catch { return String(obj); }
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return String(obj);
+  }
 }
 
 export default function HealthCheck() {
-  const env = useMemo(() => ({
-    spreadsheetId: import.meta.env.VITE_GOOGLE_SPREADSHEET_ID,
-    driveRootFolderId: import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_ID,
-  }), []);
+  const env = useMemo(
+    () => ({
+      spreadsheetId: import.meta.env.VITE_GOOGLE_SPREADSHEET_ID,
+      driveRootFolderId: import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_ID,
+    }),
+    []
+  );
 
   const [busy, setBusy] = useState(false);
-  const [log, setLog] = useState("");
-  const [sheetName, setSheetName] = useState("clients");
+  const [log, setLog] = useState('');
+  const [sheetName, setSheetName] = useState('clients');
   const [allowWrite, setAllowWrite] = useState(false);
 
-  const appendLog = (line) => setLog((p) => (p ? `${p}\n${line}` : line));
+  const appendLog = line => setLog(p => (p ? `${p}\n${line}` : line));
 
   async function sheetsRead() {
-    if (!env.spreadsheetId) throw new Error("Missing env: VITE_GOOGLE_SPREADSHEET_ID");
-    appendLog("== Sheets: READ START ==");
+    if (!env.spreadsheetId) throw new Error('Missing env: VITE_GOOGLE_SPREADSHEET_ID');
+    appendLog('== Sheets: READ START ==');
     const range = `${sheetName}!A1:C5`;
     const res = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: env.spreadsheetId,
@@ -28,28 +35,28 @@ export default function HealthCheck() {
     });
     appendLog(`Sheets READ OK: ${range}`);
     appendLog(pretty(res?.result));
-    appendLog("== Sheets: READ DONE ==");
+    appendLog('== Sheets: READ DONE ==');
   }
 
   async function driveCreateFolder() {
-    appendLog("== Drive: CREATE FOLDER START ==");
-    const name = `HealthCheck_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    appendLog('== Drive: CREATE FOLDER START ==');
+    const name = `HealthCheck_${new Date().toISOString().replace(/[:.]/g, '-')}`;
     const res = await GoogleService.createDriveFolder(name);
     appendLog(`Drive folder created: ${res?.name || name}`);
     appendLog(pretty(res));
-    appendLog("== Drive: CREATE FOLDER DONE ==");
+    appendLog('== Drive: CREATE FOLDER DONE ==');
   }
 
   async function runAll() {
     setBusy(true);
-    setLog("");
+    setLog('');
     try {
       appendLog(`Origin: ${window.location.origin}`);
-      appendLog(`SpreadsheetId: ${env.spreadsheetId ? "SET" : "MISSING"}`);
-      appendLog(`DriveRootFolderId: ${env.driveRootFolderId ? "SET" : "MISSING"}`);
-      appendLog("");
+      appendLog(`SpreadsheetId: ${env.spreadsheetId ? 'SET' : 'MISSING'}`);
+      appendLog(`DriveRootFolderId: ${env.driveRootFolderId ? 'SET' : 'MISSING'}`);
+      appendLog('');
       await sheetsRead();
-      appendLog("");
+      appendLog('');
       await driveCreateFolder();
     } finally {
       setBusy(false);
@@ -70,7 +77,7 @@ export default function HealthCheck() {
             <input
               className="border border-gray-200 rounded-lg px-2 py-1 text-xs w-40"
               value={sheetName}
-              onChange={(e) => setSheetName(e.target.value)}
+              onChange={e => setSheetName(e.target.value)}
             />
           </label>
 
@@ -79,14 +86,14 @@ export default function HealthCheck() {
             disabled={busy}
             onClick={runAll}
           >
-            {busy ? "執行中…" : "一鍵執行"}
+            {busy ? '執行中…' : '一鍵執行'}
           </button>
         </div>
       </div>
 
       <div className="px-5 py-4">
         <pre className="text-xs whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-lg p-3 min-h-[120px]">
-          {log || "（尚未執行）"}
+          {log || '（尚未執行）'}
         </pre>
       </div>
     </section>

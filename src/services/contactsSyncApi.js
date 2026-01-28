@@ -1,6 +1,6 @@
 /**
  * contactsSyncApi.js
- * 
+ *
  * Contacts 同步 API 封裝
  */
 
@@ -8,53 +8,53 @@ import { api } from './api';
 
 /**
  * 同步單一聯絡人到 Google Contacts
- * @param {string} contactId 
+ * @param {string} contactId
  * @returns {Promise<{success: boolean, syncedAt: string, googleId?: string, error?: string}>}
  */
 export async function syncContactToGoogle(contactId) {
-    return api.post(`/integrations/google/contacts/sync/contact/${contactId}`);
+  return api.post(`/integrations/google/contacts/sync/contact/${contactId}`);
 }
 
 /**
  * 同步客戶所有聯絡人
- * @param {string} clientId 
+ * @param {string} clientId
  * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
  */
 export async function syncClientContactsToGoogle(clientId) {
-    return api.post(`/integrations/google/contacts/sync/client/${clientId}`);
+  return api.post(`/integrations/google/contacts/sync/client/${clientId}`);
 }
 
 /**
  * 同步廠商所有聯絡人
- * @param {string} vendorId 
+ * @param {string} vendorId
  * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
  */
 export async function syncVendorContactsToGoogle(vendorId) {
-    return api.post(`/integrations/google/contacts/sync/vendor/${vendorId}`);
+  return api.post(`/integrations/google/contacts/sync/vendor/${vendorId}`);
 }
 
 /**
  * 刪除客戶所有聯絡人從 Google Contacts
- * @param {string} clientId 
+ * @param {string} clientId
  * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
  */
 export async function deleteClientContactsFromGoogle(clientId) {
-    return api.post(`/integrations/google/contacts/delete/client/${clientId}`);
+  return api.post(`/integrations/google/contacts/delete/client/${clientId}`);
 }
 
 /**
  * 刪除廠商所有聯絡人從 Google Contacts
- * @param {string} vendorId 
+ * @param {string} vendorId
  * @returns {Promise<{total: number, synced: number, failed: number, errors: Array}>}
  */
 export async function deleteVendorContactsFromGoogle(vendorId) {
-    return api.post(`/integrations/google/contacts/delete/vendor/${vendorId}`);
+  return api.post(`/integrations/google/contacts/delete/vendor/${vendorId}`);
 }
 
 export default {
-    syncContactToGoogle,
-    syncClientContactsToGoogle,
-    syncVendorContactsToGoogle,
-    deleteClientContactsFromGoogle,
-    deleteVendorContactsFromGoogle,
+  syncContactToGoogle,
+  syncClientContactsToGoogle,
+  syncVendorContactsToGoogle,
+  deleteClientContactsFromGoogle,
+  deleteVendorContactsFromGoogle,
 };

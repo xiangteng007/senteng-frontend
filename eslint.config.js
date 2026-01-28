@@ -1,11 +1,14 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import prettier from 'eslint-plugin-prettier';
+import prettierConfig from 'eslint-config-prettier';
+import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'node_modules']),
+  prettierConfig,
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -13,6 +16,9 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    plugins: {
+      prettier,
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -23,6 +29,16 @@ export default defineConfig([
       },
     },
     rules: {
+      // Prettier integration
+      'prettier/prettier': ['error', {
+        singleQuote: true,
+        semi: true,
+        tabWidth: 2,
+        useTabs: false,
+        trailingComma: 'es5',
+        printWidth: 100,
+        endOfLine: 'lf',
+      }],
       // Unused vars are warnings, not errors (common in migrated codebase)
       'no-unused-vars': ['warn', {
         varsIgnorePattern: '^[A-Z_]|^_',
@@ -35,4 +51,5 @@ export default defineConfig([
       'react-hooks/immutability': 'off',
     },
   },
-])
+]);
+

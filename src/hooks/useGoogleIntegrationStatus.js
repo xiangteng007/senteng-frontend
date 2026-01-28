@@ -1,6 +1,6 @@
 /**
  * useGoogleIntegrationStatus.js
- * 
+ *
  * Google Integration 狀態快取 Hook
  * 避免每個 row 都重複呼叫 API
  */
@@ -25,29 +25,29 @@ import { integrationsApi } from '../services/integrationsApi';
  * @returns {{data: GoogleIntegrationStatus|null, loading: boolean, error: string|null, refetch: Function}}
  */
 export function useGoogleIntegrationStatus() {
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const refetch = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const status = await integrationsApi.getStatus();
-            setData(status);
-        } catch (e) {
-            setError(e?.message || 'Failed to load Google integration status');
-            setData(null);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const status = await integrationsApi.getStatus();
+      setData(status);
+    } catch (e) {
+      setError(e?.message || 'Failed to load Google integration status');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    useEffect(() => {
-        refetch();
-    }, [refetch]);
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
-    return { data, loading, error, refetch };
+  return { data, loading, error, refetch };
 }
 
 export default useGoogleIntegrationStatus;

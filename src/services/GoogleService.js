@@ -1,8 +1,8 @@
-
 import { MOCK_DB } from './MockData';
 
 // GAS deployment URL (Redeployed on 2026-01-03)
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxlg_08fpYZNte11U_LawwNRoGThe4Mps5v__MfOib5kMZfFqs3jzvqBxa55CKHhDcepw/exec";
+const GAS_API_URL =
+  'https://script.google.com/macros/s/AKfycbxlg_08fpYZNte11U_LawwNRoGThe4Mps5v__MfOib5kMZfFqs3jzvqBxa55CKHhDcepw/exec';
 
 // JSONP 調用函數（繞過 CORS）
 const callGASWithJSONP = (action, data = {}) => {
@@ -28,7 +28,7 @@ const callGASWithJSONP = (action, data = {}) => {
     }, 30000);
 
     // 定義全域回調函數
-    window[callbackName] = (response) => {
+    window[callbackName] = response => {
       clearTimeout(timeout);
       cleanup();
       console.log('✅ GAS API Response:', response);
@@ -41,7 +41,8 @@ const callGASWithJSONP = (action, data = {}) => {
       } else if (response.status === 'success') {
         resolve({ success: true, data: response });
       } else {
-        const errorMsg = response.error || response.data?.error || response.message || 'Unknown error';
+        const errorMsg =
+          response.error || response.data?.error || response.message || 'Unknown error';
         resolve({ success: false, error: errorMsg });
       }
     };
@@ -55,7 +56,7 @@ const callGASWithJSONP = (action, data = {}) => {
     };
 
     // 錯誤處理
-    script.onerror = (e) => {
+    script.onerror = e => {
       clearTimeout(timeout);
       cleanup();
       console.error('❌ Script load failed:', e);
@@ -71,12 +72,14 @@ const callGASWithJSONP = (action, data = {}) => {
   });
 };
 
-
 export const GoogleService = {
-  login: () => new Promise(resolve => setTimeout(() => resolve({ name: "Admin", email: "admin@senteng.co", photo: "A" }), 1500)),
+  login: () =>
+    new Promise(resolve =>
+      setTimeout(() => resolve({ name: 'Admin', email: 'admin@senteng.co', photo: 'A' }), 1500)
+    ),
 
   // 從 Google Sheets 載入資料
-  loadFromSheet: async (sheetType) => {
+  loadFromSheet: async sheetType => {
     console.log(`📥 Loading ${sheetType} from Google Sheets...`);
 
     try {
@@ -98,9 +101,12 @@ export const GoogleService = {
     }
   },
 
-  fetchCalendarEvents: () => new Promise(resolve => { setTimeout(() => resolve(MOCK_DB.calendar), 1000); }),
+  fetchCalendarEvents: () =>
+    new Promise(resolve => {
+      setTimeout(() => resolve(MOCK_DB.calendar), 1000);
+    }),
 
-  addToCalendar: async (event) => {
+  addToCalendar: async event => {
     console.log(`📅 Adding calendar event: ${event.title}`);
 
     try {
@@ -109,13 +115,13 @@ export const GoogleService = {
         startTime: event.date + 'T' + event.time,
         endTime: event.date + 'T' + event.time,
         description: event.description || '',
-        location: event.location || ''
+        location: event.location || '',
       });
 
       if (result.success) {
-        console.log("✅ Calendar event created successfully");
+        console.log('✅ Calendar event created successfully');
       } else {
-        console.error("❌ Calendar event creation failed:", result.error);
+        console.error('❌ Calendar event creation failed:', result.error);
       }
 
       return result;
@@ -126,7 +132,8 @@ export const GoogleService = {
       return {
         success: true,
         data: { eventId: `local-${Date.now()}` },
-        warning: 'Google 日曆同步失敗，行程僅儲存在本地。請稍後在 Google Apps Script 重新部署後再試。'
+        warning:
+          'Google 日曆同步失敗，行程僅儲存在本地。請稍後在 Google Apps Script 重新部署後再試。',
       };
     }
   },
@@ -137,13 +144,13 @@ export const GoogleService = {
     try {
       const result = await callGASWithJSONP('update_calendar_event', {
         eventId,
-        ...updates
+        ...updates,
       });
 
       if (result.success) {
-        console.log("✅ Calendar event updated successfully");
+        console.log('✅ Calendar event updated successfully');
       } else {
-        console.error("❌ Calendar event update failed:", result.error);
+        console.error('❌ Calendar event update failed:', result.error);
       }
 
       return result;
@@ -153,18 +160,18 @@ export const GoogleService = {
     }
   },
 
-  deleteCalendarEvent: async (eventId) => {
+  deleteCalendarEvent: async eventId => {
     console.log(`📅 Deleting calendar event: ${eventId}`);
 
     try {
       const result = await callGASWithJSONP('delete_calendar_event', {
-        eventId
+        eventId,
       });
 
       if (result.success) {
-        console.log("✅ Calendar event deleted successfully");
+        console.log('✅ Calendar event deleted successfully');
       } else {
-        console.error("❌ Calendar event deletion failed:", result.error);
+        console.error('❌ Calendar event deletion failed:', result.error);
       }
 
       return result;
@@ -180,7 +187,7 @@ export const GoogleService = {
     try {
       const result = await callGASWithJSONP('sync_to_sheet', {
         sheetName,
-        records: data
+        records: data,
       });
 
       if (result.success) {
@@ -217,7 +224,9 @@ export const GoogleService = {
       });
 
       if (result.success) {
-        const fileUrl = result.data?.fileUrl || `https://drive.google.com/file/d/${result.data?.fileId || 'unknown'}/view`;
+        const fileUrl =
+          result.data?.fileUrl ||
+          `https://drive.google.com/file/d/${result.data?.fileId || 'unknown'}/view`;
         console.log(`✅ File uploaded: ${fileUrl}`);
         return { success: true, url: fileUrl, fileId: result.data?.fileId };
       } else {
@@ -246,7 +255,7 @@ export const GoogleService = {
     return {
       success: true,
       url: folderUrl,
-      folderId: PROJECT_ROOT_FOLDER_ID
+      folderId: PROJECT_ROOT_FOLDER_ID,
     };
   },
 
@@ -257,11 +266,13 @@ export const GoogleService = {
     try {
       const result = await callGASWithJSONP('create_drive_folder', {
         folderName,
-        parentId: parentFolderId // 修正：GAS 端使用 parentId
+        parentId: parentFolderId, // 修正：GAS 端使用 parentId
       });
 
       if (result.success) {
-        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        const folderUrl =
+          result.data?.folderUrl ||
+          `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
         console.log(`✅ Drive folder created: ${folderUrl}`);
         return { success: true, url: folderUrl, folderId: result.data?.folderId };
       } else {
@@ -275,18 +286,20 @@ export const GoogleService = {
   },
 
   // 廠商專用：在指定的「廠商資料」資料夾下建立廠商資料夾
-  createVendorFolder: async (vendorName) => {
+  createVendorFolder: async vendorName => {
     const VENDOR_PARENT_FOLDER_ID = '1cO5aF3MBBO6FoBHXgRokEUW1uaGjUjFy';
     console.log(`📁 Creating vendor folder: ${vendorName} (in vendor root)`);
 
     try {
       const result = await callGASWithJSONP('create_drive_folder', {
         folderName: vendorName,
-        parentId: VENDOR_PARENT_FOLDER_ID
+        parentId: VENDOR_PARENT_FOLDER_ID,
       });
 
       if (result.success) {
-        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        const folderUrl =
+          result.data?.folderUrl ||
+          `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
         console.log(`✅ Vendor folder created: ${folderUrl}`);
         return { success: true, url: folderUrl, folderId: result.data?.folderId };
       } else {
@@ -300,18 +313,20 @@ export const GoogleService = {
   },
 
   // 客戶專用：在指定的「客戶資料」資料夾下建立客戶資料夾
-  createClientFolder: async (clientName) => {
+  createClientFolder: async clientName => {
     const CLIENT_PARENT_FOLDER_ID = '1UcrNx19PWNvOR1gau8oywjFsIlNh22r0';
     console.log(`📁 Creating client folder: ${clientName} (in client root)`);
 
     try {
       const result = await callGASWithJSONP('create_drive_folder', {
         folderName: clientName,
-        parentId: CLIENT_PARENT_FOLDER_ID
+        parentId: CLIENT_PARENT_FOLDER_ID,
       });
 
       if (result.success) {
-        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        const folderUrl =
+          result.data?.folderUrl ||
+          `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
         console.log(`✅ Client folder created: ${folderUrl}`);
         return { success: true, url: folderUrl, folderId: result.data?.folderId };
       } else {
@@ -330,7 +345,7 @@ export const GoogleService = {
 
     try {
       const result = await callGASWithJSONP('list_drive_folders', {
-        parentFolderId
+        parentFolderId,
       });
 
       if (result.success) {
@@ -352,18 +367,20 @@ export const GoogleService = {
 
     try {
       const result = await callGASWithJSONP('create_cost_estimator_folder', {
-        folderName: '營建物料成本快速估算指標與公式'
+        folderName: '營建物料成本快速估算指標與公式',
       });
 
       if (result.success) {
-        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        const folderUrl =
+          result.data?.folderUrl ||
+          `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
         console.log(`✅ Cost Estimator folder created: ${folderUrl}`);
         return {
           success: true,
           url: folderUrl,
           folderId: result.data?.folderId,
           sheetId: result.data?.sheetId,
-          sheetUrl: result.data?.sheetUrl
+          sheetUrl: result.data?.sheetUrl,
         };
       } else {
         console.error(`❌ Cost Estimator folder creation failed:`, result.error);
@@ -402,7 +419,7 @@ export const GoogleService = {
     try {
       const result = await callGASWithJSONP('update_material_price', {
         category,
-        material
+        material,
       });
 
       if (result.success) {
@@ -433,10 +450,10 @@ export const GoogleService = {
           price: item.price,
           quantity: item.quantity,
           subtotal: item.price * item.quantity,
-          note: item.note || ''
+          note: item.note || '',
         })),
         totalCost,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
 
       if (result.success) {
@@ -446,7 +463,7 @@ export const GoogleService = {
           success: true,
           sheetUrl,
           sheetId: result.data?.sheetId,
-          folderUrl: result.data?.folderUrl
+          folderUrl: result.data?.folderUrl,
         };
       } else {
         console.error(`❌ Failed to export estimate:`, result.error);
@@ -466,7 +483,7 @@ export const GoogleService = {
 
     try {
       const result = await callGASWithJSONP('init_inventory_sheet', {
-        parentId: INVENTORY_FOLDER_ID
+        parentId: INVENTORY_FOLDER_ID,
       });
 
       if (result.success) {
@@ -476,7 +493,7 @@ export const GoogleService = {
           folderId: result.data?.folderId,
           folderUrl: result.data?.folderUrl,
           sheetId: result.data?.sheetId,
-          sheetUrl: result.data?.sheetUrl
+          sheetUrl: result.data?.sheetUrl,
         };
       } else {
         console.error(`❌ Failed to initialize Inventory Sheet:`, result.error);
@@ -495,17 +512,19 @@ export const GoogleService = {
     try {
       const result = await callGASWithJSONP('sync_inventory_to_sheet', {
         sheetId,
-        items: JSON.stringify(items.map(item => ({
-          name: item.name,
-          spec: item.spec || '',
-          quantity: item.quantity,
-          unit: item.unit,
-          safeStock: item.safeStock,
-          location: item.location || '',
-          status: item.status,
-          mainCategory: item.mainCategory || '',
-          category: item.category || '其他'
-        })))
+        items: JSON.stringify(
+          items.map(item => ({
+            name: item.name,
+            spec: item.spec || '',
+            quantity: item.quantity,
+            unit: item.unit,
+            safeStock: item.safeStock,
+            location: item.location || '',
+            status: item.status,
+            mainCategory: item.mainCategory || '',
+            category: item.category || '其他',
+          }))
+        ),
       });
 
       if (result.success) {
@@ -513,7 +532,7 @@ export const GoogleService = {
         return {
           success: true,
           sheetUrl: result.data?.sheetUrl,
-          updatedAt: result.data?.updatedAt
+          updatedAt: result.data?.updatedAt,
         };
       } else {
         console.error(`❌ Failed to sync inventory:`, result.error);
@@ -533,7 +552,7 @@ export const GoogleService = {
       const result = await callGASWithJSONP('sync_project_transaction', {
         folderId: projectFolderId,
         projectName,
-        transaction: JSON.stringify(transaction)
+        transaction: JSON.stringify(transaction),
       });
 
       if (result.success) {
@@ -541,7 +560,7 @@ export const GoogleService = {
         return {
           success: true,
           sheetUrl: result.data?.sheetUrl,
-          sheetId: result.data?.sheetId
+          sheetId: result.data?.sheetId,
         };
       } else {
         console.error(`❌ Failed to sync transaction:`, result.error);
@@ -561,7 +580,7 @@ export const GoogleService = {
       const result = await callGASWithJSONP('sync_all_project_transactions', {
         folderId: projectFolderId,
         projectName,
-        transactions: JSON.stringify(transactions)
+        transactions: JSON.stringify(transactions),
       });
 
       if (result.success) {
@@ -569,7 +588,7 @@ export const GoogleService = {
         return {
           success: true,
           sheetUrl: result.data?.sheetUrl,
-          sheetId: result.data?.sheetId
+          sheetId: result.data?.sheetId,
         };
       } else {
         console.error(`❌ Failed to sync transactions:`, result.error);
@@ -589,17 +608,21 @@ export const GoogleService = {
 
     // 產生檔名 (含日期時間)
     const now = new Date();
-    const dateStr = now.toLocaleDateString('zh-TW', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).replace(/\//g, '-');
-    const timeStr = now.toLocaleTimeString('zh-TW', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).replace(/:/g, '-');
+    const dateStr = now
+      .toLocaleDateString('zh-TW', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      .replace(/\//g, '-');
+    const timeStr = now
+      .toLocaleTimeString('zh-TW', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+      .replace(/:/g, '-');
     const sheetName = customName.trim() || `物料算量_${dateStr}_${timeStr}`;
 
     console.log(`📊 Exporting material calculation to Sheet: ${sheetName}...`);
@@ -617,9 +640,9 @@ export const GoogleService = {
           value: r.value || 0,
           unit: r.unit || '',
           wastageValue: r.wastageValue || r.value || 0,
-          createdAt: r.createdAt || ''
+          createdAt: r.createdAt || '',
         })),
-        createdAt: now.toISOString()
+        createdAt: now.toISOString(),
       });
 
       if (result.success) {
@@ -635,7 +658,7 @@ export const GoogleService = {
           success: true,
           sheetUrl,
           sheetId,
-          folderUrl
+          folderUrl,
         };
       } else {
         console.error(`❌ Failed to export material calculation:`, result.error);
@@ -657,19 +680,20 @@ export const GoogleService = {
     const FINANCE_FOLDER_ID = '1QlXwt1Ew8ffQGFpr-40PZ91eocOlV8Eg';
     console.log(`📁 Initializing '財務報表' folder in specified location...`);
 
-
     try {
       const result = await callGASWithJSONP('init_finance_folder', {
-        parentId: FINANCE_FOLDER_ID
+        parentId: FINANCE_FOLDER_ID,
       });
 
       if (result.success) {
-        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        const folderUrl =
+          result.data?.folderUrl ||
+          `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
         console.log(`✅ Finance report folder ready: ${folderUrl}`);
         return {
           success: true,
           folderId: result.data?.folderId,
-          folderUrl: folderUrl
+          folderUrl: folderUrl,
         };
       } else {
         console.error(`❌ Finance report folder failed:`, result.error);
@@ -697,13 +721,13 @@ export const GoogleService = {
       const enrichedTransactions = transactions.map(tx => ({
         ...tx,
         accountName: accountsMap[tx.accountId] || tx.accountName || '',
-        projectName: projectsMap[tx.projectId] || tx.projectName || ''
+        projectName: projectsMap[tx.projectId] || tx.projectName || '',
       }));
 
       const result = await callGASWithJSONP('export_finance_report', {
         transactions: enrichedTransactions,
         dateRange,
-        folderId: folderResult.folderId
+        folderId: folderResult.folderId,
       });
 
       if (result.success) {
@@ -713,7 +737,7 @@ export const GoogleService = {
           sheetUrl: result.data?.sheetUrl,
           rowsAdded: result.data?.rowsAdded,
           yearMonth: result.data?.yearMonth,
-          isNewSheet: result.data?.isNewSheet
+          isNewSheet: result.data?.isNewSheet,
         };
       } else {
         console.error(`❌ Finance report export failed:`, result.error);
@@ -734,14 +758,18 @@ export const GoogleService = {
       // 先取得財務報表資料夾 ID
       const folderResult = await GoogleService.initFinanceReportFolder();
       if (!folderResult.success) {
-        return { success: false, error: `無法存取財務報表資料夾: ${folderResult.error}`, results: [] };
+        return {
+          success: false,
+          error: `無法存取財務報表資料夾: ${folderResult.error}`,
+          results: [],
+        };
       }
 
       const result = await callGASWithJSONP('search_finance_records', {
         query,
         folderId: folderResult.folderId,
         startDate,
-        endDate
+        endDate,
       });
 
       if (result.success) {
@@ -749,7 +777,7 @@ export const GoogleService = {
         return {
           success: true,
           results: result.data?.results || [],
-          count: result.data?.count || 0
+          count: result.data?.count || 0,
         };
       } else {
         console.error(`❌ Finance search failed:`, result.error);
@@ -759,5 +787,5 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message, results: [] };
     }
-  }
+  },
 };

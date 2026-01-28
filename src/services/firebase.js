@@ -1,33 +1,33 @@
 // Firebase Configuration and Authentication Service
 import { initializeApp } from 'firebase/app';
 import {
-    getAuth,
-    signInWithPopup,
-    GoogleAuthProvider,
-    signOut as firebaseSignOut,
-    onAuthStateChanged,
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
-    collection,
-    getDocs,
-    serverTimestamp,
-    query,
-    orderBy,
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  getDocs,
+  serverTimestamp,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 
 // Firebase configuration - use environment variables
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Check if Firebase config is valid (has API key)
@@ -40,43 +40,80 @@ let db = null;
 let googleProvider = null;
 
 if (isFirebaseConfigured) {
-    try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        googleProvider = new GoogleAuthProvider();
-        console.log('Firebase initialized successfully');
-    } catch (error) {
-        console.warn('Firebase initialization failed:', error.message);
-    }
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+    console.log('Firebase initialized successfully');
+  } catch (error) {
+    console.warn('Firebase initialization failed:', error.message);
+  }
 } else {
-    console.warn('Firebase not configured - running in offline mode. Set VITE_FIREBASE_* environment variables to enable.');
+  console.warn(
+    'Firebase not configured - running in offline mode. Set VITE_FIREBASE_* environment variables to enable.'
+  );
 }
 
 // Default role configuration
 const DEFAULT_ROLES = {
-    super_admin: {
-        name: 'super_admin',
-        level: 3,
-        allowedPages: [
-            'dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'cost-entries',
-            'clients', 'finance', 'vendors', 'inventory', 'materials', 'invoice', 'unit', 'cost', 'calc',
-            'user-management'
-        ],
-    },
-    admin: {
-        name: 'admin',
-        level: 2,
-        allowedPages: [
-            'dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'cost-entries',
-            'clients', 'finance', 'vendors', 'inventory', 'materials'
-        ],
-    },
-    user: {
-        name: 'user',
-        level: 1,
-        allowedPages: ['dashboard', 'schedule', 'projects', 'quotations', 'payments', 'contracts', 'profit', 'cost-entries'],
-    },
+  super_admin: {
+    name: 'super_admin',
+    level: 3,
+    allowedPages: [
+      'dashboard',
+      'schedule',
+      'projects',
+      'quotations',
+      'payments',
+      'contracts',
+      'profit',
+      'cost-entries',
+      'clients',
+      'finance',
+      'vendors',
+      'inventory',
+      'materials',
+      'invoice',
+      'unit',
+      'cost',
+      'calc',
+      'user-management',
+    ],
+  },
+  admin: {
+    name: 'admin',
+    level: 2,
+    allowedPages: [
+      'dashboard',
+      'schedule',
+      'projects',
+      'quotations',
+      'payments',
+      'contracts',
+      'profit',
+      'cost-entries',
+      'clients',
+      'finance',
+      'vendors',
+      'inventory',
+      'materials',
+    ],
+  },
+  user: {
+    name: 'user',
+    level: 1,
+    allowedPages: [
+      'dashboard',
+      'schedule',
+      'projects',
+      'quotations',
+      'payments',
+      'contracts',
+      'profit',
+      'cost-entries',
+    ],
+  },
 };
 
 // ==================== Auth Functions ====================
@@ -86,57 +123,57 @@ const DEFAULT_ROLES = {
  * @returns {Promise<Object>} User object with role info
  */
 export const signInWithGoogle = async () => {
-    if (!auth || !googleProvider) {
-        console.warn('Firebase Auth not initialized');
-        throw new Error('Firebase 未設定，請聯繫系統管理員');
+  if (!auth || !googleProvider) {
+    console.warn('Firebase Auth not initialized');
+    throw new Error('Firebase 未設定，請聯繫系統管理員');
+  }
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    // Check if user exists in Firestore, if not create new user
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+
+    if (!userDoc.exists()) {
+      // System owner email gets super_admin, first user also gets super_admin, others get user
+      const usersCollection = await getDocs(collection(db, 'users'));
+      const isFirstUser = usersCollection.empty;
+      const isSystemOwner = user.email === 'xiangteng007@gmail.com';
+
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        role: isFirstUser || isSystemOwner ? 'super_admin' : 'user',
+        googleId: user.uid,
+        lineUserId: null,
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+      });
+    } else {
+      // Update last login
+      await updateDoc(doc(db, 'users', user.uid), {
+        lastLogin: serverTimestamp(),
+      });
     }
-    try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
 
-        // Check if user exists in Firestore, if not create new user
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-
-        if (!userDoc.exists()) {
-            // System owner email gets super_admin, first user also gets super_admin, others get user
-            const usersCollection = await getDocs(collection(db, 'users'));
-            const isFirstUser = usersCollection.empty;
-            const isSystemOwner = user.email === 'xiangteng007@gmail.com';
-
-            await setDoc(doc(db, 'users', user.uid), {
-                email: user.email,
-                displayName: user.displayName,
-                photoURL: user.photoURL,
-                role: (isFirstUser || isSystemOwner) ? 'super_admin' : 'user',
-                googleId: user.uid,
-                lineUserId: null,
-                createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp(),
-            });
-        } else {
-            // Update last login
-            await updateDoc(doc(db, 'users', user.uid), {
-                lastLogin: serverTimestamp(),
-            });
-        }
-
-        return await getUserWithRole(user.uid);
-    } catch (error) {
-        console.error('Google sign-in error:', error);
-        throw error;
-    }
+    return await getUserWithRole(user.uid);
+  } catch (error) {
+    console.error('Google sign-in error:', error);
+    throw error;
+  }
 };
 
 /**
  * Sign out
  */
 export const signOut = async () => {
-    try {
-        await firebaseSignOut(auth);
-    } catch (error) {
-        console.error('Sign out error:', error);
-        throw error;
-    }
+  try {
+    await firebaseSignOut(auth);
+  } catch (error) {
+    console.error('Sign out error:', error);
+    throw error;
+  }
 };
 
 /**
@@ -144,20 +181,20 @@ export const signOut = async () => {
  * @param {Function} callback - Callback function receiving user object
  * @returns {Function} Unsubscribe function
  */
-export const subscribeToAuthState = (callback) => {
-    if (!auth) {
-        // Firebase not configured - call callback with null immediately
-        callback(null);
-        return () => { }; // Return no-op unsubscribe
+export const subscribeToAuthState = callback => {
+  if (!auth) {
+    // Firebase not configured - call callback with null immediately
+    callback(null);
+    return () => {}; // Return no-op unsubscribe
+  }
+  return onAuthStateChanged(auth, async firebaseUser => {
+    if (firebaseUser) {
+      const userWithRole = await getUserWithRole(firebaseUser.uid);
+      callback(userWithRole);
+    } else {
+      callback(null);
     }
-    return onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-            const userWithRole = await getUserWithRole(firebaseUser.uid);
-            callback(userWithRole);
-        } else {
-            callback(null);
-        }
-    });
+  });
 };
 
 /**
@@ -165,27 +202,27 @@ export const subscribeToAuthState = (callback) => {
  * @param {string} uid - User ID
  * @returns {Promise<Object>} User object with role and allowed pages
  */
-export const getUserWithRole = async (uid) => {
-    try {
-        const userDoc = await getDoc(doc(db, 'users', uid));
+export const getUserWithRole = async uid => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
 
-        if (!userDoc.exists()) {
-            return null;
-        }
-
-        const userData = userDoc.data();
-        const roleConfig = await getRoleConfig(userData.role);
-
-        return {
-            uid,
-            ...userData,
-            allowedPages: roleConfig?.allowedPages || DEFAULT_ROLES.user.allowedPages,
-            roleLevel: roleConfig?.level || 1,
-        };
-    } catch (error) {
-        console.error('Error getting user with role:', error);
-        throw error;
+    if (!userDoc.exists()) {
+      return null;
     }
+
+    const userData = userDoc.data();
+    const roleConfig = await getRoleConfig(userData.role);
+
+    return {
+      uid,
+      ...userData,
+      allowedPages: roleConfig?.allowedPages || DEFAULT_ROLES.user.allowedPages,
+      roleLevel: roleConfig?.level || 1,
+    };
+  } catch (error) {
+    console.error('Error getting user with role:', error);
+    throw error;
+  }
 };
 
 // ==================== Role Functions ====================
@@ -195,20 +232,20 @@ export const getUserWithRole = async (uid) => {
  * @param {string} roleName - Role name
  * @returns {Promise<Object>} Role configuration
  */
-export const getRoleConfig = async (roleName) => {
-    try {
-        const roleDoc = await getDoc(doc(db, 'roles', roleName));
+export const getRoleConfig = async roleName => {
+  try {
+    const roleDoc = await getDoc(doc(db, 'roles', roleName));
 
-        if (roleDoc.exists()) {
-            return roleDoc.data();
-        }
-
-        // Return default role config if not found in Firestore
-        return DEFAULT_ROLES[roleName] || DEFAULT_ROLES.user;
-    } catch (error) {
-        console.error('Error getting role config:', error);
-        return DEFAULT_ROLES[roleName] || DEFAULT_ROLES.user;
+    if (roleDoc.exists()) {
+      return roleDoc.data();
     }
+
+    // Return default role config if not found in Firestore
+    return DEFAULT_ROLES[roleName] || DEFAULT_ROLES.user;
+  } catch (error) {
+    console.error('Error getting role config:', error);
+    return DEFAULT_ROLES[roleName] || DEFAULT_ROLES.user;
+  }
 };
 
 /**
@@ -216,19 +253,19 @@ export const getRoleConfig = async (roleName) => {
  * @returns {Promise<Array>} Array of role configurations
  */
 export const getAllRoles = async () => {
-    try {
-        const rolesCollection = await getDocs(collection(db, 'roles'));
+  try {
+    const rolesCollection = await getDocs(collection(db, 'roles'));
 
-        if (rolesCollection.empty) {
-            // Return default roles if no roles in Firestore
-            return Object.values(DEFAULT_ROLES);
-        }
-
-        return rolesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error('Error getting all roles:', error);
-        return Object.values(DEFAULT_ROLES);
+    if (rolesCollection.empty) {
+      // Return default roles if no roles in Firestore
+      return Object.values(DEFAULT_ROLES);
     }
+
+    return rolesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error getting all roles:', error);
+    return Object.values(DEFAULT_ROLES);
+  }
 };
 
 /**
@@ -237,12 +274,12 @@ export const getAllRoles = async () => {
  * @param {Object} roleData - Role configuration data
  */
 export const updateRoleConfig = async (roleName, roleData) => {
-    try {
-        await setDoc(doc(db, 'roles', roleName), roleData, { merge: true });
-    } catch (error) {
-        console.error('Error updating role config:', error);
-        throw error;
-    }
+  try {
+    await setDoc(doc(db, 'roles', roleName), roleData, { merge: true });
+  } catch (error) {
+    console.error('Error updating role config:', error);
+    throw error;
+  }
 };
 
 // ==================== User Management Functions ====================
@@ -252,18 +289,18 @@ export const updateRoleConfig = async (roleName, roleData) => {
  * @returns {Promise<Array>} Array of users
  */
 export const getAllUsers = async () => {
-    try {
-        const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-        const usersCollection = await getDocs(usersQuery);
+  try {
+    const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+    const usersCollection = await getDocs(usersQuery);
 
-        return usersCollection.docs.map(doc => ({
-            uid: doc.id,
-            ...doc.data(),
-        }));
-    } catch (error) {
-        console.error('Error getting all users:', error);
-        throw error;
-    }
+    return usersCollection.docs.map(doc => ({
+      uid: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    throw error;
+  }
 };
 
 /**
@@ -272,14 +309,14 @@ export const getAllUsers = async () => {
  * @param {string} newRole - New role name
  */
 export const updateUserRole = async (uid, newRole) => {
-    try {
-        await updateDoc(doc(db, 'users', uid), {
-            role: newRole,
-        });
-    } catch (error) {
-        console.error('Error updating user role:', error);
-        throw error;
-    }
+  try {
+    await updateDoc(doc(db, 'users', uid), {
+      role: newRole,
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    throw error;
+  }
 };
 
 /**
@@ -287,14 +324,14 @@ export const updateUserRole = async (uid, newRole) => {
  * Note: This only removes user from Firestore, not from Firebase Auth
  * @param {string} uid - User ID
  */
-export const deleteUser = async (uid) => {
-    try {
-        const { deleteDoc } = await import('firebase/firestore');
-        await deleteDoc(doc(db, 'users', uid));
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        throw error;
-    }
+export const deleteUser = async uid => {
+  try {
+    const { deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(doc(db, 'users', uid));
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
 };
 
 // ==================== Initialize Default Roles ====================
@@ -304,34 +341,34 @@ export const deleteUser = async (uid) => {
  * Also merges any new permissions from DEFAULT_ROLES into existing roles
  */
 export const initializeDefaultRoles = async () => {
-    try {
-        for (const [roleName, roleConfig] of Object.entries(DEFAULT_ROLES)) {
-            const roleDoc = await getDoc(doc(db, 'roles', roleName));
-            if (!roleDoc.exists()) {
-                // Create new role
-                await setDoc(doc(db, 'roles', roleName), roleConfig);
-            } else {
-                // Merge any new permissions from DEFAULT_ROLES
-                const existingData = roleDoc.data();
-                const existingPages = existingData.allowedPages || [];
-                const defaultPages = roleConfig.allowedPages || [];
+  try {
+    for (const [roleName, roleConfig] of Object.entries(DEFAULT_ROLES)) {
+      const roleDoc = await getDoc(doc(db, 'roles', roleName));
+      if (!roleDoc.exists()) {
+        // Create new role
+        await setDoc(doc(db, 'roles', roleName), roleConfig);
+      } else {
+        // Merge any new permissions from DEFAULT_ROLES
+        const existingData = roleDoc.data();
+        const existingPages = existingData.allowedPages || [];
+        const defaultPages = roleConfig.allowedPages || [];
 
-                // Find new pages that don't exist in Firestore yet
-                const newPages = defaultPages.filter(p => !existingPages.includes(p));
+        // Find new pages that don't exist in Firestore yet
+        const newPages = defaultPages.filter(p => !existingPages.includes(p));
 
-                if (newPages.length > 0) {
-                    const mergedPages = [...existingPages, ...newPages];
-                    await updateDoc(doc(db, 'roles', roleName), {
-                        allowedPages: mergedPages,
-                    });
-                    console.log(`Updated ${roleName} with new pages:`, newPages);
-                }
-            }
+        if (newPages.length > 0) {
+          const mergedPages = [...existingPages, ...newPages];
+          await updateDoc(doc(db, 'roles', roleName), {
+            allowedPages: mergedPages,
+          });
+          console.log(`Updated ${roleName} with new pages:`, newPages);
         }
-        console.log('Default roles initialized/updated');
-    } catch (error) {
-        console.error('Error initializing default roles:', error);
+      }
     }
+    console.log('Default roles initialized/updated');
+  } catch (error) {
+    console.error('Error initializing default roles:', error);
+  }
 };
 
 // ==================== User Preferences Functions ====================
@@ -342,16 +379,16 @@ export const initializeDefaultRoles = async () => {
  * @param {Array<string>} menuOrder - Array of menu item IDs
  */
 export const saveUserMenuOrder = async (uid, menuOrder) => {
-    try {
-        await updateDoc(doc(db, 'users', uid), {
-            menuOrder: menuOrder,
-            menuOrderUpdatedAt: serverTimestamp(),
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Error saving menu order:', error);
-        return { success: false, error: error.message };
-    }
+  try {
+    await updateDoc(doc(db, 'users', uid), {
+      menuOrder: menuOrder,
+      menuOrderUpdatedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving menu order:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 /**
@@ -359,17 +396,17 @@ export const saveUserMenuOrder = async (uid, menuOrder) => {
  * @param {string} uid - User ID
  * @returns {Promise<Array<string>|null>} Menu order or null
  */
-export const getUserMenuOrder = async (uid) => {
-    try {
-        const userDoc = await getDoc(doc(db, 'users', uid));
-        if (userDoc.exists()) {
-            return userDoc.data().menuOrder || null;
-        }
-        return null;
-    } catch (error) {
-        console.error('Error getting menu order:', error);
-        return null;
+export const getUserMenuOrder = async uid => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+      return userDoc.data().menuOrder || null;
     }
+    return null;
+  } catch (error) {
+    console.error('Error getting menu order:', error);
+    return null;
+  }
 };
 
 // Export constants

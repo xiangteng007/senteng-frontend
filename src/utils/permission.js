@@ -10,8 +10,8 @@
  * @returns {boolean}
  */
 export function hasPageAccess(permissions, pageKey) {
-    if (!permissions || !permissions.pages) return false;
-    return permissions.pages.includes(pageKey);
+  if (!permissions || !permissions.pages) return false;
+  return permissions.pages.includes(pageKey);
 }
 
 /**
@@ -22,8 +22,8 @@ export function hasPageAccess(permissions, pageKey) {
  * @returns {boolean}
  */
 export function hasAction(permissions, domainKey, action) {
-    if (!permissions || !permissions.actions) return false;
-    const domainActions = permissions.actions[domainKey];
-    if (!domainActions || !Array.isArray(domainActions)) return false;
-    return domainActions.includes(action);
+  if (!permissions || !permissions.actions) return false;
+  const domainActions = permissions.actions[domainKey];
+  if (!domainActions || !Array.isArray(domainActions)) return false;
+  return domainActions.includes(action);
 }

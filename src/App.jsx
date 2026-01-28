@@ -26,7 +26,7 @@ import {
   Layers,
   Wallet,
   Package,
-  HardHat
+  HardHat,
 } from 'lucide-react';
 
 // Import P0 pages from design-system
@@ -70,10 +70,11 @@ import { BottomNav } from './components/layout/BottomNav';
 
 // --- MAIN LAYOUT & APP ---
 
-
 const SidebarGroup = ({ label, children }) => (
   <div className="mb-4">
-    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</div>
+    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      {label}
+    </div>
     <div className="space-y-1">{children}</div>
   </div>
 );
@@ -81,10 +82,11 @@ const SidebarGroup = ({ label, children }) => (
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${active
-      ? 'bg-gray-800 text-white shadow-md'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-      }`}
+    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+      active
+        ? 'bg-gray-800 text-white shadow-md'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+    }`}
   >
     <Icon size={18} className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
     <span className="text-sm font-medium">{label}</span>
@@ -121,11 +123,11 @@ const App = () => {
     '/bim': 'bim',
     '/invoice-helper': 'invoice-helper',
     '/procurements': 'procurements',
-    '/site-logs': 'site-logs'
+    '/site-logs': 'site-logs',
   };
 
   // Get initial tab from URL
-  const getTabFromPath = (path) => ROUTES[path] || 'dashboard';
+  const getTabFromPath = path => ROUTES[path] || 'dashboard';
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(window.location.pathname));
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -139,7 +141,7 @@ const App = () => {
       try {
         const [clientsData, projectsData] = await Promise.all([
           clientsApi.getAll(),
-          projectsApi.getAll()
+          projectsApi.getAll(),
         ]);
         // API returns { items: [], total: N }, extract the items array
         setClients(clientsData?.items || clientsData || []);
@@ -161,12 +163,12 @@ const App = () => {
     }, 4000);
   };
 
-  const removeToast = (id) => {
+  const removeToast = id => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
   // Navigate function that updates both URL and state
-  const navigate = (tab) => {
+  const navigate = tab => {
     const path = Object.keys(ROUTES).find(key => ROUTES[key] === tab && key !== '/') || '/';
     window.history.pushState({ tab }, '', path);
     setActiveTab(tab);
@@ -174,7 +176,7 @@ const App = () => {
 
   // Handle browser back/forward buttons
   useEffect(() => {
-    const handlePopState = (event) => {
+    const handlePopState = event => {
       if (event.state?.tab) {
         setActiveTab(event.state.tab);
       } else {
@@ -192,60 +194,99 @@ const App = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <DashboardPage events={[]} finance={{}} projects={projects} clients={clients} />;
-      case 'clients': return <ClientsPage data={clients} allProjects={projects} addToast={addToast} onUpdateClients={setClients} />;
-      case 'projects': return <ProjectsPage
-        data={{ projects }}
-        allClients={clients}
-        addToast={addToast}
-        allTransactions={transactions}
-        onAddGlobalTx={(tx) => {
-          const txWithId = { ...tx, id: tx.id || `tx-${Date.now()}`, createdAt: tx.createdAt || new Date().toISOString() };
-          setTransactions(prev => [txWithId, ...prev]);
-        }}
-        onUpdateProject={(updatedProject) => {
-          setProjects(prev => {
-            const exists = prev.find(p => p.id === updatedProject.id);
-            if (exists) {
-              return prev.map(p => p.id === updatedProject.id ? updatedProject : p);
-            }
-            return [updatedProject, ...prev];
-          });
-        }}
-        onDeleteProject={async (projectId) => {
-          try {
-            await projectsApi.delete(projectId);
-            setProjects(prev => prev.filter(p => p.id !== projectId));
-          } catch (error) {
-            console.error('Delete project failed:', error);
-            addToast(`刪除失敗: ${error.message}`, 'error');
-          }
-        }}
-      />;
-      case 'events': return <CalendarPage addToast={addToast} />;
-      case 'quotations': return <QuotationsPage addToast={addToast} projects={projects} clients={clients} />;
-      case 'contracts': return <ContractsPage />;
-      case 'change-orders': return <ChangeOrdersPage />;
-      case 'invoices': return <InvoicesPage />;
-      case 'payments': return <PaymentsPage />;
-      case 'finance': return <FinancePage data={{}} />;
-      case 'profit-analysis': return <ProfitAnalysisPage />;
-      case 'inventory': return <InventoryPage data={[]} addToast={addToast} />;
-      case 'vendors': return <VendorsPage data={[]} addToast={addToast} />;
-      case 'users': return <UserManagement addToast={addToast} />;
-      case 'integrations': return <IntegrationsPage />;
-      case 'storage': return <StoragePage />;
-      case 'engineering-estimate': return <EngineeringEstimateWorkspace addToast={addToast} />;
-      case 'material-calc': return <MaterialCalculator addToast={addToast} />;
-      case 'cost-estimator': return <CostEstimator addToast={addToast} />;
-      case 'quotation-edit': return <QuotationEditor />;
-      case 'bim': return <BimManagement />;
-      case 'invoice-helper': return <InvoiceHelperPage />;
-      case 'cmm-admin': return <CmmAdminPage addToast={addToast} />;
+      case 'dashboard':
+        return <DashboardPage events={[]} finance={{}} projects={projects} clients={clients} />;
+      case 'clients':
+        return (
+          <ClientsPage
+            data={clients}
+            allProjects={projects}
+            addToast={addToast}
+            onUpdateClients={setClients}
+          />
+        );
+      case 'projects':
+        return (
+          <ProjectsPage
+            data={{ projects }}
+            allClients={clients}
+            addToast={addToast}
+            allTransactions={transactions}
+            onAddGlobalTx={tx => {
+              const txWithId = {
+                ...tx,
+                id: tx.id || `tx-${Date.now()}`,
+                createdAt: tx.createdAt || new Date().toISOString(),
+              };
+              setTransactions(prev => [txWithId, ...prev]);
+            }}
+            onUpdateProject={updatedProject => {
+              setProjects(prev => {
+                const exists = prev.find(p => p.id === updatedProject.id);
+                if (exists) {
+                  return prev.map(p => (p.id === updatedProject.id ? updatedProject : p));
+                }
+                return [updatedProject, ...prev];
+              });
+            }}
+            onDeleteProject={async projectId => {
+              try {
+                await projectsApi.delete(projectId);
+                setProjects(prev => prev.filter(p => p.id !== projectId));
+              } catch (error) {
+                console.error('Delete project failed:', error);
+                addToast(`刪除失敗: ${error.message}`, 'error');
+              }
+            }}
+          />
+        );
+      case 'events':
+        return <CalendarPage addToast={addToast} />;
+      case 'quotations':
+        return <QuotationsPage addToast={addToast} projects={projects} clients={clients} />;
+      case 'contracts':
+        return <ContractsPage />;
+      case 'change-orders':
+        return <ChangeOrdersPage />;
+      case 'invoices':
+        return <InvoicesPage />;
+      case 'payments':
+        return <PaymentsPage />;
+      case 'finance':
+        return <FinancePage data={{}} />;
+      case 'profit-analysis':
+        return <ProfitAnalysisPage />;
+      case 'inventory':
+        return <InventoryPage data={[]} addToast={addToast} />;
+      case 'vendors':
+        return <VendorsPage data={[]} addToast={addToast} />;
+      case 'users':
+        return <UserManagement addToast={addToast} />;
+      case 'integrations':
+        return <IntegrationsPage />;
+      case 'storage':
+        return <StoragePage />;
+      case 'engineering-estimate':
+        return <EngineeringEstimateWorkspace addToast={addToast} />;
+      case 'material-calc':
+        return <MaterialCalculator addToast={addToast} />;
+      case 'cost-estimator':
+        return <CostEstimator addToast={addToast} />;
+      case 'quotation-edit':
+        return <QuotationEditor />;
+      case 'bim':
+        return <BimManagement />;
+      case 'invoice-helper':
+        return <InvoiceHelperPage />;
+      case 'cmm-admin':
+        return <CmmAdminPage addToast={addToast} />;
       // case 'customers' removed - use clients instead
-      case 'procurements': return <ProcurementsPage addToast={addToast} />;
-      case 'site-logs': return <SiteLogsPage addToast={addToast} />;
-      default: return <DashboardPage events={[]} finance={{}} projects={projects} clients={clients} />;
+      case 'procurements':
+        return <ProcurementsPage addToast={addToast} />;
+      case 'site-logs':
+        return <SiteLogsPage addToast={addToast} />;
+      default:
+        return <DashboardPage events={[]} finance={{}} projects={projects} clients={clients} />;
     }
   };
 
@@ -269,12 +310,12 @@ const App = () => {
     storage: '文件管理',
     'engineering-estimate': '工程估算工作區',
     'quotation-edit': '報價編輯',
-    'bim': 'BIM 管理',
+    bim: 'BIM 管理',
     'invoice-helper': '發票小幫手',
-    'procurements': '採購管理',
+    procurements: '採購管理',
     'site-logs': '工地日誌',
     'cost-estimator': '成本估算',
-    'material-calc': '材料估算'
+    'material-calc': '材料估算',
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -297,7 +338,6 @@ const App = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-900 selection:bg-gray-200">
-
       {/* Sidebar */}
       {/* Mobile Overlay */}
       {sidebarOpen && (
@@ -308,10 +348,14 @@ const App = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 z-30 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 z-30 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         <div className="p-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-gray-200">S</div>
+            <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-gray-200">
+              S
+            </div>
             <span className="mt-0.5">SENTENG</span>
           </h1>
         </div>
@@ -319,68 +363,194 @@ const App = () => {
         <nav className="flex-1 px-3 overflow-y-auto">
           {/* 📊 總覽 */}
           <div className="mb-2">
-            <SidebarItem icon={LayoutDashboard} label="儀表板" active={activeTab === 'dashboard'} onClick={() => navigate('dashboard')} />
+            <SidebarItem
+              icon={LayoutDashboard}
+              label="儀表板"
+              active={activeTab === 'dashboard'}
+              onClick={() => navigate('dashboard')}
+            />
           </div>
 
           {/* 🏗️ 專案工程 */}
           <SidebarGroup label="專案工程">
-            <SidebarItem icon={Briefcase} label="專案管理" active={activeTab === 'projects'} onClick={() => navigate('projects')} />
-            <SidebarItem icon={Calendar} label="行事曆" active={activeTab === 'events'} onClick={() => navigate('events')} />
-            <SidebarItem icon={ClipboardList} label="工地日誌" active={activeTab === 'site-logs'} onClick={() => navigate('site-logs')} />
+            <SidebarItem
+              icon={Briefcase}
+              label="專案管理"
+              active={activeTab === 'projects'}
+              onClick={() => navigate('projects')}
+            />
+            <SidebarItem
+              icon={Calendar}
+              label="行事曆"
+              active={activeTab === 'events'}
+              onClick={() => navigate('events')}
+            />
+            <SidebarItem
+              icon={ClipboardList}
+              label="工地日誌"
+              active={activeTab === 'site-logs'}
+              onClick={() => navigate('site-logs')}
+            />
           </SidebarGroup>
 
           {/* 📋 商務合約 */}
           <SidebarGroup label="商務合約">
-            <SidebarItem icon={FileText} label="報價單" active={activeTab === 'quotations'} onClick={() => navigate('quotations')} />
-            <SidebarItem icon={FileSignature} label="合約管理" active={activeTab === 'contracts'} onClick={() => navigate('contracts')} />
-            <SidebarItem icon={RefreshCw} label="變更單" active={activeTab === 'change-orders'} onClick={() => navigate('change-orders')} />
+            <SidebarItem
+              icon={FileText}
+              label="報價單"
+              active={activeTab === 'quotations'}
+              onClick={() => navigate('quotations')}
+            />
+            <SidebarItem
+              icon={FileSignature}
+              label="合約管理"
+              active={activeTab === 'contracts'}
+              onClick={() => navigate('contracts')}
+            />
+            <SidebarItem
+              icon={RefreshCw}
+              label="變更單"
+              active={activeTab === 'change-orders'}
+              onClick={() => navigate('change-orders')}
+            />
           </SidebarGroup>
 
           {/* 💰 財務會計 */}
           <SidebarGroup label="財務會計">
-            <SidebarItem icon={Receipt} label="發票管理" active={activeTab === 'invoices'} onClick={() => navigate('invoices')} />
-            <SidebarItem icon={CreditCard} label="付款管理" active={activeTab === 'payments'} onClick={() => navigate('payments')} />
-            <SidebarItem icon={Wallet} label="財務管理" active={activeTab === 'finance'} onClick={() => navigate('finance')} />
-            <SidebarItem icon={TrendingUp} label="利潤分析" active={activeTab === 'profit-analysis'} onClick={() => navigate('profit-analysis')} />
+            <SidebarItem
+              icon={Receipt}
+              label="發票管理"
+              active={activeTab === 'invoices'}
+              onClick={() => navigate('invoices')}
+            />
+            <SidebarItem
+              icon={CreditCard}
+              label="付款管理"
+              active={activeTab === 'payments'}
+              onClick={() => navigate('payments')}
+            />
+            <SidebarItem
+              icon={Wallet}
+              label="財務管理"
+              active={activeTab === 'finance'}
+              onClick={() => navigate('finance')}
+            />
+            <SidebarItem
+              icon={TrendingUp}
+              label="利潤分析"
+              active={activeTab === 'profit-analysis'}
+              onClick={() => navigate('profit-analysis')}
+            />
           </SidebarGroup>
 
           {/* 📦 資源管理 */}
           <SidebarGroup label="資源管理">
-            <SidebarItem icon={Users} label="客戶管理" active={activeTab === 'clients'} onClick={() => navigate('clients')} />
-            <SidebarItem icon={HardHat} label="廠商管理" active={activeTab === 'vendors'} onClick={() => navigate('vendors')} />
-            <SidebarItem icon={Package} label="庫存管理" active={activeTab === 'inventory'} onClick={() => navigate('inventory')} />
-            <SidebarItem icon={ShoppingCart} label="採購管理" active={activeTab === 'procurements'} onClick={() => navigate('procurements')} />
+            <SidebarItem
+              icon={Users}
+              label="客戶管理"
+              active={activeTab === 'clients'}
+              onClick={() => navigate('clients')}
+            />
+            <SidebarItem
+              icon={HardHat}
+              label="廠商管理"
+              active={activeTab === 'vendors'}
+              onClick={() => navigate('vendors')}
+            />
+            <SidebarItem
+              icon={Package}
+              label="庫存管理"
+              active={activeTab === 'inventory'}
+              onClick={() => navigate('inventory')}
+            />
+            <SidebarItem
+              icon={ShoppingCart}
+              label="採購管理"
+              active={activeTab === 'procurements'}
+              onClick={() => navigate('procurements')}
+            />
           </SidebarGroup>
 
           {/* 📐 工程估算 */}
           <SidebarGroup label="工程估算">
-            <SidebarItem icon={Layers} label="工程估算" active={activeTab === 'engineering-estimate'} onClick={() => navigate('engineering-estimate')} />
-            <SidebarItem icon={Calculator} label="材料估算" active={activeTab === 'material-calc'} onClick={() => navigate('material-calc')} />
-            <SidebarItem icon={Ruler} label="成本估算" active={activeTab === 'cost-estimator'} onClick={() => navigate('cost-estimator')} />
-            <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => navigate('bim')} />
+            <SidebarItem
+              icon={Layers}
+              label="工程估算"
+              active={activeTab === 'engineering-estimate'}
+              onClick={() => navigate('engineering-estimate')}
+            />
+            <SidebarItem
+              icon={Calculator}
+              label="材料估算"
+              active={activeTab === 'material-calc'}
+              onClick={() => navigate('material-calc')}
+            />
+            <SidebarItem
+              icon={Ruler}
+              label="成本估算"
+              active={activeTab === 'cost-estimator'}
+              onClick={() => navigate('cost-estimator')}
+            />
+            <SidebarItem
+              icon={Building2}
+              label="BIM 管理"
+              active={activeTab === 'bim'}
+              onClick={() => navigate('bim')}
+            />
           </SidebarGroup>
 
           {/* ⚙️ 系統設定 */}
           <SidebarGroup label="系統設定">
-            <SidebarItem icon={Users} label="使用者管理" active={activeTab === 'users'} onClick={() => navigate('users')} />
-            <SidebarItem icon={Link2} label="整合設定" active={activeTab === 'integrations'} onClick={() => navigate('integrations')} />
-            <SidebarItem icon={FolderOpen} label="文件管理" active={activeTab === 'storage'} onClick={() => navigate('storage')} />
-            <SidebarItem icon={Settings} label="CMM 資料管理" active={activeTab === 'cmm-admin'} onClick={() => navigate('cmm-admin')} />
-            <SidebarItem icon={Receipt} label="發票小幫手" active={activeTab === 'invoice-helper'} onClick={() => navigate('invoice-helper')} />
+            <SidebarItem
+              icon={Users}
+              label="使用者管理"
+              active={activeTab === 'users'}
+              onClick={() => navigate('users')}
+            />
+            <SidebarItem
+              icon={Link2}
+              label="整合設定"
+              active={activeTab === 'integrations'}
+              onClick={() => navigate('integrations')}
+            />
+            <SidebarItem
+              icon={FolderOpen}
+              label="文件管理"
+              active={activeTab === 'storage'}
+              onClick={() => navigate('storage')}
+            />
+            <SidebarItem
+              icon={Settings}
+              label="CMM 資料管理"
+              active={activeTab === 'cmm-admin'}
+              onClick={() => navigate('cmm-admin')}
+            />
+            <SidebarItem
+              icon={Receipt}
+              label="發票小幫手"
+              active={activeTab === 'invoice-helper'}
+              onClick={() => navigate('invoice-helper')}
+            />
           </SidebarGroup>
         </nav>
 
         <div className="p-4 border-t border-gray-50">
           <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
             {user?.photoURL ? (
-              <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full object-cover" />
+              <img
+                src={user.photoURL}
+                alt={user.displayName}
+                className="w-10 h-10 rounded-full object-cover"
+              />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
                 {user?.displayName?.[0] || user?.email?.[0] || 'G'}
               </div>
             )}
             <div className="flex-1">
-              <p className="text-sm font-bold text-gray-900 truncate max-w-[100px]">{user?.displayName || '訪客'}</p>
+              <p className="text-sm font-bold text-gray-900 truncate max-w-[100px]">
+                {user?.displayName || '訪客'}
+              </p>
               <p className="text-xs text-gray-400">v3.2.1 ({user?.role || 'guest'})</p>
             </div>
             <button
@@ -396,7 +566,6 @@ const App = () => {
 
       {/* Main Content */}
       <main className="lg:ml-64 flex-1 flex flex-col min-h-screen">
-
         {/* Top Header */}
         <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 px-4 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -411,17 +580,30 @@ const App = () => {
 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <Bell size={20} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
+              <Bell
+                size={20}
+                className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+              />
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </div>
             <div className="h-8 w-px bg-gray-200"></div>
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <p className="text-sm font-bold text-gray-900">{user?.displayName || '訪客'}</p>
-                <p className="text-xs text-gray-400">{user?.role === 'super_admin' ? '最高管理員' : user?.role === 'admin' ? '管理員' : '使用者'}</p>
+                <p className="text-xs text-gray-400">
+                  {user?.role === 'super_admin'
+                    ? '最高管理員'
+                    : user?.role === 'admin'
+                      ? '管理員'
+                      : '使用者'}
+                </p>
               </div>
               {user?.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full object-cover shadow-lg shadow-gray-200" />
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName}
+                  className="w-10 h-10 rounded-full object-cover shadow-lg shadow-gray-200"
+                />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold shadow-lg shadow-gray-200">
                   {user?.displayName?.[0] || user?.email?.[0] || 'G'}
@@ -432,18 +614,11 @@ const App = () => {
         </header>
 
         {/* Dynamic Content */}
-        <div className="p-8 max-w-7xl mx-auto w-full">
-          {renderContent()}
-        </div>
-
+        <div className="p-8 max-w-7xl mx-auto w-full">{renderContent()}</div>
       </main>
 
       {/* Bottom Navigation - Mobile Only */}
-      <BottomNav
-        currentPath={activeTab}
-        onNavigate={navigate}
-        className="lg:hidden"
-      />
+      <BottomNav currentPath={activeTab} onNavigate={navigate} className="lg:hidden" />
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
