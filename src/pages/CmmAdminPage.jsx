@@ -60,7 +60,7 @@ export default function CmmAdminPage({ addToast }) {
         setLoading(true);
         setError(null);
         try {
-            let url = `${API_BASE}/v2/cmm/`;
+            let url = `${API_BASE}/api/v1/cmm/`;
             switch (activeTab) {
                 case 'profiles':
                     url += 'profiles';
@@ -105,7 +105,7 @@ export default function CmmAdminPage({ addToast }) {
         if (!confirm('確定要刪除此項目嗎？')) return;
 
         try {
-            const response = await fetch(`${API_BASE}/v2/cmm/${activeTab}/${id}`, {
+            const response = await fetch(`${API_BASE}/api/v1/cmm/${activeTab}/${id}`, {
                 method: 'DELETE',
             });
 
@@ -123,8 +123,8 @@ export default function CmmAdminPage({ addToast }) {
         try {
             const isEdit = !!editingItem?.id;
             const url = isEdit
-                ? `${API_BASE}/v2/cmm/${activeTab}/${editingItem.id}`
-                : `${API_BASE}/v2/cmm/${activeTab}`;
+                ? `${API_BASE}/api/v1/cmm/${activeTab}/${editingItem.id}`
+                : `${API_BASE}/api/v1/cmm/${activeTab}`;
 
             const response = await fetch(url, {
                 method: isEdit ? 'PUT' : 'POST',
@@ -187,8 +187,8 @@ export default function CmmAdminPage({ addToast }) {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
-                                ? 'text-gray-900 border-gray-900'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
+                            ? 'text-gray-900 border-gray-900'
+                            : 'text-gray-500 border-transparent hover:text-gray-700'
                             }`}
                     >
                         <tab.icon size={16} />
