@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useAuth } from './context/AuthContext';
 import {
   LayoutDashboard,
@@ -27,39 +27,40 @@ import {
   Wallet,
   Package,
   HardHat,
+  Loader2,
 } from 'lucide-react';
 
-// Import P0 pages from design-system
-import MaterialCalculator from './pages/MaterialCalculator';
-import CostEstimator from './pages/CostEstimator';
-import EngineeringEstimateWorkspace from './pages/EngineeringEstimateWorkspace';
-import QuotationEditor from './pages/QuotationEditor';
-import BimManagement from './pages/BimManagement';
-import CmmAdminPage from './pages/CmmAdminPage';
-import ContractsPage from './pages/Contracts';
-import ConstructionPage from './pages/Construction';
+// Dynamic imports for code splitting - reduces initial bundle size
+const MaterialCalculator = React.lazy(() => import('./pages/MaterialCalculator'));
+const CostEstimator = React.lazy(() => import('./pages/CostEstimator'));
+const EngineeringEstimateWorkspace = React.lazy(
+  () => import('./pages/EngineeringEstimateWorkspace')
+);
+const QuotationEditor = React.lazy(() => import('./pages/QuotationEditor'));
+const BimManagement = React.lazy(() => import('./pages/BimManagement'));
+const CmmAdminPage = React.lazy(() => import('./pages/CmmAdminPage'));
+const ContractsPage = React.lazy(() => import('./pages/Contracts'));
+const ConstructionPage = React.lazy(() => import('./pages/Construction'));
+const ProjectsPage = React.lazy(() => import('./pages/Projects'));
+const ClientsPage = React.lazy(() => import('./pages/Clients'));
+const VendorsPage = React.lazy(() => import('./pages/Vendors'));
+const InventoryPage = React.lazy(() => import('./pages/Inventory'));
+const FinancePage = React.lazy(() => import('./pages/Finance'));
+const CalendarPage = React.lazy(() => import('./pages/Calendar'));
+const QuotationsPage = React.lazy(() => import('./pages/Quotations'));
+const ChangeOrdersPage = React.lazy(() => import('./pages/ChangeOrders'));
+const PaymentsPage = React.lazy(() => import('./pages/Payments'));
+const ProfitAnalysisPage = React.lazy(() => import('./pages/ProfitAnalysis'));
+const InvoicesPage = React.lazy(() => import('./pages/Invoices'));
+const InvoiceHelperPage = React.lazy(() => import('./pages/InvoiceHelperPage'));
+const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const ProcurementsPage = React.lazy(() => import('./pages/Procurements'));
+const SiteLogsPage = React.lazy(() => import('./pages/SiteLogs'));
+const IntegrationsPage = React.lazy(() => import('./pages/IntegrationsPage'));
+const StoragePage = React.lazy(() => import('./pages/StoragePage'));
+const DashboardPage = React.lazy(() => import('./pages/Dashboard'));
 
-// Import refactored core pages with working Add functionality
-import ProjectsPage from './pages/Projects';
-import ClientsPage from './pages/Clients';
-import VendorsPage from './pages/Vendors';
-import InventoryPage from './pages/Inventory';
-import FinancePage from './pages/Finance';
-import CalendarPage from './pages/Calendar';
-import QuotationsPage from './pages/Quotations';
-import ChangeOrdersPage from './pages/ChangeOrders';
-import PaymentsPage from './pages/Payments';
-import ProfitAnalysisPage from './pages/ProfitAnalysis';
-import InvoicesPage from './pages/Invoices';
-import InvoiceHelperPage from './pages/InvoiceHelperPage';
-import UserManagement from './pages/UserManagement';
-import LoginPage from './pages/LoginPage';
-// CustomersPage removed - using Clients instead
-import ProcurementsPage from './pages/Procurements';
-import SiteLogsPage from './pages/SiteLogs';
-import IntegrationsPage from './pages/IntegrationsPage';
-import StoragePage from './pages/StoragePage';
-import DashboardPage from './pages/Dashboard';
 import { clientsApi, projectsApi } from './services/api';
 
 // Import shared components
@@ -67,6 +68,16 @@ import { Badge } from './components/common/Badge';
 import { Card } from './components/common/Card';
 import { ToastContainer } from './components/common/Toast';
 import { BottomNav } from './components/layout/BottomNav';
+
+// Loading fallback component for lazy-loaded pages
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-full min-h-[400px]">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      <span className="text-sm text-gray-500">載入中...</span>
+    </div>
+  </div>
+);
 
 // --- MAIN LAYOUT & APP ---
 
@@ -82,11 +93,10 @@ const SidebarGroup = ({ label, children }) => (
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
-      active
-        ? 'bg-gray-800 text-white shadow-md'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-    }`}
+    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${active
+      ? 'bg-gray-800 text-white shadow-md'
+      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      }`}
   >
     <Icon size={18} className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
     <span className="text-sm font-medium">{label}</span>
@@ -614,7 +624,9 @@ const App = () => {
         </header>
 
         {/* Dynamic Content */}
-        <div className="p-8 max-w-7xl mx-auto w-full">{renderContent()}</div>
+        <div className="p-8 max-w-7xl mx-auto w-full">
+          <Suspense fallback={<PageLoader />}>{renderContent()}</Suspense>
+        </div>
       </main>
 
       {/* Bottom Navigation - Mobile Only */}
