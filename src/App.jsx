@@ -762,9 +762,9 @@ const App = () => {
     '/integrations': 'integrations',
     '/storage': 'storage',
     '/engineering-estimate': 'engineering-estimate',
-    '/material-calc': 'engineering-estimate',   // Redirect to workspace
-    '/cost-estimator': 'engineering-estimate',   // Redirect to workspace
-    '/cost-est': 'engineering-estimate',         // Alias
+    '/material-calc': 'material-calc',
+    '/cost-estimator': 'cost-estimator',
+    '/cost-est': 'cost-estimator',
     '/quotation-edit': 'quotation-edit',
     '/bim': 'bim',
     '/invoice-helper': 'invoice-helper',
@@ -884,13 +884,14 @@ const App = () => {
       case 'integrations': return <Integrations />;
       case 'storage': return <Storage />;
       case 'engineering-estimate': return <EngineeringEstimateWorkspace addToast={addToast} />;
+      case 'material-calc': return <MaterialCalculator addToast={addToast} />;
+      case 'cost-estimator': return <CostEstimator addToast={addToast} />;
       case 'quotation-edit': return <QuotationEditor />;
       case 'bim': return <BimManagement />;
       case 'invoice-helper': return <InvoiceHelperPage />;
       // case 'customers' removed - use clients instead
       case 'procurements': return <ProcurementsPage addToast={addToast} />;
       case 'site-logs': return <SiteLogsPage addToast={addToast} />;
-      // material-calc and cost-estimator now redirect to engineering-estimate
       default: return <Dashboard data={MOCK_DATA} />;
     }
   };
@@ -996,7 +997,8 @@ const App = () => {
 
           <SidebarGroup label="工程估算">
             <SidebarItem icon={Layers} label="工程估算" active={activeTab === 'engineering-estimate'} onClick={() => navigate('engineering-estimate')} />
-
+            <SidebarItem icon={Calculator} label="材料估算" active={activeTab === 'material-calc'} onClick={() => navigate('material-calc')} />
+            <SidebarItem icon={Ruler} label="成本估算" active={activeTab === 'cost-estimator'} onClick={() => navigate('cost-estimator')} />
             <SidebarItem icon={Building2} label="BIM 管理" active={activeTab === 'bim'} onClick={() => navigate('bim')} />
             <SidebarItem icon={Receipt} label="發票小幫手" active={activeTab === 'invoice-helper'} onClick={() => navigate('invoice-helper')} />
           </SidebarGroup>
