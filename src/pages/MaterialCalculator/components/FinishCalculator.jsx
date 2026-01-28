@@ -26,7 +26,13 @@ import {
   PAINT_COVERAGE,
 } from '../constants';
 
-import { InputField, SelectField, WastageControl, ResultDisplay } from './SharedComponents';
+import {
+  InputField,
+  SelectField,
+  WastageControl,
+  ResultDisplay,
+  CostInput,
+} from './SharedComponents';
 
 // 工具函數
 const formatNumber = (num, decimals = 2) => {

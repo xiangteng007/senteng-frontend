@@ -2,7 +2,7 @@
  * MaterialCalculator 共用 UI 組件
  */
 import React, { useState, forwardRef } from 'react';
-import { Copy, Check, Plus, Trash2, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, Check, Plus, Trash2, Info, ChevronDown, ChevronUp, Calculator } from 'lucide-react';
 import { REGULATION_REFS } from '../constants';
 
 /**
@@ -255,3 +255,114 @@ export const RowActions = React.memo(({ onAdd, onRemove, onClear, canRemove = tr
 ));
 
 RowActions.displayName = 'RowActions';
+
+/**
+ * 格式化數字
+ */
+export const formatNumber = (num, decimals = 2) => {
+  if (num === undefined || num === null || isNaN(num)) return '-';
+  return Number(num).toLocaleString('zh-TW', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+};
+
+/**
+ * 成本輸入組件 - 用於材料成本估算
+ */
+export const CostInput = ({
+  label,
+  quantity,
+  unit,
+  unitLabel,
+  vendors = [],
+  onChange,
+  placeholder = {},
+}) => {
+  const [selectedVendor, setSelectedVendor] = useState('');
+  const [spec, setSpec] = useState('');
+  const [price, setPrice] = useState('');
+  const [note, setNote] = useState('');
+
+  const subtotal = (parseFloat(price) || 0) * (parseFloat(quantity) || 0);
+
+  // 當數值變更時通知父組件
+  React.useEffect(() => {
+    onChange?.({
+      vendor: vendors.find(v => v.id === selectedVendor)?.name || '',
+      vendorId: selectedVendor,
+      spec,
+      price: parseFloat(price) || 0,
+      subtotal,
+      note,
+    });
+  }, [selectedVendor, spec, price, note, quantity]);
+
+  return (
+    <div className="bg-orange-50 rounded-lg p-3 space-y-3 border border-orange-100 mt-2">
+      <div className="flex items-center gap-2 text-sm font-medium text-orange-800">
+        <span className="bg-orange-200 text-orange-700 p-1 rounded">
+          <Calculator size={14} />
+        </span>
+        {label}成本估算
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">廠商選擇</label>
+          <select
+            value={selectedVendor}
+            onChange={e => setSelectedVendor(e.target.value)}
+            className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+          >
+            <option value="">選擇廠商...</option>
+            {vendors.map(v => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">規格/種類</label>
+          <input
+            type="text"
+            value={spec}
+            onChange={e => setSpec(e.target.value)}
+            placeholder={placeholder.spec || '例：3000psi'}
+            className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">
+            單價 ({unitLabel || (unit ? `元/${unit}` : '元')})
+          </label>
+          <input
+            type="number"
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            placeholder="0"
+            className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">備註</label>
+          <input
+            type="text"
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            placeholder="備註說明"
+            className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm"
+          />
+        </div>
+      </div>
+      <div className="flex justify-between items-center pt-2 border-t border-orange-200/50">
+        <div className="text-xs text-orange-600">
+          數量: {formatNumber(quantity)} {unit}
+        </div>
+        <div className="text-sm font-bold text-orange-700">小計: $ {formatNumber(subtotal, 0)}</div>
+      </div>
+    </div>
+  );
+};
+
+CostInput.displayName = 'CostInput';

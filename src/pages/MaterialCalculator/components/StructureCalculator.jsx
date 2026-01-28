@@ -46,6 +46,7 @@ import {
   WastageControl,
   RegulationReference,
   ResultDisplay,
+  CostInput,
 } from './SharedComponents';
 
 // 工具函數
