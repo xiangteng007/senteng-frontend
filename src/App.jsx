@@ -45,6 +45,7 @@ import CostEstimator from './pages/CostEstimator';
 import EngineeringEstimateWorkspace from './pages/EngineeringEstimateWorkspace';
 import QuotationEditor from './pages/QuotationEditor';
 import BimManagement from './pages/BimManagement';
+import CmmAdminPage from './pages/CmmAdminPage';
 import ContractsPage from './pages/Contracts';
 import ConstructionPage from './pages/Construction';
 
@@ -765,6 +766,7 @@ const App = () => {
     '/material-calc': 'material-calc',
     '/cost-estimator': 'cost-estimator',
     '/cost-est': 'cost-estimator',
+    '/cmm-admin': 'cmm-admin',
     '/quotation-edit': 'quotation-edit',
     '/bim': 'bim',
     '/invoice-helper': 'invoice-helper',
@@ -889,6 +891,7 @@ const App = () => {
       case 'quotation-edit': return <QuotationEditor />;
       case 'bim': return <BimManagement />;
       case 'invoice-helper': return <InvoiceHelperPage />;
+      case 'cmm-admin': return <CmmAdminPage addToast={addToast} />;
       // case 'customers' removed - use clients instead
       case 'procurements': return <ProcurementsPage addToast={addToast} />;
       case 'site-logs': return <SiteLogsPage addToast={addToast} />;
@@ -1007,6 +1010,7 @@ const App = () => {
             <SidebarItem icon={Users} label="使用者管理" active={activeTab === 'users'} onClick={() => navigate('users')} />
             <SidebarItem icon={Link2} label="整合設定" active={activeTab === 'integrations'} onClick={() => navigate('integrations')} />
             <SidebarItem icon={FolderOpen} label="文件管理" active={activeTab === 'storage'} onClick={() => navigate('storage')} />
+            <SidebarItem icon={Settings} label="CMM 資料管理" active={activeTab === 'cmm-admin'} onClick={() => navigate('cmm-admin')} />
           </SidebarGroup>
         </nav>
 
