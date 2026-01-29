@@ -59,6 +59,7 @@ export const CATEGORY_L2 = {
     { id: 'paint', label: '油漆', icon: Paintbrush },
     { id: 'woodwork', label: '木作', icon: Hammer },
     { id: 'steelframe', label: '輕鋼架', icon: Grid3X3 },
+    { id: 'partition', label: '輕隔間', icon: Layers },
     { id: 'cabinet', label: '系統櫃', icon: Grid3X3 },
     { id: 'electrical', label: '水電', icon: Grid3X3 },
     { id: 'flooring', label: '地板', icon: Layers },
