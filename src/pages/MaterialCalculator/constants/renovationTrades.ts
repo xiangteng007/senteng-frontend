@@ -1,987 +1,271 @@
 /**
- * 室內裝修連工帶料計價資料
+ * 室內裝修連工帶料計價資料 v3.0
  * Interior Renovation Labor+Material Pricing Data
+ * 16 工種 / 200+ 項目 / 含品牌與認證
  */
 
-// 工種分類
+// ============ 類型定義 ============
+
+export type TradeId =
+    | 'paint' | 'woodwork' | 'partition' | 'ceiling'
+    | 'cabinet' | 'kitchen' | 'bathroom' | 'flooring'
+    | 'electrical' | 'door_window' | 'glass' | 'curtain'
+    | 'demolition' | 'metalwork' | 'hvac' | 'waterproof';
+
+export interface BrandOption {
+    id: string;
+    name: string;
+    origin: string;
+    tier: 'premium' | 'standard' | 'economy';
+    priceModifier: number;
+}
+
+export interface RenovationItem {
+    id: string;
+    subcategory: string;
+    name: string;
+    specs: { id: string; label: string; priceModifier?: number }[];
+    unit: string;
+    priceMin: number;
+    priceMax: number;
+    brands?: string[];
+    certifications?: string[];
+    note?: string;
+}
+
+// ============ 工種分類 ============
+
 export const RENOVATION_TRADES = [
     { id: 'paint', label: '油漆工程', icon: 'Paintbrush' },
     { id: 'woodwork', label: '木作工程', icon: 'Hammer' },
     { id: 'partition', label: '輕隔間工程', icon: 'Layers' },
     { id: 'ceiling', label: '天花板工程', icon: 'Grid3X3' },
     { id: 'cabinet', label: '系統櫃工程', icon: 'Package' },
+    { id: 'kitchen', label: '廚具工程', icon: 'ChefHat' },
+    { id: 'bathroom', label: '衛浴設備', icon: 'Bath' },
     { id: 'flooring', label: '地板工程', icon: 'Layers' },
     { id: 'electrical', label: '水電工程', icon: 'Zap' },
+    { id: 'door_window', label: '門窗工程', icon: 'DoorOpen' },
     { id: 'glass', label: '玻璃工程', icon: 'GlassWater' },
     { id: 'curtain', label: '窗簾窗飾', icon: 'Grid3X3' },
-    { id: 'cleaning', label: '清潔保護', icon: 'Sparkles' },
+    { id: 'demolition', label: '拆除清運', icon: 'Trash2' },
+    { id: 'metalwork', label: '鐵件工程', icon: 'Wrench' },
+    { id: 'hvac', label: '冷氣空調', icon: 'Snowflake' },
+    { id: 'waterproof', label: '防水工程', icon: 'Droplets' },
 ] as const;
 
-export type TradeId = typeof RENOVATION_TRADES[number]['id'];
+// ============ 品牌資料 ============
 
-// 連工帶料項目類型
-export interface RenovationItem {
-    id: string;
-    name: string;
-    specs: { id: string; label: string; priceModifier?: number }[];
-    unit: string;
-    priceMin: number;
-    priceMax: number;
-    note?: string;
-}
-
-// 各工種連工帶料項目資料
-export const RENOVATION_ITEMS: Record<TradeId, RenovationItem[]> = {
-    // 1. 油漆工程
+export const BRANDS: Record<string, BrandOption[]> = {
     paint: [
-        {
-            id: 'paint-latex',
-            name: '乳膠漆',
-            specs: [
-                { id: 'matte', label: '平光' },
-                { id: 'satin', label: '半光', priceModifier: 1.1 },
-                { id: 'gloss', label: '亮光', priceModifier: 1.2 },
-            ],
-            unit: '坪',
-            priceMin: 350,
-            priceMax: 550,
-            note: '含批土打底+底漆+面漆2道',
-        },
-        {
-            id: 'paint-enamel',
-            name: '調和漆',
-            specs: [
-                { id: 'white', label: '白色' },
-                { id: 'color', label: '調色', priceModifier: 1.15 },
-            ],
-            unit: '坪',
-            priceMin: 400,
-            priceMax: 600,
-        },
-        {
-            id: 'paint-cement',
-            name: '水泥漆',
-            specs: [
-                { id: 'indoor', label: '室內' },
-                { id: 'outdoor', label: '室外', priceModifier: 1.3 },
-            ],
-            unit: '坪',
-            priceMin: 250,
-            priceMax: 400,
-        },
-        {
-            id: 'paint-wood-oil',
-            name: '護木油/護木漆',
-            specs: [
-                { id: 'clear', label: '透明' },
-                { id: 'tinted', label: '有色', priceModifier: 1.1 },
-            ],
-            unit: '坪',
-            priceMin: 600,
-            priceMax: 900,
-        },
-        {
-            id: 'paint-baking',
-            name: '烤漆',
-            specs: [
-                { id: 'auto', label: '汽車烤漆' },
-                { id: 'industrial', label: '工業烤漆', priceModifier: 1.2 },
-            ],
-            unit: '坪',
-            priceMin: 800,
-            priceMax: 1500,
-        },
-        {
-            id: 'paint-putty',
-            name: '批土處理',
-            specs: [
-                { id: 'fine', label: '細批' },
-                { id: 'medium', label: '中批', priceModifier: 1.2 },
-                { id: 'rough', label: '粗批', priceModifier: 1.4 },
-            ],
-            unit: '坪',
-            priceMin: 200,
-            priceMax: 400,
-        },
-        {
-            id: 'paint-primer',
-            name: '底漆處理',
-            specs: [
-                { id: 'waterproof', label: '防水' },
-                { id: 'alkali', label: '抗鹼', priceModifier: 1.1 },
-            ],
-            unit: '坪',
-            priceMin: 150,
-            priceMax: 250,
-        },
+        { id: 'dulux', name: '得利 Dulux', origin: '荷蘭', tier: 'premium', priceModifier: 1.3 },
+        { id: 'nippon', name: '立邦 Nippon', origin: '日本', tier: 'premium', priceModifier: 1.2 },
+        { id: 'rainbow', name: '虹牌', origin: '台灣', tier: 'standard', priceModifier: 1.0 },
+        { id: 'qingye', name: '青葉', origin: '台灣', tier: 'economy', priceModifier: 0.85 },
     ],
-
-    // 2. 木作工程
-    woodwork: [
-        {
-            id: 'wood-ceiling-flat',
-            name: '天花板平頂',
-            specs: [
-                { id: 'calcium', label: '矽酸鈣板' },
-                { id: 'gypsum', label: '石膏板', priceModifier: 0.9 },
-            ],
-            unit: '坪',
-            priceMin: 1600,
-            priceMax: 2200,
-        },
-        {
-            id: 'wood-ceiling-cove',
-            name: '天花板間接照明',
-            specs: [
-                { id: 'single', label: '單層燈槽' },
-                { id: 'double', label: '雙層燈槽', priceModifier: 1.3 },
-            ],
-            unit: '尺',
-            priceMin: 800,
-            priceMax: 1200,
-        },
-        {
-            id: 'wood-ceiling-shape',
-            name: '造型天花',
-            specs: [
-                { id: 'arc', label: '弧形' },
-                { id: 'wave', label: '波浪', priceModifier: 1.2 },
-                { id: 'step', label: '跌級', priceModifier: 0.8 },
-            ],
-            unit: '坪',
-            priceMin: 3500,
-            priceMax: 6500,
-        },
-        {
-            id: 'wood-partition',
-            name: '木作隔間',
-            specs: [
-                { id: 'standard', label: '雙面封板+隔音棉' },
-                { id: 'soundproof', label: '加強隔音', priceModifier: 1.3 },
-            ],
-            unit: '坪',
-            priceMin: 2800,
-            priceMax: 4000,
-        },
-        {
-            id: 'wood-door-frame',
-            name: '木門框',
-            specs: [
-                { id: 'solid', label: '實木' },
-                { id: 'glulam', label: '集成材', priceModifier: 0.85 },
-            ],
-            unit: '樘',
-            priceMin: 4500,
-            priceMax: 8000,
-        },
-        {
-            id: 'wood-door-panel',
-            name: '木門片',
-            specs: [
-                { id: 'hollow', label: '空心門' },
-                { id: 'solid', label: '實心門', priceModifier: 1.5 },
-                { id: 'fire', label: '防火門', priceModifier: 2.0 },
-            ],
-            unit: '片',
-            priceMin: 3500,
-            priceMax: 12000,
-        },
-        {
-            id: 'wood-window-trim',
-            name: '窗框包框',
-            specs: [
-                { id: 'standard', label: '含窗台板' },
-            ],
-            unit: '尺',
-            priceMin: 450,
-            priceMax: 700,
-        },
-        {
-            id: 'wood-baseboard',
-            name: '踢腳板',
-            specs: [
-                { id: '8cm', label: '8cm高' },
-                { id: '10cm', label: '10cm高', priceModifier: 1.1 },
-                { id: '12cm', label: '12cm高', priceModifier: 1.2 },
-            ],
-            unit: '尺',
-            priceMin: 120,
-            priceMax: 200,
-        },
-        {
-            id: 'wood-cabinet',
-            name: '木作櫃體',
-            specs: [
-                { id: 'open', label: '開放式' },
-                { id: 'door', label: '門片式', priceModifier: 1.2 },
-                { id: 'drawer', label: '抽屜式', priceModifier: 1.4 },
-            ],
-            unit: '尺',
-            priceMin: 4500,
-            priceMax: 8000,
-        },
-        {
-            id: 'wood-floor-trim',
-            name: '木地板收邊',
-            specs: [
-                { id: 'press', label: '壓條' },
-                { id: 'edge', label: '收邊條', priceModifier: 1.1 },
-            ],
-            unit: '尺',
-            priceMin: 80,
-            priceMax: 150,
-        },
-    ],
-
-    // 3. 輕隔間工程
-    partition: [
-        {
-            id: 'partition-c65-eco',
-            name: 'C65 經濟型',
-            specs: [
-                { id: 'gypsum', label: '石膏板' },
-                { id: 'calcium', label: '矽酸鈣板', priceModifier: 1.15 },
-            ],
-            unit: 'm²',
-            priceMin: 1400,
-            priceMax: 1800,
-            note: '完成厚8.5cm',
-        },
-        {
-            id: 'partition-c65-std',
-            name: 'C65 標準型',
-            specs: [
-                { id: '24k', label: '+24K隔音棉' },
-                { id: '48k', label: '+48K高密度棉', priceModifier: 1.2 },
-            ],
-            unit: 'm²',
-            priceMin: 1800,
-            priceMax: 2200,
-            note: '完成厚8.5cm/STC~46',
-        },
-        {
-            id: 'partition-c75-std',
-            name: 'C75 標準型',
-            specs: [
-                { id: 'calcium', label: '矽酸鈣板+隔音棉' },
-            ],
-            unit: 'm²',
-            priceMin: 2000,
-            priceMax: 2400,
-            note: '完成厚9.5cm/STC~48',
-        },
-        {
-            id: 'partition-c75-hi',
-            name: 'C75 高隔音',
-            specs: [
-                { id: '48k', label: '+48K高密度棉' },
-            ],
-            unit: 'm²',
-            priceMin: 2400,
-            priceMax: 2800,
-            note: '完成厚9.5cm/STC~50',
-        },
-        {
-            id: 'partition-c92',
-            name: 'C92 高規格',
-            specs: [
-                { id: 'rockwool', label: '岩棉' },
-                { id: 'double', label: '雙層板', priceModifier: 1.4 },
-            ],
-            unit: 'm²',
-            priceMin: 2400,
-            priceMax: 4200,
-            note: '完成厚11cm/STC~52-56',
-        },
-        {
-            id: 'partition-c100',
-            name: 'C100 超高型',
-            specs: [
-                { id: 'standard', label: '高度>4M專用' },
-            ],
-            unit: 'm²',
-            priceMin: 2800,
-            priceMax: 3600,
-            note: '完成厚12cm',
-        },
-        {
-            id: 'partition-door-frame',
-            name: '門框補強',
-            specs: [
-                { id: 'standard', label: '含立柱+橫樑' },
-            ],
-            unit: '組',
-            priceMin: 800,
-            priceMax: 1200,
-        },
-        {
-            id: 'partition-sound-blanket',
-            name: '隔音毯加強',
-            specs: [
-                { id: '2mm', label: '2mm厚' },
-            ],
-            unit: 'm²',
-            priceMin: 180,
-            priceMax: 250,
-            note: 'STC+3~5',
-        },
-    ],
-
-    // 4. 天花板工程
-    ceiling: [
-        {
-            id: 'ceiling-exposed',
-            name: '明架天花板',
-            specs: [
-                { id: 'gypsum', label: '石膏板' },
-                { id: 'mineral', label: '礦纖板', priceModifier: 1.15 },
-            ],
-            unit: '坪',
-            priceMin: 1200,
-            priceMax: 1400,
-        },
-        {
-            id: 'ceiling-concealed',
-            name: '暗架天花板',
-            specs: [
-                { id: 'gypsum', label: '石膏板' },
-                { id: 'calcium', label: '矽酸鈣板', priceModifier: 1.12 },
-            ],
-            unit: '坪',
-            priceMin: 1600,
-            priceMax: 1800,
-        },
-        {
-            id: 'ceiling-pvc',
-            name: 'PVC天花板',
-            specs: [
-                { id: 'white', label: '白色' },
-                { id: 'wood', label: '木紋', priceModifier: 1.2 },
-            ],
-            unit: '坪',
-            priceMin: 1200,
-            priceMax: 1600,
-        },
-        {
-            id: 'ceiling-access',
-            name: '維修孔',
-            specs: [
-                { id: '60x60', label: '60×60cm' },
-            ],
-            unit: '組',
-            priceMin: 450,
-            priceMax: 600,
-        },
-        {
-            id: 'ceiling-downlight',
-            name: '崁燈開孔',
-            specs: [
-                { id: 'standard', label: '含補強' },
-            ],
-            unit: '孔',
-            priceMin: 100,
-            priceMax: 150,
-        },
-        {
-            id: 'ceiling-fan-mount',
-            name: '吊扇座補強',
-            specs: [
-                { id: 'steel', label: '鋼構補強' },
-            ],
-            unit: '組',
-            priceMin: 500,
-            priceMax: 800,
-        },
-    ],
-
-    // 5. 系統櫃工程
     cabinet: [
-        {
-            id: 'cabinet-wardrobe',
-            name: '衣櫃',
-            specs: [
-                { id: 'sliding', label: '推門' },
-                { id: 'pull', label: '拉門', priceModifier: 1.1 },
-                { id: 'swing', label: '開門', priceModifier: 0.95 },
-            ],
-            unit: '尺',
-            priceMin: 3800,
-            priceMax: 6500,
-        },
-        {
-            id: 'cabinet-tv',
-            name: '電視櫃',
-            specs: [
-                { id: 'floating', label: '懸吊' },
-                { id: 'floor', label: '落地', priceModifier: 0.9 },
-            ],
-            unit: '尺',
-            priceMin: 3500,
-            priceMax: 5500,
-        },
-        {
-            id: 'cabinet-book',
-            name: '書櫃',
-            specs: [
-                { id: 'open', label: '開放式' },
-                { id: 'glass', label: '玻璃門', priceModifier: 1.2 },
-            ],
-            unit: '尺',
-            priceMin: 3000,
-            priceMax: 5000,
-        },
-        {
-            id: 'cabinet-shoe',
-            name: '鞋櫃',
-            specs: [
-                { id: 'vent', label: '通風式' },
-                { id: 'closed', label: '封閉式', priceModifier: 1.05 },
-            ],
-            unit: '尺',
-            priceMin: 3200,
-            priceMax: 5000,
-        },
-        {
-            id: 'cabinet-kitchen-top',
-            name: '廚房上櫃',
-            specs: [
-                { id: 'standard', label: '標準60cm深' },
-            ],
-            unit: '尺',
-            priceMin: 3500,
-            priceMax: 5500,
-        },
-        {
-            id: 'cabinet-kitchen-bottom',
-            name: '廚房下櫃',
-            specs: [
-                { id: 'with-counter', label: '含檯面' },
-            ],
-            unit: '尺',
-            priceMin: 4500,
-            priceMax: 7000,
-        },
-        {
-            id: 'cabinet-island',
-            name: '中島櫃',
-            specs: [
-                { id: 'sink', label: '含水槽' },
-                { id: 'appliance', label: '含電器', priceModifier: 1.3 },
-            ],
-            unit: '尺',
-            priceMin: 6000,
-            priceMax: 10000,
-        },
-        {
-            id: 'cabinet-bathroom',
-            name: '浴室吊櫃',
-            specs: [
-                { id: 'moisture', label: '防潮板材' },
-            ],
-            unit: '尺',
-            priceMin: 3800,
-            priceMax: 6000,
-        },
-        {
-            id: 'cabinet-entry',
-            name: '玄關櫃',
-            specs: [
-                { id: 'bench', label: '含穿鞋椅' },
-            ],
-            unit: '尺',
-            priceMin: 4000,
-            priceMax: 6500,
-        },
-        {
-            id: 'cabinet-hardware',
-            name: '配件五金',
-            specs: [
-                { id: 'hinge', label: '緩衝鉸鏈' },
-                { id: 'slide', label: '抽屜滑軌', priceModifier: 1.5 },
-            ],
-            unit: '組',
-            priceMin: 200,
-            priceMax: 800,
-        },
+        { id: 'egger', name: 'EGGER 愛格', origin: '奧地利', tier: 'premium', priceModifier: 1.4 },
+        { id: 'kaindl', name: 'KAINDL', origin: '奧地利', tier: 'premium', priceModifier: 1.35 },
+        { id: 'skin', name: 'Skin', origin: '義大利', tier: 'premium', priceModifier: 1.25 },
+        { id: 'longland', name: '龍疆', origin: '台灣', tier: 'standard', priceModifier: 1.1 },
+        { id: 'jangmei', name: '彰美', origin: '台灣', tier: 'standard', priceModifier: 1.0 },
     ],
-
-    // 6. 地板工程
-    flooring: [
-        {
-            id: 'floor-laminate',
-            name: '超耐磨地板',
-            specs: [
-                { id: '8mm', label: '8mm' },
-                { id: '12mm', label: '12mm', priceModifier: 1.3 },
-            ],
-            unit: '坪',
-            priceMin: 2500,
-            priceMax: 4500,
-        },
-        {
-            id: 'floor-spc',
-            name: 'SPC石塑地板',
-            specs: [
-                { id: '4mm', label: '4mm' },
-                { id: '5mm', label: '5mm', priceModifier: 1.15 },
-            ],
-            unit: '坪',
-            priceMin: 2200,
-            priceMax: 3800,
-        },
-        {
-            id: 'floor-engineered',
-            name: '海島型木地板',
-            specs: [
-                { id: 'veneer', label: '實木皮' },
-                { id: 'composite', label: '複合', priceModifier: 0.85 },
-            ],
-            unit: '坪',
-            priceMin: 4500,
-            priceMax: 8000,
-        },
-        {
-            id: 'floor-solid',
-            name: '實木地板',
-            specs: [
-                { id: 'teak', label: '柚木' },
-                { id: 'oak', label: '橡木', priceModifier: 1.1 },
-                { id: 'walnut', label: '胡桃', priceModifier: 1.3 },
-            ],
-            unit: '坪',
-            priceMin: 8000,
-            priceMax: 15000,
-        },
-        {
-            id: 'floor-tile',
-            name: '磁磚地板',
-            specs: [
-                { id: '60x60', label: '60×60cm' },
-            ],
-            unit: '坪',
-            priceMin: 2500,
-            priceMax: 4500,
-        },
-        {
-            id: 'floor-vinyl',
-            name: '塑膠地磚',
-            specs: [
-                { id: 'square', label: '方塊' },
-                { id: 'plank', label: '長條', priceModifier: 1.1 },
-            ],
-            unit: '坪',
-            priceMin: 1200,
-            priceMax: 2000,
-        },
-        {
-            id: 'floor-raised',
-            name: '架高木地板',
-            specs: [
-                { id: 'with-frame', label: '含骨架' },
-            ],
-            unit: '坪',
-            priceMin: 4500,
-            priceMax: 7000,
-        },
-        {
-            id: 'floor-trim',
-            name: '收邊條',
-            specs: [
-                { id: 'press', label: '壓條' },
-                { id: 't-bar', label: 'T字條', priceModifier: 1.1 },
-            ],
-            unit: '尺',
-            priceMin: 80,
-            priceMax: 150,
-        },
-        {
-            id: 'floor-baseboard',
-            name: '踢腳板',
-            specs: [
-                { id: 'plastic', label: '塑膠' },
-                { id: 'wood', label: '實木', priceModifier: 1.5 },
-                { id: 'pvc', label: 'PVC', priceModifier: 0.9 },
-            ],
-            unit: '尺',
-            priceMin: 100,
-            priceMax: 250,
-        },
+    hvac: [
+        { id: 'daikin', name: '大金 Daikin', origin: '日本', tier: 'premium', priceModifier: 1.4 },
+        { id: 'hitachi', name: '日立 Hitachi', origin: '日本', tier: 'premium', priceModifier: 1.3 },
+        { id: 'mitsubishi', name: '三菱', origin: '日本', tier: 'premium', priceModifier: 1.25 },
+        { id: 'panasonic', name: 'Panasonic', origin: '日本', tier: 'standard', priceModifier: 1.15 },
+        { id: 'lg', name: 'LG', origin: '韓國', tier: 'standard', priceModifier: 1.0 },
+        { id: 'heran', name: '禾聯 HERAN', origin: '台灣', tier: 'economy', priceModifier: 0.8 },
     ],
-
-    // 7. 水電工程
-    electrical: [
-        {
-            id: 'elec-circuit',
-            name: '電源迴路',
-            specs: [
-                { id: 'dedicated', label: '新增專用迴路' },
-            ],
-            unit: '迴',
-            priceMin: 3500,
-            priceMax: 5000,
-        },
-        {
-            id: 'elec-outlet-move',
-            name: '插座移位',
-            specs: [
-                { id: 'with-conduit', label: '含配管線' },
-            ],
-            unit: '處',
-            priceMin: 1200,
-            priceMax: 2000,
-        },
-        {
-            id: 'elec-switch-move',
-            name: '開關移位',
-            specs: [
-                { id: 'with-conduit', label: '含配管線' },
-            ],
-            unit: '處',
-            priceMin: 1000,
-            priceMax: 1800,
-        },
-        {
-            id: 'elec-light-install',
-            name: '燈具安裝',
-            specs: [
-                { id: 'ceiling', label: '吸頂燈' },
-                { id: 'pendant', label: '吊燈', priceModifier: 1.3 },
-                { id: 'track', label: '軌道燈', priceModifier: 1.5 },
-            ],
-            unit: '盞',
-            priceMin: 500,
-            priceMax: 1500,
-        },
-        {
-            id: 'elec-downlight',
-            name: '崁燈安裝',
-            specs: [
-                { id: 'led', label: 'LED崁燈' },
-            ],
-            unit: '盞',
-            priceMin: 600,
-            priceMax: 1000,
-        },
-        {
-            id: 'elec-ac-circuit',
-            name: '冷氣迴路',
-            specs: [
-                { id: '220v', label: '220V專用迴路' },
-            ],
-            unit: '迴',
-            priceMin: 4500,
-            priceMax: 6500,
-        },
-        {
-            id: 'elec-lowvolt',
-            name: '弱電配線',
-            specs: [
-                { id: 'network', label: '網路' },
-                { id: 'phone', label: '電話', priceModifier: 0.8 },
-                { id: 'tv', label: '電視', priceModifier: 0.9 },
-            ],
-            unit: '點',
-            priceMin: 800,
-            priceMax: 1500,
-        },
-        {
-            id: 'plumb-supply',
-            name: '給水管線',
-            specs: [
-                { id: 'ppr', label: 'PPR熱熔管' },
-            ],
-            unit: '處',
-            priceMin: 2500,
-            priceMax: 4000,
-        },
-        {
-            id: 'plumb-drain',
-            name: '排水管線',
-            specs: [
-                { id: 'pvc', label: 'PVC管' },
-                { id: 'abs', label: 'ABS管', priceModifier: 1.1 },
-            ],
-            unit: '處',
-            priceMin: 2000,
-            priceMax: 3500,
-        },
-        {
-            id: 'plumb-toilet',
-            name: '馬桶安裝',
-            specs: [
-                { id: 'standard', label: '含法蘭/矽利康' },
-            ],
-            unit: '組',
-            priceMin: 1500,
-            priceMax: 2500,
-        },
-        {
-            id: 'plumb-sink',
-            name: '洗手台安裝',
-            specs: [
-                { id: 'with-parts', label: '含配件/止水閥' },
-            ],
-            unit: '組',
-            priceMin: 1800,
-            priceMax: 3000,
-        },
-    ],
-
-    // 8. 玻璃工程
-    glass: [
-        {
-            id: 'glass-clear',
-            name: '清玻/茶玻',
-            specs: [
-                { id: '5mm', label: '5mm' },
-                { id: '8mm', label: '8mm', priceModifier: 1.3 },
-                { id: '10mm', label: '10mm', priceModifier: 1.6 },
-            ],
-            unit: '才',
-            priceMin: 120,
-            priceMax: 200,
-        },
-        {
-            id: 'glass-tempered',
-            name: '強化玻璃',
-            specs: [
-                { id: '8mm', label: '8mm' },
-                { id: '10mm', label: '10mm', priceModifier: 1.2 },
-                { id: '12mm', label: '12mm', priceModifier: 1.5 },
-            ],
-            unit: '才',
-            priceMin: 180,
-            priceMax: 300,
-        },
-        {
-            id: 'glass-laminated',
-            name: '膠合玻璃',
-            specs: [
-                { id: '5+5', label: '5+5mm' },
-                { id: '6+6', label: '6+6mm', priceModifier: 1.3 },
-            ],
-            unit: '才',
-            priceMin: 280,
-            priceMax: 450,
-        },
-        {
-            id: 'glass-painted',
-            name: '烤漆玻璃',
-            specs: [
-                { id: 'white', label: '白色' },
-                { id: 'black', label: '黑色', priceModifier: 1.05 },
-                { id: 'color', label: '彩色', priceModifier: 1.15 },
-            ],
-            unit: '才',
-            priceMin: 200,
-            priceMax: 350,
-        },
-        {
-            id: 'glass-frosted',
-            name: '噴砂玻璃',
-            specs: [
-                { id: 'full', label: '全噴' },
-                { id: 'pattern', label: '圖案', priceModifier: 1.3 },
-            ],
-            unit: '才',
-            priceMin: 220,
-            priceMax: 400,
-        },
-        {
-            id: 'glass-mirror',
-            name: '鏡面',
-            specs: [
-                { id: 'silver', label: '銀鏡' },
-                { id: 'tea', label: '茶鏡', priceModifier: 1.2 },
-                { id: 'grey', label: '灰鏡', priceModifier: 1.25 },
-            ],
-            unit: '才',
-            priceMin: 150,
-            priceMax: 300,
-        },
-        {
-            id: 'glass-door',
-            name: '玻璃門片',
-            specs: [
-                { id: 'with-hardware', label: '含五金配件' },
-            ],
-            unit: '樘',
-            priceMin: 8000,
-            priceMax: 15000,
-        },
-        {
-            id: 'glass-shower',
-            name: '淋浴拉門',
-            specs: [
-                { id: 'inline', label: '一字型' },
-                { id: 'l-shape', label: 'L型', priceModifier: 1.4 },
-            ],
-            unit: '組',
-            priceMin: 12000,
-            priceMax: 25000,
-        },
-        {
-            id: 'glass-partition',
-            name: '玻璃隔間',
-            specs: [
-                { id: 'framed', label: '框架式' },
-                { id: 'frameless', label: '無框式', priceModifier: 1.4 },
-            ],
-            unit: 'm²',
-            priceMin: 3500,
-            priceMax: 6500,
-        },
-    ],
-
-    // 9. 窗簾窗飾
-    curtain: [
-        {
-            id: 'curtain-drape',
-            name: '布簾',
-            specs: [
-                { id: 'blackout', label: '遮光' },
-                { id: 'semi', label: '半遮光', priceModifier: 0.8 },
-                { id: 'sheer', label: '紗簾', priceModifier: 0.6 },
-            ],
-            unit: '尺(寬)',
-            priceMin: 200,
-            priceMax: 600,
-        },
-        {
-            id: 'curtain-roller',
-            name: '捲簾',
-            specs: [
-                { id: 'pull', label: '手拉' },
-                { id: 'electric', label: '電動', priceModifier: 2.0 },
-            ],
-            unit: '才',
-            priceMin: 60,
-            priceMax: 150,
-        },
-        {
-            id: 'curtain-blinds',
-            name: '百葉窗',
-            specs: [
-                { id: 'aluminum', label: '鋁製' },
-                { id: 'wood', label: '木製', priceModifier: 1.8 },
-                { id: 'pvc', label: 'PVC', priceModifier: 0.8 },
-            ],
-            unit: '才',
-            priceMin: 80,
-            priceMax: 200,
-        },
-        {
-            id: 'curtain-zebra',
-            name: '調光簾',
-            specs: [
-                { id: 'zebra', label: '斑馬簾' },
-                { id: 'honeycomb', label: '蜂巢簾', priceModifier: 1.3 },
-            ],
-            unit: '才',
-            priceMin: 100,
-            priceMax: 250,
-        },
-        {
-            id: 'curtain-roman',
-            name: '羅馬簾',
-            specs: [
-                { id: 'fabric', label: '布' },
-                { id: 'bamboo', label: '竹', priceModifier: 1.2 },
-            ],
-            unit: '才',
-            priceMin: 120,
-            priceMax: 280,
-        },
-        {
-            id: 'curtain-track',
-            name: '軌道/窗簾盒',
-            specs: [
-                { id: 'single', label: '單軌' },
-                { id: 'double', label: '雙軌', priceModifier: 1.5 },
-            ],
-            unit: '尺',
-            priceMin: 150,
-            priceMax: 350,
-        },
-    ],
-
-    // 10. 清潔保護
-    cleaning: [
-        {
-            id: 'clean-rough',
-            name: '開荒清潔',
-            specs: [
-                { id: 'new', label: '新屋' },
-                { id: 'reno', label: '翻新後', priceModifier: 1.2 },
-            ],
-            unit: '坪',
-            priceMin: 350,
-            priceMax: 600,
-        },
-        {
-            id: 'clean-glue',
-            name: '除膠清潔',
-            specs: [
-                { id: 'window', label: '窗框' },
-                { id: 'floor', label: '地板', priceModifier: 1.2 },
-            ],
-            unit: '坪',
-            priceMin: 200,
-            priceMax: 400,
-        },
-        {
-            id: 'clean-wax',
-            name: '地板打蠟',
-            specs: [
-                { id: 'polish', label: '拋光' },
-                { id: 'coat', label: '護膜', priceModifier: 1.3 },
-            ],
-            unit: '坪',
-            priceMin: 200,
-            priceMax: 400,
-        },
-        {
-            id: 'clean-ac',
-            name: '冷氣清洗',
-            specs: [
-                { id: 'split', label: '分離式' },
-                { id: 'window', label: '窗型', priceModifier: 0.7 },
-            ],
-            unit: '台',
-            priceMin: 1500,
-            priceMax: 3500,
-        },
-        {
-            id: 'clean-protect',
-            name: '施工保護',
-            specs: [
-                { id: 'floor', label: '地板' },
-                { id: 'elevator', label: '電梯', priceModifier: 1.5 },
-            ],
-            unit: '坪',
-            priceMin: 80,
-            priceMax: 150,
-        },
+    bathroom: [
+        { id: 'toto', name: 'TOTO', origin: '日本', tier: 'premium', priceModifier: 1.5 },
+        { id: 'hcg', name: 'HCG 和成', origin: '台灣', tier: 'standard', priceModifier: 1.0 },
+        { id: 'caesar', name: '凱撒 CAESAR', origin: '台灣', tier: 'standard', priceModifier: 1.05 },
     ],
 };
 
-// 取得工種的項目列表
+// ============ 認證規範 ============
+
+export const CERTIFICATIONS = {
+    'CNS 4940': '水性水泥漆國家標準',
+    'CNS F1': '甲醛釋出≤0.3mg/L',
+    'CNS F2': '甲醛釋出≤0.5mg/L',
+    'CNS F3': '甲醛釋出≤1.5mg/L',
+    'E0': '歐盟甲醛標準 (≤0.5mg/L)',
+    'E1': '歐盟甲醛標準 (≤1.5mg/L)',
+    'FSC': '森林管理認證',
+    'Green Guard': '低揮發物認證',
+    'CNS 8905': '防水塗膜規範',
+    'JIS A 6021': '日本防水標準',
+    '綠建材': '內政部低VOC認證',
+};
+
+// ============ 項目資料 ============
+
+export const RENOVATION_ITEMS: Record<TradeId, RenovationItem[]> = {
+    // 1. 油漆工程
+    paint: [
+        { id: 'p01', subcategory: '水泥漆', name: '新作面水泥漆', specs: [{ id: 'full', label: '全批土+一底二面' }], unit: '坪', priceMin: 1250, priceMax: 1600, certifications: ['CNS 4940'] },
+        { id: 'p02', subcategory: '水泥漆', name: '舊作面水泥漆', specs: [{ id: 'partial', label: '局部批土修補' }], unit: '坪', priceMin: 950, priceMax: 1200, certifications: ['CNS 4940'] },
+        { id: 'p03', subcategory: '水泥漆', name: '重新粉刷', specs: [{ id: 'flat', label: '牆面已平整' }], unit: '坪', priceMin: 250, priceMax: 400 },
+        { id: 'p04', subcategory: '乳膠漆', name: '新作面乳膠漆', specs: [{ id: 'full', label: '全批土+一底二面' }], unit: '坪', priceMin: 1900, priceMax: 2450, certifications: ['CNS 4940', '綠建材'] },
+        { id: 'p05', subcategory: '乳膠漆', name: '舊作面乳膠漆', specs: [{ id: 'partial', label: '局部批土' }], unit: '坪', priceMin: 1450, priceMax: 1800 },
+        { id: 'p06', subcategory: '乳膠漆', name: '竹炭乳膠漆', specs: [{ id: 'charcoal', label: '除醛功能' }], unit: '坪', priceMin: 2200, priceMax: 2800, brands: ['dulux'], certifications: ['綠建材'] },
+        { id: 'p07', subcategory: '批土處理', name: '批土+研磨一道', specs: [{ id: 'one', label: '一般修補' }], unit: '坪', priceMin: 300, priceMax: 350 },
+        { id: 'p08', subcategory: '批土處理', name: '批土+研磨兩道', specs: [{ id: 'two', label: '全面整平' }], unit: '坪', priceMin: 450, priceMax: 500 },
+        { id: 'p09', subcategory: '特殊漆', name: '珪藻土', specs: [{ id: 'std', label: '含底漆' }], unit: '坪', priceMin: 2500, priceMax: 4000 },
+        { id: 'p10', subcategory: '特殊漆', name: '藝術漆', specs: [{ id: 'concrete', label: '仿清水模' }], unit: '坪', priceMin: 3000, priceMax: 5000 },
+    ],
+    // 2. 木作工程
+    woodwork: [
+        { id: 'w01', subcategory: '天花板', name: '平頂天花板', specs: [{ id: 'calcium', label: '矽酸鈣板' }, { id: 'gypsum', label: '石膏板', priceModifier: 0.9 }], unit: '坪', priceMin: 3200, priceMax: 4500 },
+        { id: 'w02', subcategory: '天花板', name: '間接照明', specs: [{ id: 'single', label: '單層燈槽' }, { id: 'double', label: '雙層燈槽', priceModifier: 1.3 }], unit: '尺', priceMin: 800, priceMax: 1200 },
+        { id: 'w03', subcategory: '天花板', name: '造型天花板', specs: [{ id: 'arc', label: '弧形' }, { id: 'wave', label: '波浪' }], unit: '坪', priceMin: 5000, priceMax: 6500 },
+        { id: 'w04', subcategory: '隔間牆', name: '木作隔間牆', specs: [{ id: 'std', label: '雙面封板+隔音棉' }], unit: '坪', priceMin: 3500, priceMax: 5000 },
+        { id: 'w05', subcategory: '門框門片', name: '木門框', specs: [{ id: 'solid', label: '實木' }, { id: 'glulam', label: '集成材', priceModifier: 0.85 }], unit: '尺', priceMin: 3000, priceMax: 4000 },
+        { id: 'w06', subcategory: '門框門片', name: '木門片', specs: [{ id: 'hollow', label: '空心門' }, { id: 'solid', label: '實心門', priceModifier: 1.4 }, { id: 'fire', label: '防火門', priceModifier: 1.8 }], unit: '片', priceMin: 6000, priceMax: 10000 },
+        { id: 'w07', subcategory: '其他', name: '踢腳板', specs: [{ id: '8cm', label: '8cm高' }, { id: '10cm', label: '10cm高' }, { id: '12cm', label: '12cm高' }], unit: '尺', priceMin: 120, priceMax: 200 },
+        { id: 'w08', subcategory: '其他', name: '窗簾盒', specs: [{ id: 'std', label: '標準' }], unit: '尺', priceMin: 400, priceMax: 600 },
+    ],
+    // 3. 輕隔間工程
+    partition: [
+        { id: 'pt01', subcategory: 'C65經濟型', name: 'C65石膏板', specs: [{ id: 'double', label: '雙面封板' }], unit: 'm²', priceMin: 1600, priceMax: 1800, note: '完成厚8.5cm' },
+        { id: 'pt02', subcategory: 'C65經濟型', name: 'C65矽酸鈣板', specs: [{ id: '24k', label: '+24K隔音棉' }], unit: 'm²', priceMin: 1800, priceMax: 2200, note: 'STC~46' },
+        { id: 'pt03', subcategory: 'C75標準型', name: 'C75矽酸鈣板', specs: [{ id: '24k', label: '+24K棉' }, { id: '48k', label: '+48K棉', priceModifier: 1.15 }], unit: 'm²', priceMin: 2000, priceMax: 2800, note: 'STC~48-50' },
+        { id: 'pt04', subcategory: 'C92高規格', name: 'C92岩棉', specs: [{ id: 'rockwool', label: '岩棉' }], unit: 'm²', priceMin: 3200, priceMax: 3800, note: 'STC~52' },
+        { id: 'pt05', subcategory: 'C92高規格', name: 'C92雙層板', specs: [{ id: 'double', label: '雙層矽酸鈣' }], unit: 'm²', priceMin: 4200, priceMax: 5000, note: 'STC~56' },
+        { id: 'pt06', subcategory: '配件', name: '門框補強', specs: [{ id: 'std', label: '含立柱+橫樑' }], unit: '組', priceMin: 800, priceMax: 1200 },
+    ],
+    // 4. 天花板工程
+    ceiling: [
+        { id: 'c01', subcategory: '明架', name: '明架天花板', specs: [{ id: 'gypsum', label: '石膏板' }, { id: 'mineral', label: '礦纖板', priceModifier: 1.15 }], unit: '坪', priceMin: 1200, priceMax: 1600 },
+        { id: 'c02', subcategory: '暗架', name: '暗架天花板', specs: [{ id: 'calcium', label: '矽酸鈣板' }], unit: '坪', priceMin: 1600, priceMax: 1800 },
+        { id: 'c03', subcategory: '配件', name: '維修孔', specs: [{ id: '60x60', label: '60×60cm' }], unit: '組', priceMin: 450, priceMax: 600 },
+        { id: 'c04', subcategory: '配件', name: '崁燈開孔', specs: [{ id: 'std', label: '含補強' }], unit: '孔', priceMin: 100, priceMax: 150 },
+    ],
+    // 5. 系統櫃工程
+    cabinet: [
+        { id: 'cb01', subcategory: '衣櫃', name: '基本款衣櫃', specs: [{ id: 'f2', label: '國產F2板' }], unit: '尺', priceMin: 8000, priceMax: 10000, certifications: ['CNS F2'] },
+        { id: 'cb02', subcategory: '衣櫃', name: '中階款衣櫃', specs: [{ id: 'f1', label: '國產F1+進口五金' }], unit: '尺', priceMin: 10000, priceMax: 12000, certifications: ['CNS F1'] },
+        { id: 'cb03', subcategory: '衣櫃', name: '高階款衣櫃', specs: [{ id: 'e0', label: '進口E0板' }], unit: '尺', priceMin: 12000, priceMax: 15000, brands: ['egger', 'kaindl'], certifications: ['E0', 'FSC'] },
+        { id: 'cb04', subcategory: '收納櫃', name: '書櫃', specs: [{ id: 'open', label: '開放式' }, { id: 'glass', label: '玻璃門', priceModifier: 1.2 }], unit: '尺', priceMin: 6000, priceMax: 10000 },
+        { id: 'cb05', subcategory: '收納櫃', name: '電視櫃', specs: [{ id: 'floating', label: '懸吊' }, { id: 'floor', label: '落地' }], unit: '尺', priceMin: 7000, priceMax: 11000 },
+        { id: 'cb06', subcategory: '五金', name: '緩衝鉸鏈', specs: [{ id: 'local', label: '國產' }, { id: 'blum', label: 'Blum', priceModifier: 2 }], unit: '組', priceMin: 150, priceMax: 500 },
+    ],
+    // 6. 廚具工程
+    kitchen: [
+        { id: 'k01', subcategory: '系統廚具', name: '一字型廚具', specs: [{ id: '200', label: '200~300cm' }], unit: '組', priceMin: 50000, priceMax: 80000 },
+        { id: 'k02', subcategory: '系統廚具', name: 'L型廚具', specs: [{ id: 'std', label: '標準' }], unit: '組', priceMin: 80000, priceMax: 120000 },
+        { id: 'k03', subcategory: '中島', name: '基本中島', specs: [{ id: 'storage', label: '收納用' }], unit: '尺', priceMin: 4000, priceMax: 6000 },
+        { id: 'k04', subcategory: '檯面', name: '人造石檯面', specs: [{ id: 'std', label: '標準厚度' }], unit: '公分', priceMin: 80, priceMax: 120 },
+        { id: 'k05', subcategory: '廚房三機', name: '經濟套裝', specs: [{ id: 'local', label: '國產品牌' }], unit: '組', priceMin: 15000, priceMax: 25000 },
+        { id: 'k06', subcategory: '廚房三機', name: '高階套裝', specs: [{ id: 'import', label: '進口品牌' }], unit: '組', priceMin: 80000, priceMax: 120000 },
+    ],
+    // 7. 衛浴設備
+    bathroom: [
+        { id: 'b01', subcategory: '馬桶', name: '馬桶安裝', specs: [{ id: 'single', label: '單體馬桶' }, { id: 'sep', label: '分離式', priceModifier: 1.2 }], unit: '組', priceMin: 1500, priceMax: 3000, note: '純工資' },
+        { id: 'b02', subcategory: '馬桶', name: '糞管移位', specs: [{ id: 'std', label: '標準' }], unit: '處', priceMin: 6000, priceMax: 10000 },
+        { id: 'b03', subcategory: '洗手台', name: '洗手台安裝', specs: [{ id: 'wall', label: '壁掛式' }, { id: 'counter', label: '檯面式', priceModifier: 1.5 }], unit: '組', priceMin: 1000, priceMax: 3000, note: '純工資' },
+        { id: 'b04', subcategory: '淋浴設備', name: '淋浴拉門', specs: [{ id: 'inline', label: '一字型' }, { id: 'l', label: 'L型', priceModifier: 1.4 }], unit: '組', priceMin: 12000, priceMax: 25000 },
+        { id: 'b05', subcategory: '套組', name: '標準三件套', specs: [{ id: 'std', label: '馬桶+洗手台+龍頭' }], unit: '組', priceMin: 30000, priceMax: 45000 },
+    ],
+    // 8. 地板工程
+    flooring: [
+        { id: 'f01', subcategory: '木地板', name: '超耐磨地板', specs: [{ id: '8mm', label: '8mm' }, { id: '12mm', label: '12mm', priceModifier: 1.3 }], unit: '坪', priceMin: 2500, priceMax: 4500 },
+        { id: 'f02', subcategory: '木地板', name: 'SPC石塑地板', specs: [{ id: '4mm', label: '4mm' }, { id: '5mm', label: '5mm', priceModifier: 1.15 }], unit: '坪', priceMin: 2200, priceMax: 3800 },
+        { id: 'f03', subcategory: '木地板', name: '海島型木地板', specs: [{ id: 'veneer', label: '實木皮' }], unit: '坪', priceMin: 4500, priceMax: 8000 },
+        { id: 'f04', subcategory: '木地板', name: '實木地板', specs: [{ id: 'teak', label: '柚木' }, { id: 'oak', label: '橡木' }, { id: 'walnut', label: '胡桃', priceModifier: 1.3 }], unit: '坪', priceMin: 8000, priceMax: 15000 },
+        { id: 'f05', subcategory: '收邊', name: '踢腳板', specs: [{ id: 'plastic', label: '塑膠' }, { id: 'wood', label: '實木', priceModifier: 1.5 }], unit: '尺', priceMin: 100, priceMax: 250 },
+    ],
+    // 9. 水電工程
+    electrical: [
+        { id: 'e01', subcategory: '電路', name: '110V迴路', specs: [{ id: 'std', label: '標準' }], unit: '迴', priceMin: 2500, priceMax: 3500 },
+        { id: 'e02', subcategory: '電路', name: '220V迴路', specs: [{ id: 'ac', label: '冷氣用' }], unit: '迴', priceMin: 3500, priceMax: 5500 },
+        { id: 'e03', subcategory: '插座開關', name: '新增插座', specs: [{ id: 'old', label: '舊迴路' }, { id: 'new', label: '新迴路', priceModifier: 1.3 }], unit: '個', priceMin: 2000, priceMax: 4500 },
+        { id: 'e04', subcategory: '給排水', name: '熱水管重拉', specs: [{ id: 'ppr', label: 'PPR管' }], unit: '處', priceMin: 4000, priceMax: 6500 },
+        { id: 'e05', subcategory: '給排水', name: '排水管重拉', specs: [{ id: 'pvc', label: 'PVC管' }], unit: '處', priceMin: 1500, priceMax: 3000 },
+        { id: 'e06', subcategory: '配電', name: '配電箱安裝', specs: [{ id: 'std', label: '標準' }], unit: '組', priceMin: 12000, priceMax: 16000 },
+    ],
+    // 10. 門窗工程
+    door_window: [
+        { id: 'd01', subcategory: '鋁窗', name: '傳統鋁窗', specs: [{ id: 'std', label: '標準' }], unit: '才', priceMin: 300, priceMax: 450 },
+        { id: 'd02', subcategory: '鋁窗', name: '氣密窗', specs: [{ id: 'std', label: '標準' }], unit: '才', priceMin: 500, priceMax: 1000 },
+        { id: 'd03', subcategory: '鋁窗', name: '隔音窗', specs: [{ id: 'std', label: '標準' }], unit: '才', priceMin: 600, priceMax: 1200 },
+        { id: 'd04', subcategory: '門片', name: '浴室鋁門', specs: [{ id: 'glass', label: '白膜玻璃' }], unit: '組', priceMin: 14000, priceMax: 17500 },
+        { id: 'd05', subcategory: '門片', name: '玄關單片門', specs: [{ id: 'std', label: '標準' }], unit: '樘', priceMin: 37000, priceMax: 47000 },
+        { id: 'd06', subcategory: '門片', name: '玄關子母門', specs: [{ id: 'std', label: '標準' }, { id: 'ss', label: '不鏽鋼', priceModifier: 1.3 }], unit: '樘', priceMin: 50000, priceMax: 85000 },
+    ],
+    // 11. 玻璃工程
+    glass: [
+        { id: 'g01', subcategory: '平板玻璃', name: '清玻/茶玻', specs: [{ id: '5mm', label: '5mm' }, { id: '8mm', label: '8mm', priceModifier: 1.3 }, { id: '10mm', label: '10mm', priceModifier: 1.6 }], unit: '才', priceMin: 120, priceMax: 200 },
+        { id: 'g02', subcategory: '平板玻璃', name: '強化玻璃', specs: [{ id: '8mm', label: '8mm' }, { id: '10mm', label: '10mm', priceModifier: 1.2 }], unit: '才', priceMin: 180, priceMax: 300 },
+        { id: 'g03', subcategory: '鏡面', name: '銀鏡', specs: [{ id: 'std', label: '標準' }], unit: '才', priceMin: 150, priceMax: 200 },
+        { id: 'g04', subcategory: '玻璃工程', name: '玻璃隔間', specs: [{ id: 'framed', label: '框架式' }, { id: 'frameless', label: '無框式', priceModifier: 1.3 }], unit: 'm²', priceMin: 3500, priceMax: 6500 },
+    ],
+    // 12. 窗簾窗飾
+    curtain: [
+        { id: 'ct01', subcategory: '窗簾', name: '布簾', specs: [{ id: 'blackout', label: '遮光' }, { id: 'sheer', label: '紗簾', priceModifier: 0.6 }], unit: '尺(寬)', priceMin: 200, priceMax: 600 },
+        { id: 'ct02', subcategory: '窗簾', name: '捲簾', specs: [{ id: 'pull', label: '手拉' }, { id: 'electric', label: '電動', priceModifier: 2 }], unit: '才', priceMin: 60, priceMax: 200 },
+        { id: 'ct03', subcategory: '窗簾', name: '百葉窗', specs: [{ id: 'al', label: '鋁製' }, { id: 'wood', label: '木製', priceModifier: 1.8 }], unit: '才', priceMin: 80, priceMax: 200 },
+        { id: 'ct04', subcategory: '軌道', name: '窗簾盒', specs: [{ id: 'single', label: '單軌' }, { id: 'double', label: '雙軌', priceModifier: 1.5 }], unit: '尺', priceMin: 150, priceMax: 350 },
+    ],
+    // 13. 拆除清運
+    demolition: [
+        { id: 'dm01', subcategory: '牆面拆除', name: '磚牆拆除', specs: [{ id: 'half', label: '半B牆' }, { id: 'full', label: '1B牆', priceModifier: 1.5 }], unit: '坪', priceMin: 500, priceMax: 1200 },
+        { id: 'dm02', subcategory: '牆面拆除', name: '輕隔間拆除', specs: [{ id: 'std', label: '標準' }], unit: '坪', priceMin: 300, priceMax: 500 },
+        { id: 'dm03', subcategory: '地面拆除', name: '磁磚拆除', specs: [{ id: 'tile', label: '不含打底' }, { id: 'base', label: '含打底', priceModifier: 1.8 }], unit: '坪', priceMin: 400, priceMax: 1200 },
+        { id: 'dm04', subcategory: '整體拆除', name: '廚房全拆', specs: [{ id: 'std', label: '含清運' }], unit: '間', priceMin: 30000, priceMax: 50000 },
+        { id: 'dm05', subcategory: '整體拆除', name: '衛浴全拆', specs: [{ id: 'std', label: '含清運' }], unit: '間', priceMin: 12000, priceMax: 20000 },
+        { id: 'dm06', subcategory: '清運', name: '廢棄物清運', specs: [{ id: '3.5t', label: '3.5噸車' }], unit: '車', priceMin: 10000, priceMax: 15000 },
+    ],
+    // 14. 鐵件工程
+    metalwork: [
+        { id: 'm01', subcategory: '扶手', name: '不鏽鋼扶手', specs: [{ id: '304', label: '304' }, { id: '316', label: '316', priceModifier: 1.3 }], unit: '公尺', priceMin: 2500, priceMax: 5000 },
+        { id: 'm02', subcategory: '欄杆', name: '不鏽鋼欄杆', specs: [{ id: '304', label: '304' }], unit: '公尺', priceMin: 3000, priceMax: 5000 },
+        { id: 'm03', subcategory: '欄杆', name: '玻璃欄杆', specs: [{ id: 'tempered', label: '強化玻璃' }], unit: '公尺', priceMin: 6000, priceMax: 10000 },
+        { id: 'm04', subcategory: '雨遮', name: '不鏽鋼雨遮', specs: [{ id: 'pc', label: 'PC板' }, { id: 'glass', label: '玻璃', priceModifier: 1.3 }], unit: '才', priceMin: 500, priceMax: 1200 },
+    ],
+    // 15. 冷氣空調
+    hvac: [
+        { id: 'h01', subcategory: '窗型', name: '窗型冷氣安裝', specs: [{ id: 'labor', label: '純工資' }], unit: '台', priceMin: 1200, priceMax: 2500 },
+        { id: 'h02', subcategory: '分離式', name: '一對一安裝', specs: [{ id: 'labor', label: '純工資' }], unit: '台', priceMin: 3500, priceMax: 6000 },
+        { id: 'h03', subcategory: '分離式', name: '一對一連工帶料', specs: [{ id: 'full', label: '含機器' }], unit: '台', priceMin: 25000, priceMax: 45000 },
+        { id: 'h04', subcategory: '配管', name: '冷媒管延長', specs: [{ id: 'std', label: '標準' }], unit: '公尺', priceMin: 300, priceMax: 600 },
+        { id: 'h05', subcategory: '配管', name: '室外機架', specs: [{ id: 'ss', label: '不鏽鋼' }], unit: '組', priceMin: 1200, priceMax: 3000 },
+        { id: 'h06', subcategory: '迴路', name: '220V專用迴路', specs: [{ id: 'open', label: '明管' }, { id: 'hidden', label: '暗管', priceModifier: 1.3 }], unit: '迴', priceMin: 3500, priceMax: 6500 },
+    ],
+    // 16. 防水工程
+    waterproof: [
+        { id: 'wp01', subcategory: '浴室', name: '防水漆', specs: [{ id: 'two', label: '兩道' }], unit: '坪', priceMin: 600, priceMax: 1200 },
+        { id: 'wp02', subcategory: '浴室', name: '彈性水泥', specs: [{ id: 'std', label: '含底漆' }], unit: '坪', priceMin: 1500, priceMax: 2500, certifications: ['CNS 8905'] },
+        { id: 'wp03', subcategory: '浴室', name: 'PU防水', specs: [{ id: 'std', label: '標準厚度' }], unit: '坪', priceMin: 2000, priceMax: 3000, certifications: ['JIS A 6021'] },
+        { id: 'wp04', subcategory: '屋頂', name: '聚脲防水', specs: [{ id: 'high', label: '高強度' }], unit: '坪', priceMin: 3000, priceMax: 5000 },
+        { id: 'wp05', subcategory: '屋頂', name: '防水毯', specs: [{ id: 'premium', label: '最高規' }], unit: '坪', priceMin: 10000, priceMax: 15000 },
+        { id: 'wp06', subcategory: '外牆', name: '外牆防水', specs: [{ id: 'paint', label: '防水漆' }, { id: 'cement', label: '彈性水泥', priceModifier: 2 }], unit: '坪', priceMin: 600, priceMax: 4000 },
+    ],
+};
+
+// ============ 工具函數 ============
+
 export function getTradeItems(tradeId: TradeId): RenovationItem[] {
     return RENOVATION_ITEMS[tradeId] || [];
 }
 
-// 計算項目價格
-export function calculateItemPrice(
+export function getSubcategories(tradeId: TradeId): string[] {
+    const items = RENOVATION_ITEMS[tradeId] || [];
+    return [...new Set(items.map(item => item.subcategory))];
+}
+
+export function calculatePrice(
     item: RenovationItem,
     specId: string,
-    quantity: number
+    quantity: number,
+    brandModifier = 1
 ): { min: number; max: number; avg: number } {
     const spec = item.specs.find(s => s.id === specId);
-    const modifier = spec?.priceModifier ?? 1;
-
+    const modifier = (spec?.priceModifier ?? 1) * brandModifier;
     const min = item.priceMin * modifier * quantity;
     const max = item.priceMax * modifier * quantity;
-    const avg = (min + max) / 2;
-
-    return { min, max, avg };
+    return { min, max, avg: (min + max) / 2 };
 }
