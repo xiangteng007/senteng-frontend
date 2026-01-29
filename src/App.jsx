@@ -29,6 +29,7 @@ import {
   HardHat,
   Loader2,
   Home,
+  Book,
 } from 'lucide-react';
 
 // Dynamic imports for code splitting - reduces initial bundle size
@@ -64,6 +65,7 @@ const DashboardPage = React.lazy(() => import('./pages/Dashboard'));
 const SmartHomeQuotation = React.lazy(
   () => import('./pages/MaterialCalculator/components/SmartHomeQuotation')
 );
+const RegulationsPage = React.lazy(() => import('./pages/Regulations'));
 
 import { clientsApi, projectsApi } from './services/api';
 
@@ -139,6 +141,7 @@ const App = () => {
     '/procurements': 'procurements',
     '/site-logs': 'site-logs',
     '/smart-home': 'smart-home',
+    '/regulations': 'regulations',
   };
 
   // Get initial tab from URL
@@ -302,6 +305,8 @@ const App = () => {
         return <SiteLogsPage addToast={addToast} />;
       case 'smart-home':
         return <SmartHomeQuotation />;
+      case 'regulations':
+        return <RegulationsPage />;
       default:
         return <DashboardPage events={[]} finance={{}} projects={projects} clients={clients} />;
     }
@@ -334,6 +339,7 @@ const App = () => {
     'cost-estimator': '成本估算',
     'material-calc': '材料估算',
     'smart-home': '智慧家居報價',
+    regulations: '法規智能系統',
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -520,6 +526,12 @@ const App = () => {
               label="智慧家居報價"
               active={activeTab === 'smart-home'}
               onClick={() => navigate('smart-home')}
+            />
+            <SidebarItem
+              icon={Book}
+              label="法規智能系統"
+              active={activeTab === 'regulations'}
+              onClick={() => navigate('regulations')}
             />
           </SidebarGroup>
 

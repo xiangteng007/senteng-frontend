@@ -276,3 +276,197 @@ export interface SelectOption {
   label: string;
   value: string | number;
 }
+
+// ==========================================
+// Vendor Types
+// ==========================================
+
+export interface Vendor {
+  id: string;
+  name: string;
+  type?: VendorType;
+  taxId?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  bankName?: string;
+  bankAccount?: string;
+  paymentTerms?: number;
+  status?: VendorStatus;
+  rating?: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type VendorType = 'contractor' | 'supplier' | 'service' | '承包商' | '供應商' | '服務商';
+export type VendorStatus = 'active' | 'inactive' | 'blacklisted' | '正常' | '停用' | '黑名單';
+
+// ==========================================
+// Payment Types
+// ==========================================
+
+export interface Payment {
+  id: string;
+  paymentNo?: string;
+  projectId: string;
+  contractId?: string;
+  status: PaymentStatus;
+  amount: number;
+  dueDate?: string;
+  paidDate?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PaymentStatus = 'pending' | 'submitted' | 'approved' | 'paid' | 'rejected';
+
+// ==========================================
+// Change Order Types
+// ==========================================
+
+export interface ChangeOrder {
+  id: string;
+  changeOrderNo?: string;
+  projectId: string;
+  contractId?: string;
+  status: ChangeOrderStatus;
+  amount: number;
+  reason?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ChangeOrderStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
+// ==========================================
+// Cost Entry Types
+// ==========================================
+
+export interface CostEntry {
+  id: string;
+  projectId: string;
+  category: string;
+  amount: number;
+  description?: string;
+  isPaid?: boolean;
+  paidDate?: string;
+  vendorId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ==========================================
+// Site Log Types
+// ==========================================
+
+export interface SiteLog {
+  id: string;
+  projectId: string;
+  date: string;
+  weather?: string;
+  temperature?: number;
+  status: SiteLogStatus;
+  workSummary?: string;
+  workers?: number;
+  notes?: string;
+  photos?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type SiteLogStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
+// ==========================================
+// Procurement Types
+// ==========================================
+
+export interface Procurement {
+  id: string;
+  projectId: string;
+  status: ProcurementStatus;
+  title: string;
+  description?: string;
+  deadline?: string;
+  items?: ProcurementItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ProcurementStatus = 'draft' | 'open' | 'evaluating' | 'awarded' | 'cancelled';
+
+export interface ProcurementItem {
+  id: string;
+  name: string;
+  specification?: string;
+  quantity: number;
+  unit: string;
+  estimatedPrice?: number;
+}
+
+// ==========================================
+// Finance Extended Types
+// ==========================================
+
+export interface FinanceAccount {
+  id: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+export type AccountType = 'cash' | 'bank' | 'credit' | 'receivable' | 'payable';
+
+export interface FinanceTransaction {
+  id: string;
+  accountId: string;
+  type: TransactionType;
+  amount: number;
+  date: string;
+  description?: string;
+  projectId?: string;
+  category?: string;
+  createdAt?: string;
+}
+
+export interface FinanceLoan {
+  id: string;
+  name: string;
+  amount: number;
+  interestRate: number;
+  status: LoanStatus;
+  startDate?: string;
+  endDate?: string;
+  remainingBalance?: number;
+  createdAt?: string;
+}
+
+export type LoanStatus = 'active' | 'paid' | 'defaulted';
+
+// ==========================================
+// API Response Types
+// ==========================================
+
+export interface ApiResponse<T = unknown> {
+  success?: boolean;
+  data?: T;
+  items?: T[];
+  message?: string;
+  total?: number;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ApiRequestOptions extends RequestInit {
+  headers?: Record<string, string>;
+}
