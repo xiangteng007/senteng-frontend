@@ -2,6 +2,9 @@
  * useApiData.ts
  *
  * Custom hook for loading and managing data from API with Google Sheets fallback
+ * 
+ * NOTE: Uses local type definitions for Google Sheets compatibility.
+ * For canonical domain types, see types/index.ts
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,7 +12,8 @@ import { clientsApi, projectsApi, vendorsApi, inventoryApi, financeApi } from '.
 import { GoogleService } from './GoogleService';
 
 // ==========================================
-// Types
+// Local Types (Google Sheets compatible)
+// For canonical domain types, see types/index.ts
 // ==========================================
 
 export interface Client {
@@ -404,8 +408,8 @@ export const useApiData = (isAuthenticated = false): UseApiDataReturn => {
                     transactions:
                         transactionsResult.status === 'fulfilled' && transactionsResult.value
                             ? Array.isArray(transactionsResult.value)
-                                ? (transactionsResult.value as FinanceTransaction[])
-                                : ((transactionsResult.value as TransactionsValue) as {
+                                ? (transactionsResult.value as unknown as FinanceTransaction[])
+                                : ((transactionsResult.value as unknown as TransactionsValue) as {
                                     items: FinanceTransaction[];
                                 }).items || []
                             : prev.finance.transactions,
@@ -465,7 +469,7 @@ export const useApiData = (isAuthenticated = false): UseApiDataReturn => {
     // === PROJECTS ===
     const createProject = async (projectData: Partial<Project>): Promise<ApiResult<Project>> => {
         try {
-            const result = await projectsApi.create(projectData);
+            const result = await projectsApi.create(projectData as unknown as Record<string, unknown>);
             const mapped = mapProjectFromApi(result as ApiProject);
             setData(prev => ({ ...prev, projects: [...prev.projects, mapped] }));
             return { success: true, data: mapped };
@@ -479,7 +483,7 @@ export const useApiData = (isAuthenticated = false): UseApiDataReturn => {
         projectData: Partial<Project>
     ): Promise<ApiResult<Project>> => {
         try {
-            const result = await projectsApi.update(id, projectData);
+            const result = await projectsApi.update(id, projectData as unknown as Record<string, unknown>);
             const mapped = mapProjectFromApi(result as ApiProject);
             setData(prev => ({
                 ...prev,

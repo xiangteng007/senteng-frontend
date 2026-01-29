@@ -5,8 +5,25 @@
  * All endpoint definitions and HTTP utilities
  */
 
+// Import shared types from central location
+import type {
+  Client,
+  Project,
+  Vendor,
+  Quotation,
+  QuotationItem,
+  Contract,
+  Invoice,
+  InvoiceItem,
+  Transaction,
+  CalendarEvent,
+} from '../types';
+
+// Re-export for backward compatibility
+export type { Client, Project, Vendor, Quotation, QuotationItem, Contract, Invoice };
+
 // ==========================================
-// Types
+// API-Specific Types
 // ==========================================
 
 export interface ApiRequestOptions extends RequestInit {
@@ -28,92 +45,7 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-// Entity types
-export interface Client {
-  id: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  status?: string;
-  type?: string;
-  taxId?: string;
-  contactPerson?: string;
-  createdAt?: string;
-}
-
-export interface Project {
-  id: string;
-  name: string;
-  clientId?: string;
-  client?: { name?: string };
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  contractAmount?: number;
-  description?: string;
-  createdAt?: string;
-}
-
-export interface Vendor {
-  id: string;
-  name: string;
-  type?: string;
-  taxId?: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  bankName?: string;
-  bankAccount?: string;
-  paymentTerms?: number;
-  status?: string;
-  rating?: number;
-  notes?: string;
-  createdAt?: string;
-}
-
-export interface Quotation {
-  id: string;
-  quotationNo?: string;
-  projectId: string;
-  title: string;
-  status: string;
-  version?: number;
-  currency?: string;
-  isTaxIncluded?: boolean;
-  taxRate?: number;
-  validUntil?: string;
-  notes?: string;
-  items?: QuotationItem[];
-  totalAmount?: number;
-  createdAt?: string;
-}
-
-export interface QuotationItem {
-  id?: string;
-  itemOrder?: number;
-  category?: string;
-  itemName?: string;
-  spec?: string;
-  unit?: string;
-  quantity?: number;
-  unitPrice?: number;
-  amount?: number;
-  remark?: string;
-}
-
-export interface Contract {
-  id: string;
-  contractNo?: string;
-  projectId: string;
-  title: string;
-  status: string;
-  signDate?: string;
-  totalAmount?: number;
-  createdAt?: string;
-}
-
+// API-specific extended types (not in central types)
 export interface Payment {
   id: string;
   paymentNo?: string;
