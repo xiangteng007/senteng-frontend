@@ -256,6 +256,10 @@ export const CostEstimator = ({
                     {material.regulation && <Info size={14} className="text-blue-400" />}
                   </div>
                   <div className="text-xs text-gray-500">{material.spec}</div>
+                  {/* 顯示完成厚度與隔音等級 */}
+                  {material.note && (
+                    <div className="text-xs text-blue-600 font-medium mt-0.5">{material.note}</div>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-gray-400">
                       建議價: ${material.suggestedPrice || material.price}
@@ -383,11 +387,10 @@ export const CostEstimator = ({
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
-                      selectedCategory === category
+                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedCategory === category
                         ? 'border-orange-500 bg-orange-50 text-orange-700'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <Icon size={20} />
                     <span className="font-medium text-xs">{category}</span>
