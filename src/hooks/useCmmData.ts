@@ -197,7 +197,7 @@ export function useCmmCalculate(): UseCmmCalculateResult {
 
         try {
             const response = await fetch(
-                `${import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app'}/v2/cmm/calculate`,
+                `${import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app'}/api/v1/cmm/calculate`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

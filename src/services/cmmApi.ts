@@ -2,7 +2,7 @@
  * cmmApi.ts
  *
  * CMM API Service - 營建物料估算系統 - TypeScript 版本
- * 連接 senteng-erp-api /v2/cmm 端點
+ * 連接 senteng-erp-api /api/v1/cmm 端點
  */
 
 // ==========================================
@@ -11,7 +11,7 @@
 
 const API_BASE =
     import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app';
-const CMM_BASE = `${API_BASE}/v2/cmm`;
+const CMM_BASE = `${API_BASE}/api/v1/cmm`;
 
 // ==========================================
 // Types
