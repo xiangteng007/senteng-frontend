@@ -222,8 +222,7 @@ export interface Procurement {
 // API Configuration
 // ==========================================
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app/api/v1';
+import { API_BASE_URL } from '../config/api';
 
 // ==========================================
 // API Service Class

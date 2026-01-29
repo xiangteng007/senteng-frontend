@@ -396,13 +396,12 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
   const handleSyncRegulations = async () => {
     if (isSyncingRegulations) return;
 
-    const API_BASE =
-      import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app/api/v1';
+    const { API_BASE_URL } = await import('../config/api');
     const token = localStorage.getItem('auth_token');
 
     setIsSyncingRegulations(true);
     try {
-      const response = await fetch(`${API_BASE}/regulations/sync`, {
+      const response = await fetch(`${API_BASE_URL}/regulations/sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -415,7 +414,7 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
 
       // 輪詢狀態
       const pollStatus = async () => {
-        const statusRes = await fetch(`${API_BASE}/regulations/sync/status`, {
+        const statusRes = await fetch(`${API_BASE_URL}/regulations/sync/status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const status = await statusRes.json();
@@ -655,11 +654,10 @@ export const EngineeringEstimateWorkspace = ({ addToast }) => {
               <button
                 key={view.id}
                 onClick={() => setMobileView(view.id)}
-                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                  mobileView === view.id
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${mobileView === view.id
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 {view.label}
               </button>

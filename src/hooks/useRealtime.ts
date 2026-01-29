@@ -7,9 +7,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_HOST } from '../config/api';
 
-const SOCKET_URL =
-    import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app';
+const SOCKET_URL = API_HOST;
 
 export interface RealtimeEvent {
     event: string;

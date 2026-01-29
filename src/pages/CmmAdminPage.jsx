@@ -25,9 +25,10 @@ import {
   ChevronUp,
   AlertCircle,
 } from 'lucide-react';
+import { API_ENDPOINTS } from '../config/api';
 
-// API Base
-const API_BASE = import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app';
+// API Base (using centralized config)
+const API_BASE = API_ENDPOINTS.cmm;
 
 // Tab 設定
 const TABS = [
@@ -72,7 +73,7 @@ export default function CmmAdminPage({ addToast }) {
     setLoading(true);
     setError(null);
     try {
-      let url = `${API_BASE}/api/v1/cmm/`;
+      let url = `${API_BASE}/`;
       switch (activeTab) {
         case 'profiles':
           url += 'profiles';
@@ -105,13 +106,13 @@ export default function CmmAdminPage({ addToast }) {
   // Filter data based on search
   const filteredData = Array.isArray(data)
     ? data.filter(item => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          item.code?.toLowerCase().includes(searchLower) ||
-          item.name?.toLowerCase().includes(searchLower) ||
-          item.label?.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        item.code?.toLowerCase().includes(searchLower) ||
+        item.name?.toLowerCase().includes(searchLower) ||
+        item.label?.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Handle delete
@@ -119,7 +120,7 @@ export default function CmmAdminPage({ addToast }) {
     if (!confirm('確定要刪除此項目嗎？')) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/cmm/${activeTab}/${id}`, {
+      const response = await fetch(`${API_BASE}/${activeTab}/${id}`, {
         method: 'DELETE',
       });
 
@@ -137,8 +138,8 @@ export default function CmmAdminPage({ addToast }) {
     try {
       const isEdit = !!editingItem?.id;
       const url = isEdit
-        ? `${API_BASE}/api/v1/cmm/${activeTab}/${editingItem.id}`
-        : `${API_BASE}/api/v1/cmm/${activeTab}`;
+        ? `${API_BASE}/${activeTab}/${editingItem.id}`
+        : `${API_BASE}/${activeTab}`;
 
       const response = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
@@ -200,11 +201,10 @@ export default function CmmAdminPage({ addToast }) {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'text-gray-900 border-gray-900'
-                : 'text-gray-500 border-transparent hover:text-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
+              ? 'text-gray-900 border-gray-900'
+              : 'text-gray-500 border-transparent hover:text-gray-700'
+              }`}
           >
             <tab.icon size={16} />
             {tab.label}
@@ -413,11 +413,10 @@ function MaterialsTable({ data, onEdit, onDelete }) {
                 <td className="px-4 py-3">{item.baseUnit}</td>
                 <td className="px-4 py-3 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      item.status === 'ACTIVE'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
+                    className={`px-2 py-1 rounded text-xs ${item.status === 'ACTIVE'
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-gray-100 text-gray-500'
+                      }`}
                   >
                     {item.status === 'ACTIVE' ? '啟用' : '停用'}
                   </span>

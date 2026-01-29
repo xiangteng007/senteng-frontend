@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { cmmProfilesApi, cmmMaterialsApi } from '../services/cmmApi';
+import { API_ENDPOINTS } from '../config/api';
 
 // ==========================================
 // Types
@@ -197,7 +198,7 @@ export function useCmmCalculate(): UseCmmCalculateResult {
 
         try {
             const response = await fetch(
-                `${import.meta.env.VITE_API_URL || 'https://erp-api-381507943724.asia-east1.run.app'}/api/v1/cmm/calculate`,
+                API_ENDPOINTS.cmmCalculate,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
