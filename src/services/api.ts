@@ -13,14 +13,10 @@ import type {
   Quotation,
   QuotationItem,
   Contract,
-  Invoice,
-  InvoiceItem,
-  Transaction,
-  CalendarEvent,
 } from '../types';
 
 // Re-export for backward compatibility
-export type { Client, Project, Vendor, Quotation, QuotationItem, Contract, Invoice };
+export type { Client, Project, Vendor, Quotation, QuotationItem, Contract };
 
 // ==========================================
 // API-Specific Types
@@ -179,11 +175,27 @@ class ApiService {
     localStorage.removeItem('auth_token');
   }
 
+  /**
+   * Read CSRF token from XSRF-TOKEN cookie (Double Submit Cookie pattern)
+   */
+  private getCsrfToken(): string | null {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
   async request<T = unknown>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+
+    // Read CSRF token from cookie (Double Submit Cookie pattern)
+    const csrfToken = this.getCsrfToken();
+    const isStateChangingMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(
+      (options.method || 'GET').toUpperCase()
+    );
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      ...(isStateChangingMethod && csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
       ...options.headers,
     };
 
