@@ -10,3 +10,8 @@ export { default as TileCalculator } from './TileCalculator';
 
 // Export remaining JSX component (pending migration)
 export { default as StructureCalculator } from './StructureCalculator';
+
+// Export smart home quotation components
+export { default as QuotationList } from './QuotationList';
+export { default as SmartHomeQuotation } from './SmartHomeQuotation';
+

@@ -1,7 +1,8 @@
 /**
- * 室內裝修連工帶料計價資料 v3.0
+ * 室內裝修連工帶料計價資料 v3.1
  * Interior Renovation Labor+Material Pricing Data
- * 16 工種 / 200+ 項目 / 含品牌與認證
+ * 17 工種 / 230+ 項目 / 含品牌與認證
+ * v3.1: +智慧家居(Aqara/HomeKit) / 擴展木作子分類
  */
 
 // ============ 類型定義 ============
@@ -10,7 +11,8 @@ export type TradeId =
     | 'paint' | 'woodwork' | 'partition' | 'ceiling'
     | 'cabinet' | 'kitchen' | 'bathroom' | 'flooring'
     | 'electrical' | 'door_window' | 'glass' | 'curtain'
-    | 'demolition' | 'metalwork' | 'hvac' | 'waterproof';
+    | 'demolition' | 'metalwork' | 'hvac' | 'waterproof'
+    | 'smart_home';  // v3.1 新增
 
 export interface BrandOption {
     id: string;
@@ -52,6 +54,7 @@ export const RENOVATION_TRADES = [
     { id: 'metalwork', label: '鐵件工程', icon: 'Wrench' },
     { id: 'hvac', label: '冷氣空調', icon: 'Snowflake' },
     { id: 'waterproof', label: '防水工程', icon: 'Droplets' },
+    { id: 'smart_home', label: '智慧家居', icon: 'Cpu' },  // v3.1 新增
 ] as const;
 
 // ============ 品牌資料 ============
@@ -82,6 +85,12 @@ export const BRANDS: Record<string, BrandOption[]> = {
         { id: 'toto', name: 'TOTO', origin: '日本', tier: 'premium', priceModifier: 1.5 },
         { id: 'hcg', name: 'HCG 和成', origin: '台灣', tier: 'standard', priceModifier: 1.0 },
         { id: 'caesar', name: '凱撒 CAESAR', origin: '台灣', tier: 'standard', priceModifier: 1.05 },
+    ],
+    // v3.1 新增
+    smart_home: [
+        { id: 'aqara', name: 'Aqara', origin: '中國', tier: 'premium', priceModifier: 1.0 },
+        { id: 'homekit', name: 'HomeKit 配件', origin: '多國', tier: 'premium', priceModifier: 1.2 },
+        { id: 'mijia', name: '米家', origin: '中國', tier: 'economy', priceModifier: 0.8 },
     ],
 };
 
@@ -243,6 +252,30 @@ export const RENOVATION_ITEMS: Record<TradeId, RenovationItem[]> = {
         { id: 'wp04', subcategory: '屋頂', name: '聚脲防水', specs: [{ id: 'high', label: '高強度' }], unit: '坪', priceMin: 3000, priceMax: 5000 },
         { id: 'wp05', subcategory: '屋頂', name: '防水毯', specs: [{ id: 'premium', label: '最高規' }], unit: '坪', priceMin: 10000, priceMax: 15000 },
         { id: 'wp06', subcategory: '外牆', name: '外牆防水', specs: [{ id: 'paint', label: '防水漆' }, { id: 'cement', label: '彈性水泥', priceModifier: 2 }], unit: '坪', priceMin: 600, priceMax: 4000 },
+    ],
+    // 17. 智慧家居 (v3.1 新增 - 爬蟲同步資料)
+    smart_home: [
+        { id: 'sh01', subcategory: '中樞網關', name: 'Aqara M2 網關', specs: [{ id: 'homekit', label: 'HomeKit/Matter' }], unit: '組', priceMin: 2500, priceMax: 3000, brands: ['aqara'] },
+        { id: 'sh02', subcategory: '中樞網關', name: 'G2H Pro 攝影機網關', specs: [{ id: 'camera', label: '含攝影功能' }], unit: '組', priceMin: 3500, priceMax: 4000, brands: ['aqara'] },
+        { id: 'sh03', subcategory: '感測器', name: '門窗感測器', specs: [{ id: 'intl', label: '國際版' }], unit: '個', priceMin: 315, priceMax: 629, brands: ['aqara'] },
+        { id: 'sh04', subcategory: '感測器', name: '溫濕度感測器', specs: [{ id: 'intl', label: '國際版' }], unit: '個', priceMin: 365, priceMax: 669, brands: ['aqara'] },
+        { id: 'sh05', subcategory: '感測器', name: '人體移動感測器', specs: [{ id: 'p1', label: 'P1' }, { id: 'p2', label: 'P2', priceModifier: 1.2 }], unit: '個', priceMin: 375, priceMax: 1575, brands: ['aqara'] },
+        { id: 'sh06', subcategory: '感測器', name: 'FP2 人體存在感測器', specs: [{ id: 'mmwave', label: '毫米波' }], unit: '個', priceMin: 2720, priceMax: 2990, brands: ['aqara'], note: '直連HomeKit' },
+        { id: 'sh07', subcategory: '感測器', name: '煙霧偵測器', specs: [{ id: 'homekit', label: 'HomeKit' }], unit: '個', priceMin: 1520, priceMax: 1600, brands: ['aqara'] },
+        { id: 'sh08', subcategory: '感測器', name: '水浸感測器', specs: [{ id: 'std', label: '標準' }], unit: '個', priceMin: 399, priceMax: 500, brands: ['aqara'] },
+        { id: 'sh09', subcategory: '智慧開關', name: '智能開關 H2 雙鍵', specs: [{ id: 'tw', label: '台灣規格/HomeKit' }], unit: '個', priceMin: 1800, priceMax: 1900, brands: ['aqara'] },
+        { id: 'sh10', subcategory: '智慧開關', name: '智能開關 H2 四鍵', specs: [{ id: 'tw', label: '台灣規格/HomeKit' }], unit: '個', priceMin: 2090, priceMax: 2200, brands: ['aqara'] },
+        { id: 'sh11', subcategory: '智慧開關', name: '智慧插座', specs: [{ id: 'tw', label: '台灣版/HomeKit' }], unit: '個', priceMin: 855, priceMax: 950, brands: ['aqara'] },
+        { id: 'sh12', subcategory: '智慧門鎖', name: 'A100 智能門鎖', specs: [{ id: 'homekit', label: '9種解鎖/HomeKit' }], unit: '組', priceMin: 13599, priceMax: 22000, brands: ['aqara'], note: '含基本安裝' },
+        { id: 'sh13', subcategory: '智慧門鎖', name: 'D100 智能門鎖', specs: [{ id: 'finger', label: '指紋/密碼/NFC' }], unit: '組', priceMin: 14999, priceMax: 20999, brands: ['aqara'] },
+        { id: 'sh14', subcategory: '智慧門鎖', name: 'D200i 人臉門鎖', specs: [{ id: 'face', label: '人臉辨識/HomeKit' }], unit: '組', priceMin: 23999, priceMax: 25000, brands: ['aqara'] },
+        { id: 'sh15', subcategory: '窗簾電機', name: 'E1 窗簾驅動器', specs: [{ id: 'track', label: '軌道版' }, { id: 'rod', label: '羅馬框版', priceModifier: 1.1 }], unit: '組', priceMin: 2999, priceMax: 3399, brands: ['aqara'] },
+        { id: 'sh16', subcategory: '窗簾電機', name: 'E1 捲簾機', specs: [{ id: 'std', label: '標準' }], unit: '組', priceMin: 2300, priceMax: 2500, brands: ['aqara'] },
+        { id: 'sh17', subcategory: '窗簾電機', name: '智能窗簾電機 C3', specs: [{ id: 'zigbee', label: 'Zigbee' }], unit: '組', priceMin: 4400, priceMax: 4600, brands: ['aqara'] },
+        { id: 'sh18', subcategory: '窗簾電機', name: '窗簾軌道', specs: [{ id: 'custom', label: '訂製長度' }], unit: '公尺', priceMin: 800, priceMax: 1500 },
+        { id: 'sh19', subcategory: '情境套組', name: '入門套組', specs: [{ id: 'basic', label: '網關+3感測器+2開關' }], unit: '組', priceMin: 8000, priceMax: 12000 },
+        { id: 'sh20', subcategory: '情境套組', name: '標準套組', specs: [{ id: 'std', label: '+門鎖+窗簾電機' }], unit: '組', priceMin: 35000, priceMax: 50000 },
+        { id: 'sh21', subcategory: '情境套組', name: '全屋整合', specs: [{ id: 'full', label: '全室情境控制' }], unit: '式', priceMin: 100000, priceMax: 300000 },
     ],
 };
 
