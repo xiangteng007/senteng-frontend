@@ -58,6 +58,7 @@ export const CATEGORY_L2 = {
   interior: [
     { id: 'paint', label: '油漆', icon: Paintbrush },
     { id: 'woodwork', label: '木作', icon: Hammer },
+    { id: 'steelframe', label: '輕鋼架', icon: Grid3X3 },
     { id: 'cabinet', label: '系統櫃', icon: Grid3X3 },
     { id: 'electrical', label: '水電', icon: Grid3X3 },
     { id: 'flooring', label: '地板', icon: Layers },
@@ -88,10 +89,9 @@ export const CategoryTabsL1 = ({ selected, onSelect, className = '' }) => {
             onClick={() => onSelect(cat.id)}
             className={`
               flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
-              ${
-                isActive
-                  ? 'bg-gray-900 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ${isActive
+                ? 'bg-gray-900 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }
             `}
           >
@@ -124,10 +124,9 @@ export const CategoryTabsL2 = ({ categoryL1, selected, onSelect, className = '' 
             onClick={() => onSelect(item.id)}
             className={`
               flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-all
-              ${
-                isActive
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'
+              ${isActive
+                ? 'bg-gray-900 text-white'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'
               }
             `}
           >
