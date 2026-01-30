@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   Calendar as CalendarIcon,
   Briefcase,
@@ -6,6 +6,11 @@ import {
   Wallet,
   HardHat,
   Package,
+  Shield,
+  Recycle,
+  Camera,
+  GitBranch,
+  History,
   Bell,
   LayoutDashboard,
   Image as ImageIcon,
@@ -79,6 +84,12 @@ const ALL_MENU_ITEMS = {
     label: '整合設定',
     path: '/settings/integrations',
   },
+  // === 新增功能 ===
+  insurance: { id: 'insurance', icon: Shield, label: '保險管理' },
+  waste: { id: 'waste', icon: Recycle, label: '廢棄物管理' },
+  'site-photos': { id: 'site-photos', icon: Camera, label: '工地照片' },
+  'contract-versions': { id: 'contract-versions', icon: GitBranch, label: '合約版本' },
+  'audit-log': { id: 'audit-log', icon: History, label: '稽核日誌' },
 };
 
 // 群組定義（新的分組結構）
@@ -94,14 +105,14 @@ const MENU_GROUPS = [
     id: 'project',
     label: '專案執行',
     icon: Briefcase,
-    items: ['projects', 'schedule', 'contracts'],
+    items: ['projects', 'schedule', 'contracts', 'insurance', 'waste', 'site-photos'],
     defaultExpanded: true,
   },
   {
     id: 'finance',
     label: '財務中心',
     icon: Wallet,
-    items: ['finance', 'quotations', 'payments', 'cost-entries', 'profit'],
+    items: ['finance', 'quotations', 'payments', 'cost-entries', 'profit', 'contract-versions'],
     defaultExpanded: true,
   },
   {
@@ -122,7 +133,7 @@ const MENU_GROUPS = [
     id: 'admin',
     label: '系統設定',
     icon: Settings,
-    items: ['user-management', 'integrations'],
+    items: ['user-management', 'integrations', 'audit-log'],
     defaultExpanded: false,
     adminOnly: true,
   },

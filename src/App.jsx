@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+﻿import React, { useState, useEffect, Suspense } from 'react';
 import { useAuth } from './context/AuthContext';
 import {
   LayoutDashboard,
@@ -21,6 +21,11 @@ import {
   LogOut,
   ShoppingCart,
   ClipboardList,
+  Shield,
+  Recycle,
+  Camera,
+  GitBranch,
+  History,
   Menu,
   X,
   Layers,
@@ -66,6 +71,12 @@ const SmartHomeQuotation = React.lazy(
   () => import('./pages/MaterialCalculator/components/SmartHomeQuotation')
 );
 const RegulationsPage = React.lazy(() => import('./pages/Regulations'));
+// === 新增頁面 ===
+const InsurancePage = React.lazy(() => import('./pages/Insurance'));
+const WastePage = React.lazy(() => import('./pages/Waste'));
+const AuditLogPage = React.lazy(() => import('./pages/AuditLog'));
+const SitePhotosPage = React.lazy(() => import('./pages/SitePhotos'));
+const ContractVersionsPage = React.lazy(() => import('./pages/ContractVersions'));
 
 import { clientsApi, projectsApi } from './services/api';
 
@@ -142,6 +153,11 @@ const App = () => {
     '/site-logs': 'site-logs',
     '/smart-home': 'smart-home',
     '/regulations': 'regulations',
+    '/insurance': 'insurance',
+    '/waste': 'waste',
+    '/audit-log': 'audit-log',
+    '/site-photos': 'site-photos',
+    '/contract-versions': 'contract-versions',
   };
 
   // Get initial tab from URL
@@ -307,6 +323,16 @@ const App = () => {
         return <SmartHomeQuotation />;
       case 'regulations':
         return <RegulationsPage />;
+      case 'insurance':
+        return <InsurancePage addToast={addToast} />;
+      case 'waste':
+        return <WastePage addToast={addToast} />;
+      case 'audit-log':
+        return <AuditLogPage addToast={addToast} />;
+      case 'site-photos':
+        return <SitePhotosPage addToast={addToast} />;
+      case 'contract-versions':
+        return <ContractVersionsPage addToast={addToast} />;
       default:
         return <DashboardPage events={[]} finance={{}} projects={projects} clients={clients} />;
     }
@@ -340,6 +366,11 @@ const App = () => {
     'material-calc': '材料估算',
     'smart-home': '智慧家居報價',
     regulations: '法規智能系統',
+    insurance: '保險管理',
+    waste: '廢棄物管理',
+    'audit-log': '稽核日誌',
+    'site-photos': '工地照片',
+    'contract-versions': '合約版本',
   };
   const getTitle = () => titles[activeTab] || '儀表板';
 
@@ -415,6 +446,24 @@ const App = () => {
               active={activeTab === 'site-logs'}
               onClick={() => navigate('site-logs')}
             />
+            <SidebarItem
+              icon={Shield}
+              label="保險管理"
+              active={activeTab === 'insurance'}
+              onClick={() => navigate('insurance')}
+            />
+            <SidebarItem
+              icon={Recycle}
+              label="廢棄物管理"
+              active={activeTab === 'waste'}
+              onClick={() => navigate('waste')}
+            />
+            <SidebarItem
+              icon={Camera}
+              label="工地照片"
+              active={activeTab === 'site-photos'}
+              onClick={() => navigate('site-photos')}
+            />
           </SidebarGroup>
 
           {/* 📋 商務合約 */}
@@ -465,9 +514,15 @@ const App = () => {
               active={activeTab === 'profit-analysis'}
               onClick={() => navigate('profit-analysis')}
             />
+            <SidebarItem
+              icon={GitBranch}
+              label="合約版本"
+              active={activeTab === 'contract-versions'}
+              onClick={() => navigate('contract-versions')}
+            />
           </SidebarGroup>
 
-          {/* 📦 資源管理 */}
+          {/*  資源管理 */}
           <SidebarGroup label="資源管理">
             <SidebarItem
               icon={Users}
@@ -566,6 +621,12 @@ const App = () => {
               label="發票小幫手"
               active={activeTab === 'invoice-helper'}
               onClick={() => navigate('invoice-helper')}
+            />
+            <SidebarItem
+              icon={History}
+              label="稽核日誌"
+              active={activeTab === 'audit-log'}
+              onClick={() => navigate('audit-log')}
             />
           </SidebarGroup>
         </nav>
